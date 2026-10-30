@@ -1,0 +1,1470 @@
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Pause,
+  Play,
+  RotateCcw,
+  Sparkles,
+  Volume2,
+  VolumeX,
+  Sliders,
+  ChevronDown,
+  ChevronUp,
+  CircleDot,
+  Grid,
+  Disc,
+  Hexagon,
+  Boxes,
+  Radar,
+  Dices,
+  Circle,
+  Square,
+  FlipHorizontal,
+  FlipVertical,
+  RotateCw,
+  Palette,
+  Shuffle,
+  Eye,
+  Zap,
+  Microchip,
+  Cpu,
+  Music,
+  Radio,
+  Activity,
+  Waves,
+  Save,
+  Check,
+} from 'lucide-react';
+import {
+  ChladniParams,
+  GridType,
+  VoidShape,
+  PRESETS,
+  GRID_TYPE_LABELS,
+  COLOR_PALETTES,
+  AudioMetrics,
+} from '../types/chladni.ts';
+import { plateAudio } from '../simulation/audioSynth.ts';
+
+interface ControlPanelProps {
+  params: ChladniParams;
+  onChange: (params: ChladniParams) => void;
+  isPaused: boolean;
+  onTogglePause: () => void;
+  onScatter: () => void;
+  onSave?: () => void;
+  onReset: () => void;
+  isAudioEnabled: boolean;
+  onToggleAudio: () => void;
+  onOpenWasmLab?: () => void;
+  audioMetrics?: AudioMetrics;
+  hasSavedSettings?: boolean;
+  autoSaveEnabled?: boolean;
+  onToggleAutoSave?: () => void;
+  lastSavedTime?: string | null;
+}
+
+const formatTime = (sec: number) => {
+  if (!isFinite(sec) || isNaN(sec)) return '0:00';
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+};
+
+const AudioVisualizer: React.FC<{ isEnabled: boolean }> = ({ isEnabled }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    let animId: number;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const render = () => {
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+
+      // Background
+      ctx.fillStyle = '#08090d';
+      ctx.fillRect(0, 0, width, height);
+
+      const freqData = plateAudio.getFrequencyData();
+      if (!isEnabled || !freqData) {
+        // Flat line when muted or paused
+        ctx.strokeStyle = '#22252d';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, height / 2);
+        ctx.lineTo(width, height / 2);
+        ctx.stroke();
+        animId = requestAnimationFrame(render);
+        return;
+      }
+
+      // Draw frequency spectrum bars
+      const numBars = 32;
+      const barWidth = width / numBars;
+      for (let i = 0; i < numBars; i++) {
+        const binIndex = Math.floor((i / numBars) * (freqData.length * 0.75));
+        const val = freqData[binIndex] / 255;
+        const barHeight = Math.max(2, val * (height - 4));
+        const x = i * barWidth;
+        const y = height - barHeight;
+
+        // Gradient from warm amber (resonance) to luminous aqua
+        const hue = 38 + (i / numBars) * 140;
+        ctx.fillStyle = `hsl(${hue}, 88%, ${Math.min(78, 42 + val * 35)}%)`;
+        ctx.fillRect(x + 1, y, Math.max(1, barWidth - 2), barHeight);
+      }
+
+      animId = requestAnimationFrame(render);
+    };
+
+    animId = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(animId);
+  }, [isEnabled]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={320}
+      height={36}
+      className="w-full h-9 rounded bg-[#08090d] border border-neutral-800/80 shadow-inner"
+    />
+  );
+};
+
+interface SliderRowProps {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  digits?: number;
+  formatFn?: (val: number) => string;
+  onChange: (val: number) => void;
+}
+
+const SliderRow: React.FC<SliderRowProps> = ({
+  label,
+  value,
+  min,
+  max,
+  step,
+  digits = 2,
+  formatFn,
+  onChange,
+}) => {
+  const displayVal = formatFn ? formatFn(value) : value.toFixed(digits);
+
+  const handleStep = (direction: -1 | 1) => {
+    const delta = step * 1;
+    const nextVal = Math.min(max, Math.max(min, +(value + direction * delta).toFixed(digits)));
+    onChange(nextVal);
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5 py-1.5">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-neutral-400 font-normal">{label}</span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => handleStep(-1)}
+            className="w-5 h-5 flex items-center justify-center rounded text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+            title="Decrease"
+          >
+            <ChevronLeft size={13} />
+          </button>
+          <span className="w-14 text-center font-mono text-neutral-200 text-xs bg-neutral-900/80 py-0.5 rounded border border-neutral-800/80">
+            {displayVal}
+          </span>
+          <button
+            type="button"
+            onClick={() => handleStep(1)}
+            className="w-5 h-5 flex items-center justify-center rounded text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+            title="Increase"
+          >
+            <ChevronRight size={13} />
+          </button>
+        </div>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="w-full h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-neutral-300 hover:accent-white transition-all"
+      />
+    </div>
+  );
+};
+
+export const ControlPanel: React.FC<ControlPanelProps> = ({
+  params,
+  onChange,
+  isPaused,
+  onTogglePause,
+  onScatter,
+  onSave,
+  onReset,
+  isAudioEnabled,
+  onToggleAudio,
+  onOpenWasmLab,
+  audioMetrics,
+  hasSavedSettings = false,
+  autoSaveEnabled = true,
+  onToggleAutoSave,
+  lastSavedTime = null,
+}) => {
+  const [collapsed, setCollapsed] = useState(false);
+  const [showPresets, setShowPresets] = useState(false);
+  const [showColorCustomizer, setShowColorCustomizer] = useState(false);
+  const [presetFilter, setPresetFilter] = useState<'all' | 'empty-center' | 'classic'>('empty-center');
+  const [justSaved, setJustSaved] = useState(false);
+
+  const updateParam = <K extends keyof ChladniParams>(key: K, val: ChladniParams[K]) => {
+    onChange({
+      ...params,
+      [key]: val,
+    });
+  };
+
+  const grainCountOptions = [
+    { label: '5k', value: 5_000 },
+    { label: '10k', value: 10_000 },
+    { label: '25k', value: 25_000 },
+    { label: '50k', value: 50_000 },
+    { label: '100k', value: 100_000 },
+    { label: '250k', value: 250_000 },
+    { label: '500k', value: 500_000 },
+    { label: '1M', value: 1_000_000 },
+  ];
+
+  const gridTopologies: { type: GridType; label: string; icon: React.ReactNode; desc: string }[] = [
+    { type: 'annular', label: 'Annular Halo', icon: <CircleDot size={14} />, desc: 'Ring circuit around empty center' },
+    { type: 'rectangular', label: 'Courtyard Lattice', icon: <Grid size={14} />, desc: 'Orthogonal grid with open courtyard' },
+    { type: 'polar', label: 'Polar Orbitals', icon: <Disc size={14} />, desc: 'Concentric rings & radiating rays' },
+    { type: 'hexagonal', label: 'Hex Honeycomb', icon: <Hexagon size={14} />, desc: '60° triaxial honeycomb' },
+    { type: 'diamond', label: 'Diamond Cage', icon: <Boxes size={14} />, desc: '45° rotated diagonal rhombus grid' },
+    { type: 'web', label: 'Spiderweb', icon: <Radar size={14} />, desc: 'Concentric web looping around center' },
+  ];
+
+  // Procedural generator to experiment with new harmonic grids leaving an empty center
+  const handleExperimentNextGrid = () => {
+    const topologies: GridType[] = ['annular', 'rectangular', 'polar', 'hexagonal', 'diamond', 'web'];
+    const nextType = topologies[Math.floor(Math.random() * topologies.length)];
+    const randomRadius = +(0.20 + Math.random() * 0.22).toFixed(2);
+    const nextShape: VoidShape =
+      nextType === 'rectangular' || nextType === 'diamond'
+        ? Math.random() > 0.4 ? 'square' : 'circle'
+        : 'circle';
+    const m = +(3.0 + Math.floor(Math.random() * 7) * 0.5).toFixed(2);
+    const n = +(4.0 + Math.floor(Math.random() * 8) * 0.5).toFixed(2);
+    const k = +(28.0 + Math.random() * 10.0).toFixed(1);
+    const blend = +(0.55 + Math.random() * 0.4).toFixed(2);
+
+    onChange({
+      ...params,
+      gridType: nextType,
+      centerVoidRadius: randomRadius,
+      centerVoidShape: nextShape,
+      centerExpulsion: +(2.2 + Math.random() * 1.4).toFixed(1),
+      modeM: m,
+      modeN: n,
+      waveK: k,
+      symmetryBlend: blend,
+    });
+  };
+
+  const handleApplyPalette = (paletteId: string) => {
+    const pal = COLOR_PALETTES.find((p) => p.id === paletteId);
+    if (!pal) return;
+    onChange({
+      ...params,
+      paletteId: pal.id,
+      sandColor: pal.sandPrimary,
+      sandColorSecondary: pal.sandSecondary,
+      plateColor: pal.plate,
+      glowColor: pal.glow,
+    });
+  };
+
+  const handleRandomizeColors = () => {
+    const pal = COLOR_PALETTES[Math.floor(Math.random() * COLOR_PALETTES.length)];
+    handleApplyPalette(pal.id);
+  };
+
+  const handleRotate90 = () => {
+    const nextAngle = (params.rotationAngle + 90) % 360;
+    updateParam('rotationAngle', nextAngle);
+  };
+
+  const filteredPresets = PRESETS.filter((p) => {
+    if (presetFilter === 'all') return true;
+    if (presetFilter === 'empty-center') return p.tag === 'empty-center';
+    return p.tag !== 'empty-center';
+  });
+
+  return (
+    <>
+      {/* Right Drawer / Floating Panel */}
+      <div
+        className={`fixed top-4 right-4 z-30 transition-transform duration-300 ease-in-out ${
+          collapsed ? 'translate-x-[calc(100%+1.5rem)]' : 'translate-x-0'
+        }`}
+      >
+        <div className="w-[355px] max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl bg-neutral-950/92 border border-neutral-800/80 shadow-2xl backdrop-blur-md p-4 text-neutral-200 font-sans select-none scrollbar-thin scrollbar-thumb-neutral-800">
+          {/* Header */}
+          <div className="flex items-start justify-between pb-2 border-b border-neutral-900">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-[17px] font-semibold text-white tracking-tight">
+                  Chladni Grid Lab
+                </h1>
+                <span className="px-1.5 py-0.5 rounded text-[10px] bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 font-mono">
+                  Void & Flips
+                </span>
+              </div>
+              <p className="text-[11px] text-neutral-400 leading-relaxed mt-1 font-normal">
+                Flip the canvas, customize colors, and experiment with resonant grids surrounding an
+                empty central space.
+              </p>
+
+              {/* Session persistence & Settings save card */}
+              <div className="mt-2.5 p-2 rounded-lg bg-neutral-900/80 border border-neutral-800 flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="flex items-center gap-1.5 text-neutral-300 font-medium">
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        hasSavedSettings
+                          ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)] animate-pulse'
+                          : 'bg-neutral-500'
+                      }`}
+                    />
+                    <span>
+                      {hasSavedSettings ? 'Saved Session Active' : 'Default Configuration'}
+                    </span>
+                  </span>
+                  {lastSavedTime && (
+                    <span className="text-[10px] text-neutral-400 font-mono">
+                      {lastSavedTime}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSave?.();
+                      setJustSaved(true);
+                      setTimeout(() => setJustSaved(false), 2000);
+                    }}
+                    className={`flex-1 py-1 px-2 rounded border text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      justSaved
+                        ? 'bg-emerald-950 border-emerald-500 text-emerald-300'
+                        : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-100 border-neutral-700 hover:border-neutral-500'
+                    }`}
+                    title="Save current parameters to browser storage so they persist across sessions"
+                  >
+                    {justSaved ? <Check size={12} className="text-emerald-400" /> : <Save size={12} className="text-cyan-400" />}
+                    <span>{justSaved ? 'Saved!' : 'Save Settings'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={onReset}
+                    className="py-1 px-2.5 rounded border border-neutral-800 bg-neutral-900/80 hover:bg-neutral-800 text-neutral-300 hover:text-white text-xs font-medium flex items-center gap-1 transition-all cursor-pointer"
+                    title="Reset parameters to factory defaults and clear saved session (R)"
+                  >
+                    <RotateCcw size={12} className={hasSavedSettings ? 'text-amber-400' : 'text-neutral-400'} />
+                    <span>Reset</span>
+                  </button>
+                </div>
+
+                {onToggleAutoSave && (
+                  <div className="flex items-center justify-between pt-1 border-t border-neutral-800/60 text-[10px] text-neutral-400">
+                    <label className="flex items-center gap-1.5 cursor-pointer hover:text-neutral-300">
+                      <input
+                        type="checkbox"
+                        checked={autoSaveEnabled}
+                        onChange={onToggleAutoSave}
+                        className="rounded border-neutral-700 bg-neutral-900 text-cyan-500 focus:ring-0 cursor-pointer w-3 h-3"
+                      />
+                      <span>Auto-save changes automatically</span>
+                    </label>
+                    <span className="text-[9px] text-neutral-500 font-mono">
+                      {autoSaveEnabled ? 'Auto: ON' : 'Auto: OFF'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCollapsed(true)}
+              className="p-1 -mr-1 text-neutral-400 hover:text-white rounded hover:bg-neutral-800 transition-colors cursor-pointer"
+              title="Collapse controls"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+
+          {/* Quick Experiment / Generator Banner */}
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={handleExperimentNextGrid}
+              className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-cyan-950/70 via-neutral-900 to-indigo-950/70 hover:from-cyan-900/80 hover:to-indigo-900/80 border border-cyan-700/50 hover:border-cyan-400/80 text-cyan-200 hover:text-white text-xs font-medium flex items-center justify-center gap-2 shadow-sm transition-all group cursor-pointer"
+              title="Generate a new harmonic grid variation that encircles an empty center"
+            >
+              <Dices size={15} className="text-cyan-400 group-hover:rotate-45 transition-transform" />
+              <span>Experiment Next Grid (Empty Center)</span>
+            </button>
+          </div>
+
+          {/* CANVAS FLIP & ORIENTATION CONTROLS */}
+          <div className="mt-3.5 pt-2.5 border-t border-neutral-900 bg-neutral-900/40 -mx-4 px-4 pb-2.5 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-neutral-300 flex items-center gap-1.5">
+                <FlipHorizontal size={12} className="text-cyan-400" />
+                <span>Canvas Flip & Orientation</span>
+              </span>
+              <span className="text-[10px] text-neutral-500 font-mono">
+                {params.rotationAngle}°
+                {params.flipHorizontal ? ' | Flip H' : ''}
+                {params.flipVertical ? ' | Flip V' : ''}
+              </span>
+            </div>
+
+            {/* Flip Horizontal, Flip Vertical, Rotate 90 Buttons */}
+            <div className="grid grid-cols-3 gap-1.5">
+              {/* Flip Horizontal */}
+              <button
+                type="button"
+                onClick={() => updateParam('flipHorizontal', !params.flipHorizontal)}
+                className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+                  params.flipHorizontal
+                    ? 'bg-cyan-950/90 text-cyan-300 border-cyan-500 shadow-sm'
+                    : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white hover:bg-neutral-800'
+                }`}
+                title="Flip canvas horizontally (Mirror Left-Right)"
+              >
+                <FlipHorizontal size={13} />
+                <span>Flip H</span>
+              </button>
+
+              {/* Flip Vertical */}
+              <button
+                type="button"
+                onClick={() => updateParam('flipVertical', !params.flipVertical)}
+                className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+                  params.flipVertical
+                    ? 'bg-cyan-950/90 text-cyan-300 border-cyan-500 shadow-sm'
+                    : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white hover:bg-neutral-800'
+                }`}
+                title="Flip canvas vertically (Mirror Top-Bottom)"
+              >
+                <FlipVertical size={13} />
+                <span>Flip V</span>
+              </button>
+
+              {/* Rotate 90° */}
+              <button
+                type="button"
+                onClick={handleRotate90}
+                className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-neutral-900 text-neutral-300 border border-neutral-800 hover:text-white hover:bg-neutral-800 text-xs font-medium transition-all cursor-pointer"
+                title="Rotate canvas 90 degrees clockwise"
+              >
+                <RotateCw size={13} />
+                <span>Rot 90°</span>
+              </button>
+            </div>
+
+            {/* View Angle row removed — 2D only */}
+          </div>
+
+          {/* COLOR THEMES & SELECTION SECTION */}
+          <div className="mt-3.5 pt-2.5 border-t border-neutral-900">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-neutral-400 flex items-center gap-1.5">
+                <Palette size={12} className="text-amber-400" />
+                <span>Colors & Palettes</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowColorCustomizer(!showColorCustomizer)}
+                className="text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer flex items-center gap-1"
+              >
+                <span>{showColorCustomizer ? 'Presets' : 'Custom Pickers'}</span>
+              </button>
+            </div>
+
+            {!showColorCustomizer ? (
+              /* Preset Color Theme Chips */
+              <div className="grid grid-cols-2 gap-1.5">
+                {COLOR_PALETTES.map((pal) => {
+                  const isSelected = params.paletteId === pal.id;
+                  return (
+                    <button
+                      key={pal.id}
+                      type="button"
+                      onClick={() => handleApplyPalette(pal.id)}
+                      className={`flex items-center justify-between p-2 rounded-lg border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-neutral-900 text-white border-cyan-400/80 shadow-sm'
+                          : 'bg-neutral-900/60 text-neutral-400 border-neutral-800 hover:text-neutral-200 hover:bg-neutral-800'
+                      }`}
+                    >
+                      <span className="text-[11px] font-medium truncate">{pal.name}</span>
+                      {/* Swatch Preview Dots */}
+                      <div className="flex items-center gap-1 shrink-0 ml-1">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full border border-black/40 shadow-xs"
+                          style={{ backgroundColor: pal.sandPrimary }}
+                          title="Sand color"
+                        />
+                        <span
+                          className="w-2.5 h-2.5 rounded-full border border-neutral-700 shadow-xs"
+                          style={{ backgroundColor: pal.plate }}
+                          title="Plate color"
+                        />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              /* Custom Color Pickers */
+              <div className="p-2.5 rounded-lg bg-neutral-900/50 border border-neutral-800/60 flex flex-col gap-2">
+                {/* Sand Primary Color */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-neutral-400">Sand grain color</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono text-neutral-400 uppercase">
+                      {params.sandColor}
+                    </span>
+                    <input
+                      type="color"
+                      value={params.sandColor}
+                      onChange={(e) => {
+                        updateParam('sandColor', e.target.value);
+                        updateParam('paletteId', 'custom');
+                      }}
+                      className="w-6 h-6 rounded cursor-pointer border border-neutral-700 bg-transparent"
+                    />
+                  </div>
+                </div>
+
+                {/* Sand Secondary / Accent Color */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-neutral-400">Sand shading tint</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono text-neutral-400 uppercase">
+                      {params.sandColorSecondary}
+                    </span>
+                    <input
+                      type="color"
+                      value={params.sandColorSecondary}
+                      onChange={(e) => {
+                        updateParam('sandColorSecondary', e.target.value);
+                        updateParam('paletteId', 'custom');
+                      }}
+                      className="w-6 h-6 rounded cursor-pointer border border-neutral-700 bg-transparent"
+                    />
+                  </div>
+                </div>
+
+                {/* Plate Surface Color */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-neutral-400">Plate surface</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono text-neutral-400 uppercase">
+                      {params.plateColor}
+                    </span>
+                    <input
+                      type="color"
+                      value={params.plateColor}
+                      onChange={(e) => {
+                        updateParam('plateColor', e.target.value);
+                        updateParam('paletteId', 'custom');
+                      }}
+                      className="w-6 h-6 rounded cursor-pointer border border-neutral-700 bg-transparent"
+                    />
+                  </div>
+                </div>
+
+                {/* Nodal Line / Glow Highlight Color */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-neutral-400">Nodal line highlight</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono text-neutral-400 uppercase">
+                      {params.glowColor}
+                    </span>
+                    <input
+                      type="color"
+                      value={params.glowColor}
+                      onChange={(e) => {
+                        updateParam('glowColor', e.target.value);
+                        updateParam('paletteId', 'custom');
+                      }}
+                      className="w-6 h-6 rounded cursor-pointer border border-neutral-700 bg-transparent"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleRandomizeColors}
+                  className="mt-1 py-1 px-2 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Shuffle size={12} />
+                  <span>Random Theme Palette</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* GRID TOPOLOGY SECTION */}
+          <div className="mt-4 pt-2 border-t border-neutral-900">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-neutral-400">
+                Grid Architecture
+              </span>
+              <span className="text-[10px] text-neutral-500 font-mono">
+                {GRID_TYPE_LABELS[params.gridType]?.label}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-1.5">
+              {gridTopologies.map((t) => {
+                const isActive = params.gridType === t.type;
+                return (
+                  <button
+                    key={t.type}
+                    type="button"
+                    onClick={() => updateParam('gridType', t.type)}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-neutral-200 text-neutral-950 font-medium border-white shadow-sm'
+                        : 'bg-neutral-900/80 text-neutral-300 border-neutral-800/80 hover:bg-neutral-800 hover:text-white'
+                    }`}
+                    title={t.desc}
+                  >
+                    <span className={isActive ? 'text-neutral-950' : 'text-neutral-400'}>
+                      {t.icon}
+                    </span>
+                    <span className="text-[11px] truncate">{t.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* EMPTY CENTER / VOID CONTROLS */}
+          <div className="mt-4 pt-3 border-t border-neutral-900 bg-neutral-900/30 -mx-4 px-4 pb-2 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-cyan-400">
+                  Empty Center Clearance
+                </span>
+                <span className="text-[10px] text-neutral-500">
+                  ({params.centerVoidRadius > 0.01 ? 'Active' : 'Off'})
+                </span>
+              </div>
+              {params.centerVoidRadius > 0.01 && (
+                <button
+                  type="button"
+                  onClick={() => updateParam('centerVoidRadius', 0)}
+                  className="text-[10px] text-neutral-500 hover:text-neutral-300 underline cursor-pointer"
+                  title="Clear void setting"
+                >
+                  Disable
+                </button>
+              )}
+            </div>
+
+            {/* Void Radius Slider */}
+            <SliderRow
+              label="Void radius (size of empty space)"
+              value={params.centerVoidRadius}
+              min={0.0}
+              max={0.55}
+              step={0.01}
+              digits={2}
+              onChange={(val) => updateParam('centerVoidRadius', val)}
+            />
+
+            {/* Void Shape Selector: Circle vs Square */}
+            <div className="flex items-center justify-between py-1.5 text-xs">
+              <span className="text-neutral-400 font-normal">Void shape</span>
+              <div className="flex items-center gap-1 bg-neutral-900/80 p-0.5 rounded border border-neutral-800">
+                <button
+                  type="button"
+                  onClick={() => updateParam('centerVoidShape', 'circle')}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] transition-all cursor-pointer ${
+                    params.centerVoidShape === 'circle'
+                      ? 'bg-neutral-200 text-neutral-950 font-medium'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  <Circle size={11} />
+                  <span>Circular</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateParam('centerVoidShape', 'square')}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] transition-all cursor-pointer ${
+                    params.centerVoidShape === 'square'
+                      ? 'bg-neutral-200 text-neutral-950 font-medium'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  <Square size={11} />
+                  <span>Square</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Center Expulsion Force */}
+            <SliderRow
+              label="Center expulsion drive"
+              value={params.centerExpulsion}
+              min={0.0}
+              max={5.0}
+              step={0.1}
+              digits={1}
+              onChange={(val) => updateParam('centerExpulsion', val)}
+            />
+
+            {/* Void Guide Toggle */}
+            <div className="flex items-center justify-between pt-1 text-xs">
+              <span className="text-neutral-400 font-normal">Show void perimeter guide</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={params.showVoidGuide}
+                  onChange={(e) => updateParam('showVoidGuide', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-8 h-4 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-cyan-600"></div>
+              </label>
+            </div>
+          </div>
+
+          {/* Quick Preset Selector */}
+          <div className="mt-4 pt-2 border-t border-neutral-900">
+            <button
+              type="button"
+              onClick={() => setShowPresets(!showPresets)}
+              className="w-full flex items-center justify-between text-[11px] text-neutral-400 hover:text-white py-1.5 px-2 rounded bg-neutral-900/60 border border-neutral-800/60 transition-colors cursor-pointer"
+            >
+              <span className="flex items-center gap-1.5">
+                <Sliders size={12} className="text-cyan-400" />
+                <span>Curated Grid Presets ({PRESETS.length})</span>
+              </span>
+              {showPresets ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </button>
+
+            {showPresets && (
+              <div className="mt-2 p-2 rounded bg-neutral-900/40 border border-neutral-800/50">
+                {/* Preset Category Filter */}
+                <div className="flex gap-1 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setPresetFilter('empty-center')}
+                    className={`flex-1 text-[10px] py-1 rounded transition-colors cursor-pointer ${
+                      presetFilter === 'empty-center'
+                        ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80 font-medium'
+                        : 'bg-neutral-900 text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    Empty Center
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPresetFilter('classic')}
+                    className={`flex-1 text-[10px] py-1 rounded transition-colors cursor-pointer ${
+                      presetFilter === 'classic'
+                        ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80 font-medium'
+                        : 'bg-neutral-900 text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    Classic Filled
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPresetFilter('all')}
+                    className={`flex-1 text-[10px] py-1 rounded transition-colors cursor-pointer ${
+                      presetFilter === 'all'
+                        ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80 font-medium'
+                        : 'bg-neutral-900 text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    All
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-1.5 max-h-48 overflow-y-auto scrollbar-thin">
+                  {filteredPresets.map((preset) => (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => {
+                        onChange({
+                          ...params,
+                          ...preset.params,
+                        });
+                        setShowPresets(false);
+                      }}
+                      className="text-left p-2 rounded bg-neutral-900 hover:bg-neutral-800/90 text-neutral-300 hover:text-white border border-neutral-800/80 transition-all flex flex-col gap-0.5 cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-medium text-white">{preset.name}</span>
+                        <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-neutral-800 text-neutral-400 font-mono">
+                          {preset.gridType}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-neutral-400 leading-tight">
+                        {preset.description}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ACOUSTIC SOUND & UMBRÁFONO INTEGRATION */}
+          <div className="mt-4 pt-3 border-t border-neutral-900 bg-neutral-900/40 -mx-4 px-4 pb-3 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-400 flex items-center gap-1.5">
+                <Music size={12} className="text-amber-400" />
+                <span>Acoustic Sound & Umbráfono</span>
+              </span>
+              <button
+                type="button"
+                onClick={onToggleAudio}
+                className={`text-[10px] px-2 py-0.5 rounded font-medium border flex items-center gap-1 transition-all cursor-pointer ${
+                  isAudioEnabled
+                    ? 'bg-amber-950/90 text-amber-300 border-amber-600/70 shadow-sm'
+                    : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
+                }`}
+              >
+                {isAudioEnabled ? <Volume2 size={11} className="text-amber-400" /> : <VolumeX size={11} />}
+                <span>{isAudioEnabled ? 'Sound On' : 'Muted'}</span>
+              </button>
+            </div>
+
+            {/* Sound Track Info Card */}
+            <div className="p-2.5 rounded-lg bg-neutral-950/80 border border-neutral-800/80 mb-2.5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-[11px] font-medium text-white truncate flex items-center gap-1.5">
+                    <Radio size={11} className="text-amber-400 shrink-0" />
+                    <span className="truncate">Umbráfono (Dos Piezas Sonoras)</span>
+                  </div>
+                  <div className="text-[10px] text-neutral-400 truncate">
+                    Enrique del Castillo · Czech Republic Installation
+                  </div>
+                </div>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-neutral-900 text-amber-300 border border-amber-900/60 font-mono shrink-0">
+                  Optical Sound
+                </span>
+              </div>
+
+              {/* Real-time Oscilloscope / Frequency Spectrum */}
+              <div className="mt-2">
+                <AudioVisualizer isEnabled={isAudioEnabled} />
+              </div>
+
+              {/* Playback Scrubber & Progress */}
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center justify-between text-[10px] font-mono text-neutral-400">
+                  <span className="text-amber-300/90 font-medium">
+                    {formatTime(audioMetrics?.currentTime ?? 0)}
+                  </span>
+                  <span className="text-neutral-500">
+                    {audioMetrics?.duration ? formatTime(audioMetrics.duration) : '05:04'}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={audioMetrics?.duration || 304}
+                  step={0.5}
+                  value={audioMetrics?.currentTime || 0}
+                  onChange={(e) => plateAudio.seek(parseFloat(e.target.value))}
+                  disabled={!isAudioEnabled}
+                  className="w-full h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-amber-400 hover:accent-amber-300 disabled:opacity-40"
+                  title="Seek audio track position"
+                />
+              </div>
+            </div>
+
+            {/* Audio Source Selector */}
+            <div className="mb-2.5">
+              <div className="text-[10px] text-neutral-400 mb-1 flex items-center justify-between">
+                <span>Resonance Audio Source</span>
+                <span className="font-mono text-neutral-300 text-[10px]">
+                  {params.audioSource === 'umbrafono'
+                    ? 'Umbráfono Piece'
+                    : params.audioSource === 'synth'
+                    ? 'Modal Sine'
+                    : 'Hybrid Layered'}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-1">
+                <button
+                  type="button"
+                  onClick={() => updateParam('audioSource', 'umbrafono')}
+                  className={`py-1 px-1.5 rounded text-[10px] font-medium border text-center transition-all cursor-pointer ${
+                    params.audioSource === 'umbrafono'
+                      ? 'bg-amber-400 text-neutral-950 border-amber-300 font-semibold shadow-sm'
+                      : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
+                  }`}
+                  title="Play Enrique del Castillo's Umbráfono sound piece"
+                >
+                  Umbráfono
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateParam('audioSource', 'synth')}
+                  className={`py-1 px-1.5 rounded text-[10px] font-medium border text-center transition-all cursor-pointer ${
+                    params.audioSource === 'synth'
+                      ? 'bg-amber-400 text-neutral-950 border-amber-300 font-semibold shadow-sm'
+                      : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
+                  }`}
+                  title="Synthesize pure mathematical Chladni eigenfrequencies"
+                >
+                  Modal Synth
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateParam('audioSource', 'hybrid')}
+                  className={`py-1 px-1.5 rounded text-[10px] font-medium border text-center transition-all cursor-pointer ${
+                    params.audioSource === 'hybrid'
+                      ? 'bg-amber-400 text-neutral-950 border-amber-300 font-semibold shadow-sm'
+                      : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
+                  }`}
+                  title="Layer Umbráfono audio piece with harmonic modal resonance"
+                >
+                  Hybrid
+                </button>
+              </div>
+            </div>
+
+            {/* Master Volume Slider */}
+            <SliderRow
+              label="Audio Master Volume"
+              value={params.audioVolume}
+              min={0.0}
+              max={1.0}
+              step={0.05}
+              digits={2}
+              formatFn={(v) => `${Math.round(v * 100)}%`}
+              onChange={(val) => updateParam('audioVolume', val)}
+            />
+
+            {/* Playback Speed / Pitch Slider */}
+            <SliderRow
+              label="Playback speed / pitch"
+              value={params.audioPlaybackRate}
+              min={0.5}
+              max={2.0}
+              step={0.05}
+              digits={2}
+              formatFn={(v) => `${v.toFixed(2)}x`}
+              onChange={(val) => updateParam('audioPlaybackRate', val)}
+            />
+
+            {/* SETTINGS CONNECTION 1: Audio-Reactive Cymatics (Sound drives Plate) */}
+            <div className="pt-2.5 mt-2 border-t border-neutral-850 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <div>
+                  <div className="font-medium text-white text-[11px] flex items-center gap-1.5">
+                    <Activity size={12} className="text-cyan-400" />
+                    <span>Audio-Reactive Cymatics</span>
+                  </div>
+                  <div className="text-[10px] text-neutral-400 leading-tight">
+                    Sound FFT frequencies vibrate plate & bounce sand in real time
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer ml-2">
+                  <input
+                    type="checkbox"
+                    checked={params.audioReactiveDrive}
+                    onChange={(e) => updateParam('audioReactiveDrive', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-8 h-4 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-cyan-500"></div>
+                </label>
+              </div>
+
+              {params.audioReactiveDrive && (
+                <div className="pl-2 border-l-2 border-cyan-500/50 space-y-1.5 mt-1.5">
+                  <SliderRow
+                    label="Reactive modulation depth"
+                    value={params.audioReactiveIntensity}
+                    min={0.0}
+                    max={2.0}
+                    step={0.05}
+                    digits={2}
+                    formatFn={(v) => `${Math.round(v * 100)}%`}
+                    onChange={(val) => updateParam('audioReactiveIntensity', val)}
+                  />
+                  {audioMetrics && (
+                    <div className="grid grid-cols-4 gap-1 text-[9px] font-mono text-center pt-0.5">
+                      <div className="bg-neutral-950 p-1 rounded border border-neutral-800">
+                        <div className="text-neutral-500">BASS (M)</div>
+                        <div className="text-cyan-300">{Math.round(audioMetrics.bass * 100)}%</div>
+                      </div>
+                      <div className="bg-neutral-950 p-1 rounded border border-neutral-800">
+                        <div className="text-neutral-500">MID (N)</div>
+                        <div className="text-cyan-300">{Math.round(audioMetrics.mid * 100)}%</div>
+                      </div>
+                      <div className="bg-neutral-950 p-1 rounded border border-neutral-800">
+                        <div className="text-neutral-500">HIGH (K)</div>
+                        <div className="text-cyan-300">{Math.round(audioMetrics.treble * 100)}%</div>
+                      </div>
+                      <div className="bg-neutral-950 p-1 rounded border border-neutral-800">
+                        <div className="text-neutral-500">KICK</div>
+                        <div className="text-amber-300">{Math.round(audioMetrics.transientKick * 100)}%</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* SETTINGS CONNECTION 2: Resonance Filters Audio (Plate Modes drive Sound) */}
+            <div className="pt-2 border-t border-neutral-850 mt-2">
+              <div className="flex items-center justify-between text-xs">
+                <div>
+                  <div className="font-medium text-white text-[11px] flex items-center gap-1.5">
+                    <Waves size={12} className="text-amber-400" />
+                    <span>Resonance Filters Audio</span>
+                  </div>
+                  <div className="text-[10px] text-neutral-400 leading-tight">
+                    Modes M, N & K tune acoustic plate filter frequency
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer ml-2">
+                  <input
+                    type="checkbox"
+                    checked={params.audioResonanceFilter}
+                    onChange={(e) => updateParam('audioResonanceFilter', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-8 h-4 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+              </div>
+
+              {params.audioResonanceFilter && audioMetrics && (
+                <div className="mt-1.5 p-1.5 rounded bg-neutral-950 text-[10px] font-mono flex items-center justify-between text-neutral-400 border border-neutral-800">
+                  <span>Acoustic Peak:</span>
+                  <span className="text-amber-300 font-semibold">{audioMetrics.resonanceFreq} Hz</span>
+                </div>
+              )}
+            </div>
+
+            {/* SETTINGS CONNECTION 3: Pitch Linked to Mode Frequency */}
+            <div className="pt-2 border-t border-neutral-850 mt-2">
+              <div className="flex items-center justify-between text-xs">
+                <div>
+                  <div className="font-medium text-white text-[11px]">
+                    Pitch Linked to Resonant Mode
+                  </div>
+                  <div className="text-[10px] text-neutral-400 leading-tight">
+                    Higher modes pitch audio up, lower modes pitch down
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer ml-2">
+                  <input
+                    type="checkbox"
+                    checked={params.audioPitchLinked}
+                    onChange={(e) => updateParam('audioPitchLinked', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-8 h-4 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* RESONANCE Section */}
+          <div className="mt-4 pt-2 border-t border-neutral-900">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-neutral-500">
+                RESONANCE FREQUENCIES
+              </span>
+              {audioMetrics && (
+                <span className="text-[10px] text-amber-400 font-mono">
+                  ~{audioMetrics.resonanceFreq} Hz
+                </span>
+              )}
+            </div>
+            <SliderRow
+              label="Mode m (radial/horizontal)"
+              value={params.modeM}
+              min={1.0}
+              max={14.0}
+              step={0.05}
+              digits={2}
+              onChange={(val) => updateParam('modeM', val)}
+            />
+            <SliderRow
+              label="Mode n (azimuthal/vertical)"
+              value={params.modeN}
+              min={1.0}
+              max={14.0}
+              step={0.05}
+              digits={2}
+              onChange={(val) => updateParam('modeN', val)}
+            />
+            <SliderRow
+              label="Wave number k"
+              value={params.waveK}
+              min={10.0}
+              max={50.0}
+              step={0.05}
+              digits={2}
+              onChange={(val) => updateParam('waveK', val)}
+            />
+            <SliderRow
+              label="Symmetry blend"
+              value={params.symmetryBlend}
+              min={0.0}
+              max={1.0}
+              step={0.01}
+              digits={2}
+              onChange={(val) => updateParam('symmetryBlend', val)}
+            />
+          </div>
+
+          {/* SAND Section */}
+          <div className="mt-4 pt-2 border-t border-neutral-900">
+            <div className="text-[10px] uppercase tracking-wider font-semibold text-neutral-500 mb-1">
+              SAND
+            </div>
+            <SliderRow
+              label="Drive strength a"
+              value={params.driveStrength}
+              min={0.5}
+              max={8.0}
+              step={0.05}
+              digits={2}
+              onChange={(val) => updateParam('driveStrength', val)}
+            />
+            {/* Grain count selector with lower count choices and continuous slider */}
+            <div className="flex flex-col gap-1.5 py-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-neutral-400 font-normal">Grain count</span>
+                <span className="font-mono text-neutral-200 text-xs bg-neutral-900/80 px-2 py-0.5 rounded border border-neutral-800/80">
+                  {params.grainCount >= 1_000_000
+                    ? '1,000,000 (1M)'
+                    : params.grainCount >= 1000
+                    ? `${(params.grainCount / 1000).toFixed(params.grainCount % 1000 === 0 ? 0 : 1)}k`
+                    : params.grainCount.toLocaleString()}
+                </span>
+              </div>
+
+              {/* Quick Select Buttons: 5k to 1M */}
+              <div className="grid grid-cols-4 gap-1 mt-0.5">
+                {grainCountOptions.map((opt) => {
+                  const isMatch = Math.abs(params.grainCount - opt.value) < opt.value * 0.12;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => updateParam('grainCount', opt.value)}
+                      className={`text-[10px] py-1 rounded border text-center transition-all cursor-pointer ${
+                        isMatch
+                          ? 'bg-neutral-200 text-neutral-950 font-medium border-white shadow-sm'
+                          : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-neutral-200 hover:bg-neutral-800'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Continuous Grain Count Range Slider */}
+              <div className="pt-1.5">
+                <input
+                  type="range"
+                  min={5000}
+                  max={1000000}
+                  step={5000}
+                  value={params.grainCount}
+                  onChange={(e) => updateParam('grainCount', parseInt(e.target.value, 10))}
+                  className="w-full h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-neutral-300 hover:accent-white transition-all"
+                />
+                <div className="flex justify-between text-[9px] text-neutral-500 font-mono mt-0.5">
+                  <span>5k (coarse)</span>
+                  <span>100k</span>
+                  <span>1M (ultra-fine)</span>
+                </div>
+              </div>
+            </div>
+
+            <SliderRow
+              label="Nodal field overlay"
+              value={params.fieldOverlay}
+              min={0.0}
+              max={1.0}
+              step={0.01}
+              digits={2}
+              onChange={(val) => updateParam('fieldOverlay', val)}
+            />
+
+            {/* SIMULATION ENGINE & WASM ACCELERATION */}
+            <div className="mt-4 pt-3 border-t border-neutral-900 bg-neutral-900/40 -mx-4 px-4 pb-3 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase tracking-wider font-semibold text-emerald-400 flex items-center gap-1">
+                    <Zap size={11} />
+                    Simulation Engine
+                  </span>
+                </div>
+                {onOpenWasmLab && (
+                  <button
+                    type="button"
+                    onClick={onOpenWasmLab}
+                    className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer font-medium"
+                  >
+                    <span>WASM Lab</span>
+                    <ChevronRight size={11} />
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-1 mb-2.5">
+                <button
+                  type="button"
+                  onClick={() => updateParam('simulationEngine', 'gpu')}
+                  className={`px-2 py-1.5 rounded text-left border transition-all cursor-pointer ${
+                    params.simulationEngine === 'gpu'
+                      ? 'bg-neutral-200 text-neutral-950 font-medium border-white shadow-sm'
+                      : 'bg-neutral-900/90 text-neutral-400 border-neutral-800 hover:text-white hover:bg-neutral-800'
+                  }`}
+                  title="WebGL fragment shader ping-pong textures. Best for massive 100k - 1M grains."
+                >
+                  <div className="text-[10px] font-semibold leading-tight">GPU Shader</div>
+                  <div className="text-[8px] opacity-75 font-mono">1M Grains</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => updateParam('simulationEngine', 'wasm')}
+                  className={`px-2 py-1.5 rounded text-left border transition-all cursor-pointer ${
+                    params.simulationEngine === 'wasm'
+                      ? 'bg-emerald-400 text-neutral-950 font-medium border-emerald-300 shadow-sm'
+                      : 'bg-neutral-900/90 text-neutral-400 border-neutral-800 hover:text-white hover:bg-neutral-800'
+                  }`}
+                  title="Compiled WebAssembly SIMD particle physics with direct zero-copy WebGL memory streaming."
+                >
+                  <div className="text-[10px] font-semibold leading-tight">WASM SIMD</div>
+                  <div className="text-[8px] opacity-75 font-mono">Zero-Copy</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => updateParam('simulationEngine', 'js_cpu')}
+                  className={`px-2 py-1.5 rounded text-left border transition-all cursor-pointer ${
+                    params.simulationEngine === 'js_cpu'
+                      ? 'bg-amber-400 text-neutral-950 font-medium border-amber-300 shadow-sm'
+                      : 'bg-neutral-900/90 text-neutral-400 border-neutral-800 hover:text-white hover:bg-neutral-800'
+                  }`}
+                  title="JavaScript CPU execution for baseline performance comparison."
+                >
+                  <div className="text-[10px] font-semibold leading-tight">JS CPU</div>
+                  <div className="text-[8px] opacity-75 font-mono">Baseline JIT</div>
+                </button>
+              </div>
+
+              {onOpenWasmLab && (
+                <button
+                  type="button"
+                  onClick={onOpenWasmLab}
+                  className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-cyan-950/90 to-indigo-950/90 hover:from-cyan-900 hover:to-indigo-900 text-cyan-300 hover:text-white border border-cyan-800/60 transition-all text-xs font-medium flex items-center justify-center gap-1.5 shadow-md cursor-pointer group"
+                >
+                  <Microchip size={13} className="text-cyan-400 group-hover:rotate-12 transition-transform" />
+                  <span>Wasm Research Lab & Benchmarks</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Expand Button when collapsed */}
+      {collapsed && (
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          className="fixed top-4 right-4 z-30 p-2.5 rounded-lg bg-neutral-950/90 text-neutral-300 hover:text-white border border-neutral-800 shadow-xl backdrop-blur transition-all flex items-center gap-2 text-xs cursor-pointer"
+          title="Open controls"
+        >
+          <ChevronLeft size={16} />
+          <span>Grid Controls</span>
+        </button>
+      )}
+
+      {/* Floating Bottom-Right Action Buttons */}
+      <div className="fixed bottom-5 right-5 z-30 flex items-center gap-2 select-none flex-wrap justify-end">
+        {/* WASM Research Lab Quick Button */}
+        {onOpenWasmLab && (
+          <button
+            type="button"
+            onClick={onOpenWasmLab}
+            className="h-9 px-3 rounded-lg flex items-center gap-1.5 text-xs font-semibold border shadow-xl bg-gradient-to-r from-cyan-950/90 to-indigo-950/90 border-cyan-500/60 text-cyan-300 hover:text-white hover:border-cyan-400 backdrop-blur transition-all cursor-pointer group"
+            title="Open WebAssembly Performance Research & Live Benchmarking Lab"
+          >
+            <Zap size={13} className="text-cyan-400 group-hover:scale-110 transition-transform" />
+            <span>WASM Lab</span>
+          </button>
+        )}
+
+        {/* Quick Flip H Toggle */}
+        <button
+          type="button"
+          onClick={() => updateParam('flipHorizontal', !params.flipHorizontal)}
+          className={`h-9 px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-medium border shadow-lg backdrop-blur transition-all cursor-pointer ${
+            params.flipHorizontal
+              ? 'bg-cyan-950/90 border-cyan-500 text-cyan-300'
+              : 'bg-neutral-900/90 border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-800'
+          }`}
+          title="Flip canvas horizontally (Mirror X)"
+        >
+          <FlipHorizontal size={14} />
+          <span className="hidden md:inline">Flip H</span>
+        </button>
+
+        {/* Quick Flip V Toggle */}
+        <button
+          type="button"
+          onClick={() => updateParam('flipVertical', !params.flipVertical)}
+          className={`h-9 px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-medium border shadow-lg backdrop-blur transition-all cursor-pointer ${
+            params.flipVertical
+              ? 'bg-cyan-950/90 border-cyan-500 text-cyan-300'
+              : 'bg-neutral-900/90 border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-800'
+          }`}
+          title="Flip canvas vertically (Mirror Y)"
+        >
+          <FlipVertical size={14} />
+          <span className="hidden md:inline">Flip V</span>
+        </button>
+
+        {/* Audio Resonant Tone Toggle */}
+        <button
+          type="button"
+          onClick={onToggleAudio}
+          className={`h-9 px-3 rounded-lg flex items-center gap-2 text-xs font-medium border shadow-lg backdrop-blur transition-all cursor-pointer ${
+            isAudioEnabled
+              ? 'bg-amber-950/80 border-amber-500/60 text-amber-200 hover:border-amber-400 shadow-amber-950/40 shadow-sm'
+              : 'bg-neutral-900/90 border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-800'
+          }`}
+          title={
+            isAudioEnabled
+              ? `Sound active: ${
+                  params.audioSource === 'umbrafono'
+                    ? 'Umbráfono (Enrique del Castillo)'
+                    : params.audioSource === 'synth'
+                    ? 'Modal Synth'
+                    : 'Hybrid Audio'
+                } (${Math.round(params.audioVolume * 100)}%)`
+              : 'Turn sound on (Umbráfono & Resonance)'
+          }
+        >
+          {isAudioEnabled ? (
+            <>
+              <Volume2 size={14} className="text-amber-400 animate-pulse" />
+              <span className="hidden sm:inline font-mono">
+                {params.audioSource === 'umbrafono'
+                  ? 'Umbráfono'
+                  : params.audioSource === 'synth'
+                  ? 'Synth'
+                  : 'Hybrid'}
+              </span>
+              <span className="text-[10px] text-amber-400 font-mono">
+                {Math.round(params.audioVolume * 100)}%
+              </span>
+            </>
+          ) : (
+            <>
+              <VolumeX size={14} />
+              <span className="hidden sm:inline">Sound Muted</span>
+            </>
+          )}
+        </button>
+
+        {/* Pause / Play */}
+        <button
+          type="button"
+          onClick={onTogglePause}
+          className="h-9 px-3 rounded-lg bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 hover:text-white shadow-lg backdrop-blur transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+        >
+          {isPaused ? <Play size={13} /> : <Pause size={13} />}
+          <span>{isPaused ? 'Play' : 'Pause'}</span>
+        </button>
+
+        {/* Scatter */}
+        <button
+          type="button"
+          onClick={onScatter}
+          className="h-9 px-3 rounded-lg bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 hover:text-white shadow-lg backdrop-blur transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+          title="Scatter grains randomly across plate (S)"
+        >
+          <Sparkles size={13} />
+          <span>Scatter</span>
+        </button>
+
+        {/* Save Settings */}
+        <button
+          type="button"
+          onClick={() => {
+            onSave?.();
+            setJustSaved(true);
+            setTimeout(() => setJustSaved(false), 2000);
+          }}
+          className={`h-9 px-3 rounded-lg border shadow-lg backdrop-blur transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer ${
+            justSaved
+              ? 'bg-emerald-950/90 border-emerald-500 text-emerald-200'
+              : 'bg-neutral-900/90 hover:bg-neutral-800 border-neutral-800 hover:border-neutral-700 text-neutral-200 hover:text-white'
+          }`}
+          title="Save current parameters to browser storage (maintains across sessions until reset)"
+        >
+          {justSaved ? <Check size={13} className="text-emerald-400" /> : <Save size={13} className="text-cyan-400" />}
+          <span>{justSaved ? 'Saved!' : 'Save'}</span>
+        </button>
+
+        {/* Reset */}
+        <button
+          type="button"
+          onClick={onReset}
+          className={`h-9 px-3 rounded-lg border shadow-lg backdrop-blur transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer ${
+            hasSavedSettings
+              ? 'bg-neutral-900/90 hover:bg-neutral-800 border-amber-600/40 text-neutral-200 hover:text-white'
+              : 'bg-neutral-900/90 hover:bg-neutral-800 border-neutral-800 text-neutral-200 hover:text-white'
+          }`}
+          title={
+            hasSavedSettings
+              ? 'Reset parameters to default and clear saved session (R)'
+              : 'Reset parameters to default (R)'
+          }
+        >
+          <RotateCcw size={13} className={hasSavedSettings ? 'text-amber-400' : 'text-neutral-400'} />
+          <span>Reset</span>
+        </button>
+      </div>
+    </>
+  );
+};
