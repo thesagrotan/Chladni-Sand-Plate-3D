@@ -18,6 +18,14 @@ uniform vec2  uPointerPos;
 uniform float uPointerRadius;
 uniform float uPointerStrength;
 uniform float uPointerActive;
+uniform sampler2D uTextMask;
+uniform float uTextMaskActive;
+uniform float uTextMaskStrength;
+uniform float uTextMaskRes;
+uniform vec4  uCamData;   // (cx, cy, halfW, halfH)
+uniform float uRotAngle;  // rotation in radians
+uniform float uFlipH;     // 1.0 if horizontal flip
+uniform float uFlipV;     // 1.0 if vertical flip
 
 ${CHLADNI_GLSL_FUNCTIONS}
 
@@ -108,6 +116,64 @@ void main() {
     }
   }
 
+  // Exact text silhouette repulsion — repel grains away from DOM text shapes
+  if (uTextMaskActive > 0.5) {
+    vec2 worldP = pos.xy;
+    if (uFlipH > 0.5) worldP.x = -worldP.x;
+    if (uFlipV > 0.5) worldP.y = -worldP.y;
+    if (abs(uRotAngle) > 0.0001) {
+      float cosA = cos(uRotAngle);
+      float sinA = sin(uRotAngle);
+      worldP = vec2(worldP.x * cosA - worldP.y * sinA, worldP.x * sinA + worldP.y * cosA);
+    }
+
+    vec2 ndc;
+    ndc.x = (worldP.x - uCamData.x) / max(uCamData.z, 0.001);
+    ndc.y = (worldP.y - uCamData.y) / max(uCamData.w, 0.001);
+    vec2 screenUV = ndc * 0.5 + 0.5;
+
+    if (screenUV.x >= 0.0 && screenUV.x <= 1.0 && screenUV.y >= 0.0 && screenUV.y <= 1.0) {
+      float density = texture2D(uTextMask, screenUV).r;
+      if (density > 0.005) {
+        float eps = 1.8 / uTextMaskRes;
+        float gx = texture2D(uTextMask, screenUV + vec2(eps, 0.0)).r - texture2D(uTextMask, screenUV - vec2(eps, 0.0)).r;
+        float gy = texture2D(uTextMask, screenUV + vec2(0.0, eps)).r - texture2D(uTextMask, screenUV - vec2(0.0, eps)).r;
+        vec2 gradScreen = vec2(gx, gy);
+        float gLen = length(gradScreen);
+
+        if (gLen < 0.004) {
+          float epsWide = 6.0 / uTextMaskRes;
+          float gx2 = texture2D(uTextMask, screenUV + vec2(epsWide, 0.0)).r - texture2D(uTextMask, screenUV - vec2(epsWide, 0.0)).r;
+          float gy2 = texture2D(uTextMask, screenUV + vec2(0.0, epsWide)).r - texture2D(uTextMask, screenUV - vec2(0.0, epsWide)).r;
+          gradScreen = vec2(gx2, gy2);
+          gLen = length(gradScreen);
+        }
+
+        vec2 pushScreen;
+        if (gLen > 0.001) {
+          pushScreen = -normalize(gradScreen);
+        } else {
+          vec2 rndW = hash2(pos.xy * 89.1 + vec2(uTime * 31.7, 0.0)) - vec2(0.5);
+          pushScreen = normalize(rndW + vec2(0.001));
+        }
+
+        vec2 pushWorld = vec2(pushScreen.x * uCamData.z, pushScreen.y * uCamData.w);
+
+        if (abs(uRotAngle) > 0.0001) {
+          float cosA = cos(-uRotAngle);
+          float sinA = sin(-uRotAngle);
+          pushWorld = vec2(pushWorld.x * cosA - pushWorld.y * sinA, pushWorld.x * sinA + pushWorld.y * cosA);
+        }
+        if (uFlipH > 0.5) pushWorld.x = -pushWorld.x;
+        if (uFlipV > 0.5) pushWorld.y = -pushWorld.y;
+
+        float pushMag = clamp(density * 1.6, 0.08, 1.0) * uTextMaskStrength;
+        pos.xy += pushWorld * pushMag;
+        pos.w = 1.0;
+      }
+    }
+  }
+
   // Contain sand particles within the plate boundaries
   const float BOUND = 0.975;
   pos.x = clamp(pos.x, -BOUND, BOUND);
@@ -163,6 +229,14 @@ export class ChladniGpuSimulation {
     u.uPointerRadius = { value: 0.12 };
     u.uPointerStrength = { value: 0.012 };
     u.uPointerActive = { value: 0.0 };
+    u.uTextMask = { value: null };
+    u.uTextMaskActive = { value: 0.0 };
+    u.uTextMaskStrength = { value: 0.022 };
+    u.uTextMaskRes = { value: 1024.0 };
+    u.uCamData = { value: new THREE.Vector4(0, 0, 1.05, 1.05) };
+    u.uRotAngle = { value: 0.0 };
+    u.uFlipH = { value: 0.0 };
+    u.uFlipV = { value: 0.0 };
 
     const error = this.gpuCompute.init();
     if (error !== null) {
@@ -211,7 +285,14 @@ export class ChladniGpuSimulation {
     pointerY = 0,
     pointerActive = false,
     pointerRadius = 0.12,
-    pointerStrength = 0.012
+    pointerStrength = 0.012,
+    textMaskTexture: THREE.Texture | null = null,
+    textMaskActive = false,
+    textMaskStrength = 0.022,
+    camData?: THREE.Vector4,
+    rotAngle = 0,
+    flipH = false,
+    flipV = false
   ) {
     const u = this.posVariable.material.uniforms;
     u.uTime.value = time;
@@ -229,6 +310,18 @@ export class ChladniGpuSimulation {
     u.uPointerRadius.value = pointerRadius;
     u.uPointerStrength.value = pointerStrength;
     u.uPointerActive.value = pointerActive ? 1.0 : 0.0;
+
+    if (textMaskTexture) {
+      u.uTextMask.value = textMaskTexture;
+    }
+    u.uTextMaskActive.value = textMaskActive ? 1.0 : 0.0;
+    u.uTextMaskStrength.value = textMaskStrength;
+    if (camData) {
+      u.uCamData.value.copy(camData);
+    }
+    u.uRotAngle.value = rotAngle;
+    u.uFlipH.value = flipH ? 1.0 : 0.0;
+    u.uFlipV.value = flipV ? 1.0 : 0.0;
 
     this.gpuCompute.compute();
   }

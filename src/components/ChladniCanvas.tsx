@@ -5,6 +5,7 @@ import { ChladniParams, ChladniMetrics } from '../types/chladni.ts';
 import { ChladniGpuSimulation } from '../simulation/ChladniGpuSimulation.ts';
 import { ChladniWasmSimulation } from '../simulation/ChladniWasmSimulation.ts';
 import { ChladniJsCpuSimulation } from '../simulation/ChladniJsCpuSimulation.ts';
+import { TextMaskManager } from '../utils/TextMaskManager.ts';
 
 /** Vertical half-range of the orthographic camera at zoom=1 */
 const VRANGE = 1.05;
@@ -93,7 +94,7 @@ void main() {
     color = mix(color, uNodeGlowColor, guideLine * 0.75);
   }
 
-  gl_FragColor = vec4(color, 1.0);
+  gl_FragColor = vec4(color, 0.94);
 }
 `;
 
@@ -218,6 +219,8 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
   const jsCpuSimRef = useRef<ChladniJsCpuSimulation | null>(null);
   const wasmExportsRef = useRef<ChladniWasmExports | null>(null);
   const frameTimestampsRef = useRef<number[]>([]);
+  const textMaskManagerRef = useRef<TextMaskManager | null>(null);
+  const camDataRef = useRef<THREE.Vector4>(new THREE.Vector4(0, 0, 1.05, 1.05));
 
   useEffect(() => {
     const container = mountRef.current;
@@ -240,9 +243,17 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
 
+    // Initialize TextMaskManager for exact text contour repulsion
+    const textMask = new TextMaskManager({
+      resolution: 1024,
+      trackedSelector: '[data-text-repulsor]',
+      strength: 0.024,
+    });
+    textMaskManagerRef.current = textMask;
+
     const scene = new THREE.Scene();
-    // Transparent scene — background quad covers the plate area
-    scene.background = new THREE.Color(0x050507);
+    // Transparent scene allows web page backdrop and DOM styling through
+    scene.background = null;
     sceneRef.current = scene;
 
     // 2D orthographic camera — maps plate [-1,1]x[-1,1] to screen
@@ -258,10 +269,11 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     const renderer = new THREE.WebGLRenderer({
       antialias: !isSoftwareGl,
       powerPreference: 'high-performance',
-      alpha: false,
+      alpha: true,
     });
     renderer.setSize(width, height);
     renderer.setPixelRatio(pixelRatio);
+    renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.1;
@@ -296,6 +308,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
         uPlateColor: { value: plateCol },
         uNodeGlowColor: { value: glowCol },
       },
+      transparent: true,
       depthWrite: false,
       depthTest: false,
     });
@@ -531,13 +544,32 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
       }
     };
 
-    container.addEventListener('wheel', onWheel, { passive: false });
-    container.addEventListener('pointerdown', onPointerDown);
-    container.addEventListener('pointermove', onPointerMove);
-    container.addEventListener('pointerup', onPointerUp);
-    container.addEventListener('pointercancel', onPointerUp);
-    container.addEventListener('pointerleave', onPointerLeave);
-    container.addEventListener('contextmenu', onContextMenu);
+    // Canvas is fixed in the background: window-level pointer tracking pushes sand
+    const onWindowPointerMove = (e: PointerEvent) => {
+      const sp = clientToSimSpace(e.clientX, e.clientY);
+      pointerSimPosRef.current = sp;
+    };
+
+    const onWindowPointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        ['BUTTON', 'INPUT', 'SELECT', 'A', 'TEXTAREA'].includes(target?.tagName) ||
+        target?.closest('button, a, input, select, textarea')
+      ) {
+        return;
+      }
+      pointerActiveRef.current = true;
+      const sp = clientToSimSpace(e.clientX, e.clientY);
+      pointerSimPosRef.current = sp;
+    };
+
+    const onWindowPointerUp = () => {
+      pointerActiveRef.current = false;
+    };
+
+    window.addEventListener('pointermove', onWindowPointerMove, { passive: true });
+    window.addEventListener('pointerdown', onWindowPointerDown, { passive: true });
+    window.addEventListener('pointerup', onWindowPointerUp, { passive: true });
     window.addEventListener('keydown', handleKeyDown);
 
     // -----------------------------------------------------------------------
@@ -650,6 +682,16 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
           }
         } else {
           // GPU engine (default)
+          const cam = cameraRef.current;
+          const halfW = cam ? (cam.right - cam.left) * 0.5 : 1.05;
+          const halfH = cam ? (cam.top - cam.bottom) * 0.5 : 1.05;
+          const cx = cam ? (cam.left + cam.right) * 0.5 : 0;
+          const cy = cam ? (cam.bottom + cam.top) * 0.5 : 0;
+          camDataRef.current.set(cx, cy, halfW, halfH);
+
+          // Update text mask texture (draws visible DOM text onto 1024x1024 mask)
+          textMaskManagerRef.current?.update(now);
+
           const t0 = performance.now();
           simRef.current!.update(
             simTime, delta,
@@ -657,7 +699,15 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
             cp.symmetryBlend, effectiveDrive, gridTypeNum,
             cp.centerVoidRadius, voidShapeNum, cp.centerExpulsion,
             pointerSimPosRef.current.x, pointerSimPosRef.current.y,
-            pointerActiveRef.current
+            pointerActiveRef.current,
+            0.12, 0.012,
+            textMaskManagerRef.current ? textMaskManagerRef.current.texture : null,
+            textMaskManagerRef.current ? textMaskManagerRef.current.active : false,
+            textMaskManagerRef.current ? textMaskManagerRef.current.strength : 0.024,
+            camDataRef.current,
+            (cp.rotationAngle * Math.PI) / 180,
+            cp.flipHorizontal,
+            cp.flipVertical
           );
           computeTimeMs = +(performance.now() - t0).toFixed(2);
 
@@ -783,13 +833,11 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
       cancelAnimationFrame(frameIdRef.current);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('keydown', handleKeyDown);
-      container.removeEventListener('wheel', onWheel);
-      container.removeEventListener('pointerdown', onPointerDown);
-      container.removeEventListener('pointermove', onPointerMove);
-      container.removeEventListener('pointerup', onPointerUp);
-      container.removeEventListener('pointercancel', onPointerUp);
-      container.removeEventListener('pointerleave', onPointerLeave);
-      container.removeEventListener('contextmenu', onContextMenu);
+      window.removeEventListener('pointermove', onWindowPointerMove);
+      window.removeEventListener('pointerdown', onWindowPointerDown);
+      window.removeEventListener('pointerup', onWindowPointerUp);
+      textMaskManagerRef.current?.dispose();
+      textMaskManagerRef.current = null;
       simRef.current?.dispose();
       renderer.dispose();
       if (container.contains(renderer.domElement)) {
@@ -895,7 +943,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
   return (
     <div
       ref={mountRef}
-      className="absolute inset-0 w-full h-full cursor-crosshair overflow-hidden select-none"
+      className="fixed inset-0 w-screen h-screen pointer-events-none select-none z-0 overflow-hidden"
     />
   );
 };
