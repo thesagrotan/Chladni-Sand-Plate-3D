@@ -497,6 +497,36 @@
 @font-face { font-family: 'Aeonik Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Aeonik Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Black.woff2') format('woff2'); font-weight: 900; font-style: normal; font-display: swap; }
 
+/* 1g. Ortica Angular Bold (Benedetta Bovani & Collletttivo — Sharp Display Serif OTF) */
+@font-face {
+  font-family: 'Ortica-Angular';
+  src: url('/fonts/ortica-angular-bold/OrticaAngular-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ortica-Angular';
+  src: url('/fonts/ortica-angular-bold/OrticaAngular-Bold.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ortica Angular';
+  src: url('/fonts/ortica-angular-bold/OrticaAngular-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ortica Angular';
+  src: url('/fonts/ortica-angular-bold/OrticaAngular-Bold.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* 2. iA Writer Quattro V (Variable font: wght 400-700, SPCG 0-150) */
 @font-face {
   font-family: 'iA Writer Quattro V';

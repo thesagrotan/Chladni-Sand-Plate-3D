@@ -703,6 +703,21 @@ export const AVAILABLE_FONTS: FontOption[] = [
     fileName: 'aeonik-fono/AeonikFono-*.woff2',
     description: 'Monospaced mechanical companion to Aeonik Pro — 7 weights (Air 100 to Black 900)',
   },
+  // Ortica Angular Bold (Benedetta Bovani & Collletttivo)
+  {
+    id: 'Ortica-Angular',
+    name: 'Ortica Angular Bold',
+    fontFamily: 'Ortica-Angular',
+    category: 'static',
+    minWeight: 400,
+    maxWeight: 700,
+    defaultWeight: 700,
+    hasItalic: false,
+    badge: 'Sharp Display OTF',
+    format: 'OTF',
+    fileName: 'ortica-angular-bold/OrticaAngular-Bold.otf',
+    description: 'Sharp, aggressive serif display typeface designed by Benedetta Bovani & Collletttivo',
+  },
 ];
 
 export function buildFontVariationSettings(params: {
