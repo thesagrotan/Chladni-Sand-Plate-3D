@@ -1251,6 +1251,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       { label: '700 Bold', val: 700 },
                       { label: '900 Blk', val: 900 },
                     ]
+                  : currentFont?.id === 'Replica-Pro'
+                  ? [
+                      { label: '300 Light', val: 300 },
+                      { label: '400 Regular', val: 400 },
+                      { label: '700 Bold', val: 700 },
+                    ]
                   : currentFont?.category === 'static'
                   ? [
                       { label: '400 Regular', val: 400 },

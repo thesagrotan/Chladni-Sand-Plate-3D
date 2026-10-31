@@ -527,6 +527,124 @@
   font-display: swap;
 }
 
+/* 1h. Replica Pro & Replica Mono (Lineto — Norm / Dimitri Bruni & Manuel Krebs) */
+/* Replica Pro: Light 300, Regular 400, Bold 700 + Italics */
+@font-face {
+  font-family: 'Replica-Pro';
+  src: url('/fonts/replica-pro/ReplicaPro-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Replica-Pro';
+  src: url('/fonts/replica-pro/ReplicaPro-LightItalic.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Replica-Pro';
+  src: url('/fonts/replica-pro/ReplicaPro-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Replica-Pro';
+  src: url('/fonts/replica-pro/ReplicaPro-Italic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Replica-Pro';
+  src: url('/fonts/replica-pro/ReplicaPro-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Replica-Pro';
+  src: url('/fonts/replica-pro/ReplicaPro-BoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Replica Pro';
+  src: url('/fonts/replica-pro/ReplicaPro-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Replica Pro';
+  src: url('/fonts/replica-pro/ReplicaPro-LightItalic.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Replica Pro';
+  src: url('/fonts/replica-pro/ReplicaPro-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Replica Pro';
+  src: url('/fonts/replica-pro/ReplicaPro-Italic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Replica Pro';
+  src: url('/fonts/replica-pro/ReplicaPro-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Replica Pro';
+  src: url('/fonts/replica-pro/ReplicaPro-BoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Replica Mono */
+@font-face {
+  font-family: 'Replica-Mono';
+  src: url('/fonts/replica-pro/ReplicaPro-Regular2.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Replica-Mono';
+  src: url('/fonts/replica-pro/ReplicaPro-Regular2.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Replica Mono';
+  src: url('/fonts/replica-pro/ReplicaPro-Regular2.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Replica Mono';
+  src: url('/fonts/replica-pro/ReplicaPro-Regular2.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* 2. iA Writer Quattro V (Variable font: wght 400-700, SPCG 0-150) */
 @font-face {
   font-family: 'iA Writer Quattro V';

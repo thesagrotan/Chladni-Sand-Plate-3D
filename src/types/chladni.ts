@@ -718,6 +718,35 @@ export const AVAILABLE_FONTS: FontOption[] = [
     fileName: 'ortica-angular-bold/OrticaAngular-Bold.otf',
     description: 'Sharp, aggressive serif display typeface designed by Benedetta Bovani & Collletttivo',
   },
+  // Replica Pro & Replica Mono (Lineto — Norm / Dimitri Bruni & Manuel Krebs)
+  {
+    id: 'Replica-Pro',
+    name: 'Replica Pro',
+    fontFamily: 'Replica-Pro',
+    category: 'static',
+    minWeight: 300,
+    maxWeight: 700,
+    defaultWeight: 400,
+    hasItalic: true,
+    badge: 'Swiss Grid OTF',
+    format: 'OTF',
+    fileName: 'replica-pro/ReplicaPro-*.otf',
+    description: 'Strict geometric grotesk constructed on a strict raster grid by Norm (Lineto) — Light, Regular, Bold + Italics',
+  },
+  {
+    id: 'Replica-Mono',
+    name: 'Replica Mono',
+    fontFamily: 'Replica-Mono',
+    category: 'static',
+    minWeight: 400,
+    maxWeight: 700,
+    defaultWeight: 400,
+    hasItalic: false,
+    badge: 'Swiss Mono OTF',
+    format: 'OTF',
+    fileName: 'replica-pro/ReplicaPro-Regular2.otf',
+    description: 'Monospaced companion cut of Replica by Norm (Lineto)',
+  },
 ];
 
 export function buildFontVariationSettings(params: {
