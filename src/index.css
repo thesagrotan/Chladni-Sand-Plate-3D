@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* =====================================================================
+   FONT REGISTRATIONS (Fonts directory: public/fonts/)
+   ===================================================================== */
+
+/* 1. GT-Pressura (Swiss Technical Monospaced/Grotesk Typeface) */
 @font-face {
   font-family: 'GT-Pressura';
   src: url('/fonts/GT-Pressura-Standard-Regular.woff2') format('woff2');
@@ -32,24 +37,91 @@
   font-display: swap;
 }
 
-/* Alias 'Geist' to GT-Pressura for backward compatibility */
+/* 1b. GT-America Standard */
 @font-face {
-  font-family: 'Geist';
-  src: url('/fonts/GT-Pressura-Standard-Regular.woff2') format('woff2');
+  font-family: 'GT-America';
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Regular.otf') format('opentype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Geist';
-  src: url('/fonts/GT-Pressura-Standard-Bold.woff2') format('woff2');
+  font-family: 'GT-America';
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Bold.otf') format('opentype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 
-/* Geist Mono for telemetry and numeric indicators */
+/* 2. iA Writer Quattro V (Variable font: wght 400-700, SPCG 0-150) */
+@font-face {
+  font-family: 'iA Writer Quattro V';
+  src: url('/fonts/iAWriterQuattroV.ttf') format('truetype');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'iA Writer Quattro V';
+  src: url('/fonts/iAWriterQuattroV-Italic.ttf') format('truetype');
+  font-weight: 400 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Explicit registrations for "iAWriterQuattroV" & "iAWriterQuattroV-Italic" */
+@font-face {
+  font-family: 'iAWriterQuattroV';
+  src: url('/fonts/iAWriterQuattroV.ttf') format('truetype');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'iAWriterQuattroV';
+  src: url('/fonts/iAWriterQuattroV-Italic.ttf') format('truetype');
+  font-weight: 400 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'iAWriterQuattroV-Italic';
+  src: url('/fonts/iAWriterQuattroV-Italic.ttf') format('truetype');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'iAWriterQuattroV-Italic';
+  src: url('/fonts/iAWriterQuattroV-Italic.ttf') format('truetype');
+  font-weight: 400 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* 3. Geist Sans (Variable font: wght 100-900) */
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Italic-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* 4. Geist Mono (Variable font: wght 100-900) */
 @font-face {
   font-family: 'Geist Mono';
   src: url('/fonts/GeistMono-Variable.woff2') format('woff2');
@@ -66,9 +138,37 @@
   font-display: swap;
 }
 
+/* 5. Geist Serif VF (Variable serif font: ELSH 0-100) */
+@font-face {
+  font-family: 'Geist Serif VF';
+  src: url('/fonts/GeistSerifVF.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Serif';
+  src: url('/fonts/GeistSerifVF.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* =====================================================================
+   ROOT TYPOGRAPHY & THEME VARIABLES
+   ===================================================================== */
+:root {
+  --active-font-family: 'iAWriterQuattroV', 'iA Writer Quattro V', -apple-system, BlinkMacSystemFont, sans-serif;
+  --active-font-weight: 400;
+  --active-font-style: normal;
+  --active-font-variation: normal;
+  --active-letter-spacing: normal;
+}
+
 @theme {
-  --font-sans: 'GT-Pressura', 'GT Pressura', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-serif: 'GT-Pressura', 'GT Pressura', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: var(--active-font-family, 'iAWriterQuattroV', system-ui, sans-serif);
+  --font-serif: var(--active-font-family, 'iAWriterQuattroV', system-ui, sans-serif);
   --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -84,11 +184,36 @@ body {
   overflow-x: hidden;
   background-color: #070709;
   color: var(--sand-color, #c4bdb2);
-  font-family: 'GT-Pressura', 'GT Pressura', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--active-font-family, 'iAWriterQuattroV', system-ui, sans-serif);
+  line-height: 1.25;
 }
 
+/* Primary layout typography classes reacting to font picker & variable controls */
 .font-serif {
-  font-family: 'GT-Pressura', 'GT Pressura', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--active-font-family, 'iAWriterQuattroV', system-ui, sans-serif);
+  font-variation-settings: var(--active-font-variation, normal);
+  letter-spacing: var(--active-letter-spacing, normal);
+}
+
+.font-sans {
+  font-family: var(--active-font-family, 'iAWriterQuattroV', system-ui, sans-serif);
+  font-variation-settings: var(--active-font-variation, normal);
+  letter-spacing: var(--active-letter-spacing, normal);
+}
+
+/* Variable weight binding for base serif headings & paragraphs */
+.font-serif.font-normal,
+p.font-serif,
+h1.font-serif,
+h2.font-serif,
+h3.font-serif {
+  font-weight: var(--active-font-weight, 400);
+}
+
+/* Global Italic trigger when toggled on */
+[data-font-italic="true"] .font-serif,
+[data-font-italic="true"] .font-sans {
+  font-style: italic !important;
 }
 
 /* Custom dark scrollbar */
@@ -104,4 +229,12 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #3b4055;
+}
+
+/* Custom Circle Pointer */
+@media (pointer: fine) {
+  html.custom-cursor,
+  html.custom-cursor * {
+    cursor: none !important;
+  }
 }

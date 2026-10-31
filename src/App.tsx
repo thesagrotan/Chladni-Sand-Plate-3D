@@ -6,11 +6,13 @@ import {
   GridType,
   VoidShape,
   PRESETS,
+  buildFontVariationSettings,
 } from './types/chladni.ts';
 import { ChladniCanvas } from './components/ChladniCanvas.tsx';
 import { HudStats } from './components/HudStats.tsx';
 import { ControlPanel } from './components/ControlPanel.tsx';
 import { WasmResearchLab } from './components/WasmResearchLab.tsx';
+import { CircleCursor } from './components/CircleCursor.tsx';
 import { plateSynth } from './simulation/audioSynth.ts';
 import {
   loadSavedSettings,
@@ -37,6 +39,12 @@ export default function App() {
     const { params: loadedParams } = loadSavedSettings();
     return {
       ...loadedParams,
+      fontFamily: loadedParams.fontFamily || 'iAWriterQuattroV',
+      fontWeight: loadedParams.fontWeight ?? 400,
+      fontItalic: loadedParams.fontItalic ?? false,
+      fontSpacingAxis: loadedParams.fontSpacingAxis ?? 0,
+      fontElshAxis: loadedParams.fontElshAxis ?? 0,
+      fontLetterSpacing: loadedParams.fontLetterSpacing ?? 0,
       // Minimalist aesthetic palette: silica grains on dark plate
       sandColor: '#f7f5f0',
       sandColorSecondary: '#e4dfd3',
@@ -81,6 +89,26 @@ export default function App() {
   const dotColor = useMemo(() => {
     return getPerceivedDotColor(params.sandColor, params.sandColorSecondary);
   }, [params.sandColor, params.sandColorSecondary]);
+
+  // Dynamic CSS variable font-variation-settings string
+  const fontVariationCss = useMemo(() => {
+    return buildFontVariationSettings({
+      fontFamily: params.fontFamily,
+      fontWeight: params.fontWeight,
+      fontSpacingAxis: params.fontSpacingAxis,
+      fontElshAxis: params.fontElshAxis,
+    });
+  }, [params.fontFamily, params.fontWeight, params.fontSpacingAxis, params.fontElshAxis]);
+
+  // Pre-load font when switched to ensure canvas text mask and DOM render immediately
+  useEffect(() => {
+    if (document.fonts && document.fonts.load) {
+      document.fonts.load(`${params.fontWeight} 24px "${params.fontFamily}"`).catch(() => {});
+      if (params.fontItalic) {
+        document.fonts.load(`italic ${params.fontWeight} 24px "${params.fontFamily}"`).catch(() => {});
+      }
+    }
+  }, [params.fontFamily, params.fontWeight, params.fontItalic]);
 
   // Auto-dismiss notification toasts
   useEffect(() => {
@@ -187,6 +215,29 @@ export default function App() {
     });
   }, []);
 
+  // Modal preset tuner — sets the plate to a named frequency character
+  const handleModalPreset = useCallback((preset: {
+    gridType: GridType;
+    modeM: number;
+    modeN: number;
+    waveK: number;
+    symmetryBlend: number;
+    label: string;
+  }) => {
+    setParams((prev) => ({
+      ...prev,
+      gridType: preset.gridType,
+      centerVoidRadius: 0.0,
+      centerExpulsion: 0.0,
+      showVoidGuide: false,
+      modeM: preset.modeM,
+      modeN: preset.modeN,
+      waveK: preset.waveK,
+      symmetryBlend: preset.symmetryBlend,
+    }));
+    setToastMessage(`◈ ${preset.label}`);
+  }, []);
+
   // Keyboard shortcut to generate next grid
   const handleExperimentNextGrid = useCallback(() => {
     const topologies: GridType[] = ['annular', 'rectangular', 'polar', 'hexagonal', 'diamond', 'web'];
@@ -250,8 +301,14 @@ export default function App() {
       style={{
         '--sand-color': dotColor,
         '--sand-color-sec': params.sandColorSecondary,
+        '--active-font-family': `'${params.fontFamily}', 'iA Writer Quattro V', -apple-system, sans-serif`,
+        '--active-font-weight': params.fontWeight,
+        '--active-font-style': params.fontItalic ? 'italic' : 'normal',
+        '--active-font-variation': fontVariationCss,
+        '--active-letter-spacing': params.fontLetterSpacing ? `${params.fontLetterSpacing}px` : 'normal',
         color: dotColor,
       } as React.CSSProperties}
+      data-font-italic={params.fontItalic ? 'true' : 'false'}
     >
       {/* 1. FIXED BACKGROUND WEBGL SIMULATION */}
       <ChladniCanvas
@@ -276,11 +333,11 @@ export default function App() {
               className="w-full max-w-none text-8xl font-serif mt-4 sm:mt-5 leading-none tracking-tight font-normal text-left"
               style={{ color: dotColor }}
             >
-              TEZETT PLATTE is a Berlin based label and studio for uncommon musicians
+              TEZETT – PLATTE is a Berlin label and recording studio
             </p>
           </div>
 
-          {/* Bottom: Releases and Track Rows */}
+          {/* Bottom: Releases Catalog */}
           <div className="w-full mx-auto flex flex-col pb-2 sm:pb-4 text-left">
             <div
               data-text-repulsor
@@ -289,8 +346,20 @@ export default function App() {
               Releases
             </div>
 
+            {/* Catalog header row */}
+            <div
+              data-text-repulsor
+              className="flex w-full mb-3 font-mono text-xs uppercase tracking-widest"
+              style={{ color: dotColor, opacity: 0.4 }}
+            >
+              <span className="w-20 shrink-0">Cat.</span>
+              <span className="flex-1">Artist / Title</span>
+              <span className="hidden sm:block w-36 shrink-0 text-right pr-6">Format</span>
+              <span className="w-16 shrink-0 text-right">Year</span>
+            </div>
+
             <div className="flex flex-col gap-4 sm:gap-5 w-full">
-              {/* Row 1: Umbrafono Sound Film Series ────────────── 2023 */}
+              {/* Row 1: Umbrafono Sound Film Series */}
               <div
                 onClick={handleToggleAudio}
                 className="flex items-baseline w-full group cursor-pointer"
@@ -298,10 +367,17 @@ export default function App() {
               >
                 <span
                   data-text-repulsor
+                  className="font-mono text-sm w-20 shrink-0 self-center"
+                  style={{ color: dotColor, opacity: 0.5 }}
+                >
+                  TZ-01
+                </span>
+                <span
+                  data-text-repulsor
                   className="font-serif text-4xl transition-opacity group-hover:opacity-100"
                   style={{ color: dotColor }}
                 >
-                  Umbrafono
+                  Enrique del Castillo
                 </span>
                 <span className="mx-1.5" />
                 <span
@@ -309,24 +385,34 @@ export default function App() {
                   className="font-serif italic text-4xl transition-opacity group-hover:opacity-100"
                   style={{ color: dotColor, opacity: 0.88 }}
                 >
-                  Sound Film Series
+                  Umbráfono — Sound Film Series
                 </span>
-                <div
-                  data-text-repulsor="line"
-                  className="flex-1 mx-3 sm:mx-6 border-b mb-2 transition-opacity group-hover:opacity-70"
-                  style={{ borderColor: dotColor, opacity: 0.35 }}
-                />
+                <div className="flex-1" />
                 <span
                   data-text-repulsor
-                  className="font-serif text-4xl transition-opacity group-hover:opacity-100"
+                  className="hidden sm:block font-mono text-sm w-36 shrink-0 text-right pr-6 self-center"
+                  style={{ color: dotColor, opacity: 0.5 }}
+                >
+                  10″ / 35mm
+                </span>
+                <span
+                  data-text-repulsor
+                  className="font-serif text-4xl transition-opacity group-hover:opacity-100 w-16 text-right"
                   style={{ color: dotColor, opacity: 0.88 }}
                 >
                   2023
                 </span>
               </div>
 
-              {/* Row 2: Severine Beata That Great Album ────────────── 2023 */}
+              {/* Row 2: Severine Beata That Great Album */}
               <div className="flex items-baseline w-full group cursor-pointer">
+                <span
+                  data-text-repulsor
+                  className="font-mono text-sm w-20 shrink-0 self-center"
+                  style={{ color: dotColor, opacity: 0.5 }}
+                >
+                  TZ-02
+                </span>
                 <span
                   data-text-repulsor
                   className="font-serif text-4xl transition-opacity group-hover:opacity-100"
@@ -342,14 +428,17 @@ export default function App() {
                 >
                   That Great Album
                 </span>
-                <div
-                  data-text-repulsor="line"
-                  className="flex-1 mx-3 sm:mx-6 border-b mb-2 transition-opacity group-hover:opacity-70"
-                  style={{ borderColor: dotColor, opacity: 0.35 }}
-                />
+                <div className="flex-1" />
                 <span
                   data-text-repulsor
-                  className="font-serif text-4xl transition-opacity group-hover:opacity-100"
+                  className="hidden sm:block font-mono text-sm w-36 shrink-0 text-right pr-6 self-center"
+                  style={{ color: dotColor, opacity: 0.5 }}
+                >
+                  12″ LP
+                </span>
+                <span
+                  data-text-repulsor
+                  className="font-serif text-4xl transition-opacity group-hover:opacity-100 w-16 text-right"
                   style={{ color: dotColor, opacity: 0.88 }}
                 >
                   2023
@@ -372,30 +461,186 @@ export default function App() {
 
           <h2
             data-text-repulsor
-            className="text-4xl font-serif font-normal leading-snug text-left"
+            className="text-4xl font-serif font-normal leading-tight text-left"
             style={{ color: dotColor }}
           >
-            Acoustic physical research atelier and recording studio
+            Acoustic research atelier, independent label, and recording studio
           </h2>
 
           <p
             data-text-repulsor
-            className="mt-6 text-4xl font-serif leading-relaxed font-light text-left"
+            className="mt-6 text-4xl font-serif leading-tight font-light text-left"
             style={{ color: dotColor, opacity: 0.88 }}
           >
-            Founded in Berlin, Tezett – Platte operates as a dedicated laboratory where kinetic
-            vibrations, 35mm optical film sound, and Chladni acoustic physics meet independent
-            musicians and sound sculptors. Every frequency produces an exact harmonic geometry.
+            Founded in Berlin-Kreuzberg, Tezett – Platte is an independent label and recording studio.
+            Musicians, sound artists, and composers come to record, perform, and develop work here.
+            The space supports a wide range of practices — from electroacoustic and improvised music
+            to contemporary composition and experimental sound — and is available for sessions,
+            residencies, and label releases.
           </p>
         </section>
+
+
+        {/* SECTION A: PHYSICAL ATELIER & EQUIPMENT */}
+        <section
+          id="facility"
+          className="px-2 sm:px-14 md:px-20 py-24 sm:py-32 w-full"
+        >
+          <div
+            data-text-repulsor
+            className="text-4xl font-sans font-normal mb-10 tracking-wide"
+          >
+            Facility
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            {/* Column 1 */}
+            <div>
+              <div
+                data-text-repulsor
+                className="font-mono text-xs uppercase tracking-widest mb-4"
+                style={{ color: dotColor, opacity: 0.5 }}
+              >
+                Acoustic & Resonance
+              </div>
+              <ul className="flex flex-col gap-3">
+                {[
+                  'Custom stainless steel Chladni resonance plates (300 – 1200 mm)',
+                  'Electrodynamic transducers, 10 Hz – 18 kHz sweep',
+                  'Stroboscopic optical film projection rig (35mm dual-optical reader)',
+                  'Anechoic measurement chamber for nodal field mapping',
+                ].map((item) => (
+                  <li
+                    key={item}
+                    data-text-repulsor
+                    className="font-serif text-2xl leading-tight"
+                    style={{ color: dotColor, opacity: 0.82 }}
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Column 2 */}
+            <div>
+              <div
+                data-text-repulsor
+                className="font-mono text-xs uppercase tracking-widest mb-4"
+                style={{ color: dotColor, opacity: 0.5 }}
+              >
+                Recording & Analog Chain
+              </div>
+              <ul className="flex flex-col gap-3">
+                {[
+                  'Studer A80 ¼″ 2-track master tape',
+                  'Telefunken V72 / Siemens tube preamplifiers',
+                  'Coles 4038 ribbon & Neumann KM84 microphones',
+                  'Pro Tools HDX + Neve 8078 console for hybrid sessions',
+                ].map((item) => (
+                  <li
+                    key={item}
+                    data-text-repulsor
+                    className="font-serif text-2xl leading-tight"
+                    style={{ color: dotColor, opacity: 0.82 }}
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Column 3 */}
+            <div>
+              <div
+                data-text-repulsor
+                className="font-mono text-xs uppercase tracking-widest mb-4"
+                style={{ color: dotColor, opacity: 0.5 }}
+              >
+                Editions & Lacquer
+              </div>
+              <ul className="flex flex-col gap-3">
+                {[
+                  'Short-run polycarbonate & lacquer cutting for archival micro-editions',
+                  'Hand-numbered vinyl pressings and cassette duplication',
+                  'Silkscreened graphic scores on raw cartridge paper',
+                  'Booklet offset printing for limited catalogue publications',
+                ].map((item) => (
+                  <li
+                    key={item}
+                    data-text-repulsor
+                    className="font-serif text-2xl leading-tight"
+                    style={{ color: dotColor, opacity: 0.82 }}
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+
+        {/* SECTION C: FREQUENCY TUNER — INTERACTIVE MODAL PRESETS */}
+        <section
+          className="px-2 sm:px-14 md:px-20 py-16 sm:py-20 w-full"
+        >
+          <div
+            data-text-repulsor
+            className="font-mono text-xs uppercase tracking-widest mb-6"
+            style={{ color: dotColor, opacity: 0.5 }}
+          >
+            Resonance Tuner — tune the plate
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {([
+              {
+                label: 'Pure Plate — annular m=4 n=8',
+                gridType: 'annular' as GridType,
+                modeM: 4.0, modeN: 8.0, waveK: 32.0, symmetryBlend: 0.72,
+              },
+              {
+                label: 'Umbráfono field — polar m=3 n=10',
+                gridType: 'polar' as GridType,
+                modeM: 3.5, modeN: 10.0, waveK: 28.0, symmetryBlend: 0.8,
+              },
+              {
+                label: 'Hexagonal lattice — m=5 n=6',
+                gridType: 'hexagonal' as GridType,
+                modeM: 5.5, modeN: 6.0, waveK: 34.0, symmetryBlend: 0.6,
+              },
+              {
+                label: 'Low sub scatter — web m=5 n=8',
+                gridType: 'web' as GridType,
+                modeM: 5.0, modeN: 8.0, waveK: 30.0, symmetryBlend: 0.7,
+              },
+              {
+                label: 'High frequency matrix — rectangular m=6 n=10',
+                gridType: 'rectangular' as GridType,
+                modeM: 6.05, modeN: 10.21, waveK: 37.38, symmetryBlend: 0.65,
+              },
+            ] as const).map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => handleModalPreset(preset)}
+                data-text-repulsor
+                className="px-4 py-2 rounded-full border font-mono text-sm tracking-wide transition-all cursor-pointer hover:opacity-100 opacity-60"
+                style={{ color: dotColor, borderColor: `${dotColor}44` }}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
 
         {/* SECTION: CONTACT & IMPRINT */}
         <footer
           id="contact"
-          className="px-8 sm:px-14 md:px-20 py-28 sm:py-36  mx-auto w-full border-t"
-          style={{ borderColor: `${dotColor}22` }}
+          className="px-8 sm:px-14 md:px-20 py-28 sm:py-36  mx-auto w-full"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div>
               <div
                 data-text-repulsor
@@ -420,6 +665,35 @@ export default function App() {
               </p>
             </div>
 
+            {/* ADDITION D: Visit by Appointment */}
+            <div>
+              <div
+                data-text-repulsor
+                className="text-4xl font-sans uppercase tracking-wider mb-2"
+                style={{ color: dotColor, opacity: 0.75 }}
+              >
+                Visit
+              </div>
+              <p
+                data-text-repulsor
+                className="text-4xl font-serif leading-tight"
+                style={{ color: dotColor, opacity: 0.88 }}
+              >
+                Köpenicker Straße · Hinterhof
+                <br />
+                10999 Berlin · Kreuzberg
+              </p>
+              <p
+                data-text-repulsor
+                className="mt-4 font-mono text-sm"
+                style={{ color: dotColor, opacity: 0.5 }}
+              >
+                Sessions and listening visits by prior arrangement only.
+                <br />
+                residencies@tezett-platte.berlin
+              </p>
+            </div>
+
             <div className="flex flex-col justify-between">
               <div>
                 <div
@@ -431,11 +705,11 @@ export default function App() {
                 </div>
                 <p
                   data-text-repulsor
-                  className="text-4xl font-sans leading-relaxed"
+                  className="text-4xl font-sans leading-tight"
                   style={{ color: dotColor, opacity: 0.8 }}
                 >
-                  Analog tape mastering, optical film projectors, and 2D acoustic sand plates for
-                  harmonic visualization.
+                  Recording, mixing, and mastering for independent artists and labels. Acoustic research
+                  apparatus, analog tape, and resonance plates available for sessions by arrangement.
                 </p>
               </div>
 
@@ -559,6 +833,9 @@ export default function App() {
         onSelectEngine={(engine) => setParams((prev) => ({ ...prev, simulationEngine: engine }))}
         currentEngine={params.simulationEngine}
       />
+
+      {/* 8. CUSTOM CIRCLE POINTER */}
+      <CircleCursor color={dotColor} />
     </div>
   );
 }

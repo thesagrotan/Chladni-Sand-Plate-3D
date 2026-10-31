@@ -80,6 +80,14 @@ export interface ChladniParams {
   // DOM Elements Rejection
   domRepulsion: number; // 0.0 to 10.0 (rejection force from dots to DOM elements, default 1.0)
 
+  // Typography & Variable Font Controls
+  fontFamily: string; // 'iAWriterQuattroV' | 'iAWriterQuattroV-Italic' | 'GT-Pressura' | 'Geist' | 'Geist Mono' | 'Geist Serif'
+  fontWeight: number; // e.g. 100 to 900
+  fontItalic: boolean; // normal vs italic cut
+  fontSpacingAxis: number; // SPCG axis 0 to 150 (for iA Writer Quattro V)
+  fontElshAxis: number; // ELSH axis 0 to 100 (for Geist Serif VF)
+  fontLetterSpacing: number; // CSS tracking in px (-2 to 10)
+
   // Canvas Orientation & Flips
   flipHorizontal: boolean; // flip/mirror X
   flipVertical: boolean;   // flip/mirror Y
@@ -169,6 +177,14 @@ export const DEFAULT_PARAMS: ChladniParams = {
   centerExpulsion: 0.0,
   showVoidGuide: false,
   domRepulsion: 1.0,
+
+  // Typography & Variable Font Defaults
+  fontFamily: 'iAWriterQuattroV',
+  fontWeight: 400,
+  fontItalic: false,
+  fontSpacingAxis: 0,
+  fontElshAxis: 0,
+  fontLetterSpacing: 0,
 
   // Flips & Orientation
   flipHorizontal: false,
@@ -377,3 +393,163 @@ export const PRESETS: Preset[] = [
     description: 'High symmetry blend creating curved petal loops meeting at center',
   },
 ];
+
+/* =====================================================================
+   FONTS IN PUBLIC/FONTS/ DIRECTORY
+   ===================================================================== */
+export interface FontOption {
+  id: string; // Identifier
+  name: string; // Display Name
+  fontFamily: string; // CSS font-family name registered in @font-face
+  category: 'variable' | 'static';
+  minWeight: number;
+  maxWeight: number;
+  defaultWeight: number;
+  hasItalic: boolean;
+  isItalicDefault?: boolean;
+  hasSpacingAxis?: boolean; // SPCG variable axis (0 to 150)
+  hasElshAxis?: boolean; // ELSH variable axis (0 to 100)
+  badge: string;
+  format: string;
+  description: string;
+  fileName: string;
+}
+
+export const AVAILABLE_FONTS: FontOption[] = [
+  {
+    id: 'iAWriterQuattroV',
+    name: 'iA Writer Quattro V',
+    fontFamily: 'iAWriterQuattroV',
+    category: 'variable',
+    minWeight: 400,
+    maxWeight: 700,
+    defaultWeight: 400,
+    hasItalic: true,
+    hasSpacingAxis: true,
+    badge: 'Variable Proportional',
+    format: 'TTF',
+    fileName: 'iAWriterQuattroV.ttf',
+    description: 'Variable proportional font with continuous weight (400–700) & SPCG spacing (0–150)',
+  },
+  {
+    id: 'iAWriterQuattroV-Italic',
+    name: 'iA Writer Quattro V (Italic)',
+    fontFamily: 'iAWriterQuattroV-Italic',
+    category: 'variable',
+    minWeight: 400,
+    maxWeight: 700,
+    defaultWeight: 400,
+    hasItalic: true,
+    isItalicDefault: true,
+    hasSpacingAxis: true,
+    badge: 'Variable Italic',
+    format: 'TTF',
+    fileName: 'iAWriterQuattroV-Italic.ttf',
+    description: 'Cursive italic variable font with continuous weight (400–700) & SPCG spacing (0–150)',
+  },
+  {
+    id: 'GT-Pressura',
+    name: 'GT Pressura',
+    fontFamily: 'GT-Pressura',
+    category: 'static',
+    minWeight: 400,
+    maxWeight: 700,
+    defaultWeight: 400,
+    hasItalic: false,
+    badge: 'Swiss Tech',
+    format: 'WOFF2',
+    fileName: 'GT-Pressura-Standard-Regular.woff2',
+    description: 'Technical Swiss grotesk inspired by shipping box stamps (Regular 400 & Bold 700)',
+  },
+  {
+    id: 'GT-America',
+    name: 'GT America',
+    fontFamily: 'GT-America',
+    category: 'static',
+    minWeight: 400,
+    maxWeight: 700,
+    defaultWeight: 400,
+    hasItalic: false,
+    badge: 'Swiss Gothic',
+    format: 'OTF',
+    fileName: 'GT-America/GT-America-LCGV-Standard-*.otf',
+    description: 'Synthesis of American Gothic and European Grotesk (Regular 400 & Bold 700)',
+  },
+  {
+    id: 'Geist',
+    name: 'Geist Sans',
+    fontFamily: 'Geist',
+    category: 'variable',
+    minWeight: 100,
+    maxWeight: 900,
+    defaultWeight: 400,
+    hasItalic: true,
+    badge: 'Variable Sans',
+    format: 'WOFF2',
+    fileName: 'Geist-Variable.woff2',
+    description: 'Continuous neo-grotesque variable font across full 100–900 weight range',
+  },
+  {
+    id: 'Geist Mono',
+    name: 'Geist Mono',
+    fontFamily: 'Geist Mono',
+    category: 'variable',
+    minWeight: 100,
+    maxWeight: 900,
+    defaultWeight: 400,
+    hasItalic: true,
+    badge: 'Variable Mono',
+    format: 'WOFF2',
+    fileName: 'GeistMono-Variable.woff2',
+    description: 'Engineering monospaced variable font with 100–900 weight & italic cuts',
+  },
+  {
+    id: 'Geist Serif',
+    name: 'Geist Serif VF',
+    fontFamily: 'Geist Serif',
+    category: 'variable',
+    minWeight: 100,
+    maxWeight: 900,
+    defaultWeight: 400,
+    hasItalic: false,
+    hasElshAxis: true,
+    badge: 'Variable Serif',
+    format: 'WOFF2',
+    fileName: 'GeistSerifVF.woff2',
+    description: 'High-contrast variable serif with ELSH elongation/contrast axis',
+  },
+];
+
+export function buildFontVariationSettings(params: {
+  fontFamily?: string;
+  fontWeight?: number;
+  fontSpacingAxis?: number;
+  fontElshAxis?: number;
+}): string {
+  const parts: string[] = [];
+  const fam = params.fontFamily || '';
+  const weight = params.fontWeight ?? 400;
+
+  // Add 'wght' for variable fonts
+  if (!fam.includes('GT-Pressura') && !fam.includes('GT Pressura')) {
+    parts.push(`'wght' ${weight}`);
+  }
+
+  // Add 'SPCG' for iA Writer Quattro V (0 to 150)
+  if (fam.includes('iAWriter') || fam.includes('iA Writer') || fam.includes('Quattro')) {
+    const spcg = params.fontSpacingAxis ?? 0;
+    if (spcg > 0) {
+      parts.push(`'SPCG' ${spcg}`);
+    }
+  }
+
+  // Add 'ELSH' for Geist Serif VF (0 to 100)
+  if (fam.includes('Serif')) {
+    const elsh = params.fontElshAxis ?? 0;
+    if (elsh > 0) {
+      parts.push(`'ELSH' ${elsh}`);
+    }
+  }
+
+  return parts.length > 0 ? parts.join(', ') : 'normal';
+}

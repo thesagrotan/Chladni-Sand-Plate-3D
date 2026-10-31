@@ -45,14 +45,15 @@ void main() {
   vec2 uv = gl_FragCoord.xy / resolution.xy;
   vec4 pos = texture2D(tPosition, uv);
 
-  // Particle position in isotropic plate coordinates covering the entire viewport
-  vec2 pField = pos.xy;
+  // Normalize particle world-position into isotropic field space [-1,1]×[-1,1].
+  // This keeps the Chladni pattern identical on any viewport aspect ratio.
+  vec2 pField = (pos.xy - uCamData.xy) / max(uCamData.zw, vec2(0.001));
 
-  // Compute wave amplitude and gradient across the full viewport
+  // Compute wave amplitude and gradient in normalized field space
   float w = computeChladniW(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
   float accel = uDriveStrength * abs(w);
 
-  // Distance from center for radial expulsion
+  // Distance from center in field space for radial expulsion
   float rDist = (uVoidShape > 0.5) ? max(abs(pField.x), abs(pField.y)) : length(pField);
 
   // a0 = 1.0 is the gravity liftoff threshold
@@ -61,8 +62,10 @@ void main() {
     float excess = accel - 1.0;
     float kick = sqrt(excess);
 
-    // Compute analytical wave slope gradient in isotropic coordinates
-    vec2 gradW = computeChladniGrad(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
+    // Gradient in field space; convert to world-space drift so movement
+    // is isotropic (equal pixel speed) regardless of viewport aspect.
+    vec2 gradField = computeChladniGrad(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
+    vec2 gradW = vec2(gradField.x / max(uCamData.z, 0.001), gradField.y / max(uCamData.w, 0.001));
     float signW = (w >= 0.0) ? 1.0 : -1.0;
     vec2 gradAbsW = signW * gradW;
 
@@ -71,9 +74,11 @@ void main() {
 
     // Active center void expulsion: push particles out of the central empty space toward the nodal perimeter
     if (uVoidRadius > 0.01 && rDist < uVoidRadius) {
-      vec2 outward = (rDist > 0.001) ? (pos.xy / rDist) : vec2(0.0, 1.0);
+      // outward direction in world-space (scale field-space direction back to world)
+      vec2 outwardField = (rDist > 0.001) ? (pField / rDist) : vec2(0.0, 1.0);
+      vec2 outwardWorld = vec2(outwardField.x * uCamData.z, outwardField.y * uCamData.w);
       float pushStrength = (1.0 - rDist / uVoidRadius) * (0.0035 * (1.0 + uCenterExpulsion));
-      drift += outward * pushStrength;
+      drift += outwardWorld * pushStrength;
     }
 
     // Chaotic Brownian wandering from irregular grain micro-collisions
@@ -88,8 +93,9 @@ void main() {
     // In nodal quiet zone: plate acceleration is weaker than gravity.
     // If grain is inside the center void zone, gently escort it out to the nodal perimeter
     if (uVoidRadius > 0.01 && rDist < uVoidRadius) {
-      vec2 outward = (rDist > 0.001) ? (pos.xy / rDist) : vec2(0.0, 1.0);
-      pos.xy += outward * 0.004;
+      vec2 outwardField = (rDist > 0.001) ? (pField / rDist) : vec2(0.0, 1.0);
+      vec2 outwardWorld = vec2(outwardField.x * uCamData.z, outwardField.y * uCamData.w);
+      pos.xy += outwardWorld * 0.004;
       pos.z = 0.0;
       pos.w = 1.0;
     } else {
@@ -97,7 +103,8 @@ void main() {
 
       // Subtle compaction towards the center of the nodal ridge
       if (accel > 0.85) {
-        vec2 gradW = computeChladniGrad(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
+        vec2 gradField = computeChladniGrad(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
+        vec2 gradW = vec2(gradField.x / max(uCamData.z, 0.001), gradField.y / max(uCamData.w, 0.001));
         float signW = (w >= 0.0) ? 1.0 : -1.0;
         pos.xy += -signW * gradW * 0.00008;
       }

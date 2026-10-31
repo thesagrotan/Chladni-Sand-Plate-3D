@@ -40,6 +40,8 @@ import {
   Trash2,
   CornerUpLeft,
   PlusCircle,
+  Italic,
+  SlidersHorizontal,
 } from 'lucide-react';
 import {
   ChladniParams,
@@ -49,6 +51,9 @@ import {
   GRID_TYPE_LABELS,
   COLOR_PALETTES,
   AudioMetrics,
+  AVAILABLE_FONTS,
+  FontOption,
+  buildFontVariationSettings,
 } from '../types/chladni.ts';
 import { plateAudio } from '../simulation/audioSynth.ts';
 import { SavedVersion, MAX_VERSIONS } from '../utils/storage.ts';
@@ -334,6 +339,17 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     return p.tag !== 'empty-center';
   });
 
+  const currentFont = AVAILABLE_FONTS.find(
+    (f) => f.fontFamily === params.fontFamily || f.id === params.fontFamily
+  ) || AVAILABLE_FONTS[0];
+
+  const previewVariationCss = buildFontVariationSettings({
+    fontFamily: params.fontFamily,
+    fontWeight: params.fontWeight,
+    fontSpacingAxis: params.fontSpacingAxis,
+    fontElshAxis: params.fontElshAxis,
+  });
+
   return (
     <>
       {/* Right Drawer / Floating Panel */}
@@ -342,7 +358,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           collapsed ? 'translate-x-[calc(100%+1.5rem)]' : 'translate-x-0'
         }`}
       >
-        <div className="w-[355px] max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl bg-neutral-950/92 border border-neutral-800/80 shadow-2xl backdrop-blur-md p-4 text-neutral-200 font-sans select-none scrollbar-thin scrollbar-thumb-neutral-800">
+        <div
+          style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+          className="w-[355px] max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl bg-neutral-950/92 border border-neutral-800/80 shadow-2xl backdrop-blur-md p-4 text-neutral-200 font-sans select-none scrollbar-thin scrollbar-thumb-neutral-800"
+        >
           {/* Header */}
           <div className="flex items-start justify-between pb-2 border-b border-neutral-900">
             <div>
@@ -676,8 +695,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       type="color"
                       value={params.sandColor}
                       onChange={(e) => {
-                        updateParam('sandColor', e.target.value);
-                        updateParam('paletteId', 'custom');
+                        onChange({ ...params, sandColor: e.target.value, paletteId: 'custom' });
                       }}
                       className="w-6 h-6 rounded cursor-pointer border border-neutral-700 bg-transparent"
                     />
@@ -695,8 +713,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       type="color"
                       value={params.sandColorSecondary}
                       onChange={(e) => {
-                        updateParam('sandColorSecondary', e.target.value);
-                        updateParam('paletteId', 'custom');
+                        onChange({ ...params, sandColorSecondary: e.target.value, paletteId: 'custom' });
                       }}
                       className="w-6 h-6 rounded cursor-pointer border border-neutral-700 bg-transparent"
                     />
@@ -714,8 +731,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       type="color"
                       value={params.plateColor}
                       onChange={(e) => {
-                        updateParam('plateColor', e.target.value);
-                        updateParam('paletteId', 'custom');
+                        onChange({ ...params, plateColor: e.target.value, paletteId: 'custom' });
                       }}
                       className="w-6 h-6 rounded cursor-pointer border border-neutral-700 bg-transparent"
                     />
@@ -733,8 +749,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       type="color"
                       value={params.glowColor}
                       onChange={(e) => {
-                        updateParam('glowColor', e.target.value);
-                        updateParam('paletteId', 'custom');
+                        onChange({ ...params, glowColor: e.target.value, paletteId: 'custom' });
                       }}
                       className="w-6 h-6 rounded cursor-pointer border border-neutral-700 bg-transparent"
                     />
@@ -956,6 +971,310 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* TYPOGRAPHY & VARIABLE FONT CONTROLS */}
+          <div className="mt-4 pt-3 border-t border-neutral-900 bg-neutral-900/30 -mx-4 px-4 pb-3 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-cyan-400 flex items-center gap-1">
+                  <Type size={12} />
+                  <span>Typography & Variable Fonts</span>
+                </span>
+                <span className="text-[10px] text-cyan-300 font-mono bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-800/60 truncate max-w-[120px]">
+                  {currentFont?.name || params.fontFamily}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  updateParam('fontFamily', 'iAWriterQuattroV');
+                  updateParam('fontWeight', 400);
+                  updateParam('fontItalic', false);
+                  updateParam('fontSpacingAxis', 0);
+                  updateParam('fontElshAxis', 0);
+                  updateParam('fontLetterSpacing', 0);
+                }}
+                className="text-[10px] text-neutral-500 hover:text-neutral-300 underline cursor-pointer"
+                title="Reset typography to iA Writer Quattro V Regular default"
+              >
+                Reset Font
+              </button>
+            </div>
+
+            <p className="text-[11px] text-neutral-400 leading-tight mb-2.5 font-normal">
+              Quickly switch between fonts in the <code className="text-cyan-300/80 font-mono text-[10px]">fonts/</code> folder. Real-time variable font axes dynamically reshape text contours and sand repulsion.
+            </p>
+
+            {/* Font Picker Grid */}
+            <div className="text-[10px] uppercase tracking-wider font-semibold text-neutral-500 mb-1.5 flex items-center justify-between">
+              <span>Font Folder ({AVAILABLE_FONTS.length} Fonts)</span>
+              <span className="text-[9px] text-neutral-500 font-mono">public/fonts/</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-1.5 mb-3">
+              {AVAILABLE_FONTS.map((font) => {
+                const isSelected = params.fontFamily === font.fontFamily || params.fontFamily === font.id;
+                return (
+                  <button
+                    key={font.id}
+                    type="button"
+                    onClick={() => {
+                      updateParam('fontFamily', font.fontFamily);
+                      let targetWeight = params.fontWeight;
+                      if (targetWeight < font.minWeight) targetWeight = font.minWeight;
+                      if (targetWeight > font.maxWeight) targetWeight = font.maxWeight;
+                      updateParam('fontWeight', targetWeight);
+
+                      if (font.isItalicDefault !== undefined) {
+                        updateParam('fontItalic', font.isItalicDefault);
+                      }
+                    }}
+                    className={`p-2 rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between min-h-[64px] ${
+                      isSelected
+                        ? 'bg-gradient-to-br from-cyan-950/80 to-neutral-900 text-white border-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.15)] ring-1 ring-cyan-400/40'
+                        : 'bg-neutral-900/60 text-neutral-400 border-neutral-800 hover:text-neutral-200 hover:bg-neutral-800 hover:border-neutral-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1 w-full">
+                      <span className="text-[11px] font-semibold truncate leading-tight">
+                        {font.name}
+                      </span>
+                      {isSelected && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.9)] shrink-0" />
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between mt-1 text-[9px] font-mono">
+                      <span className="text-neutral-500 truncate">{font.badge}</span>
+                      <span className="px-1 py-0.2 rounded bg-neutral-950/80 text-neutral-400 border border-neutral-800 shrink-0 text-[8px]">
+                        {font.format}
+                      </span>
+                    </div>
+
+                    {/* Specimen sample in that font */}
+                    <div
+                      className="mt-1 text-[11px] text-neutral-200 truncate"
+                      style={{
+                        fontFamily: font.fontFamily,
+                        fontStyle: font.isItalicDefault ? 'italic' : 'normal',
+                      }}
+                    >
+                      TEZETT – PLATTE
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Variable Font Controls Box */}
+            <div className="p-2.5 rounded-lg bg-neutral-950/70 border border-neutral-800/80 space-y-2.5">
+              <div className="flex items-center justify-between pb-1 border-b border-neutral-900 text-[10px]">
+                <span className="uppercase tracking-wider font-semibold text-neutral-400 flex items-center gap-1">
+                  <SlidersHorizontal size={11} className="text-cyan-400" />
+                  <span>Variable Font Controls</span>
+                </span>
+                <span className="text-[9px] text-cyan-400 font-mono">
+                  {currentFont?.category === 'variable' ? 'Continuous Variable Axes' : 'Static Stepped'}
+                </span>
+              </div>
+
+              {/* Weight Axis Slider (wght) */}
+              <SliderRow
+                label="Weight (wght)"
+                value={params.fontWeight}
+                min={currentFont ? currentFont.minWeight : 100}
+                max={currentFont ? currentFont.maxWeight : 900}
+                step={currentFont?.category === 'static' ? 300 : 10}
+                digits={0}
+                formatFn={(val) => {
+                  let name = '';
+                  if (val <= 200) name = 'Thin';
+                  else if (val <= 350) name = 'Light';
+                  else if (val <= 450) name = 'Regular';
+                  else if (val <= 550) name = 'Medium';
+                  else if (val <= 650) name = 'SemiBold';
+                  else if (val <= 750) name = 'Bold';
+                  else name = 'Black';
+                  return `${Math.round(val)} (${name})`;
+                }}
+                onChange={(val) => updateParam('fontWeight', Math.round(val))}
+              />
+
+              {/* Weight Quick Buttons */}
+              <div className="flex gap-1">
+                {(currentFont?.id === 'iAWriterQuattroV' || currentFont?.id === 'iAWriterQuattroV-Italic'
+                  ? [
+                      { label: '400 Reg', val: 400 },
+                      { label: '500 Med', val: 500 },
+                      { label: '600 Semi', val: 600 },
+                      { label: '700 Bold', val: 700 },
+                    ]
+                  : currentFont?.category === 'static'
+                  ? [
+                      { label: '400 Regular', val: 400 },
+                      { label: '700 Bold', val: 700 },
+                    ]
+                  : [
+                      { label: '100', val: 100 },
+                      { label: '300', val: 300 },
+                      { label: '400', val: 400 },
+                      { label: '500', val: 500 },
+                      { label: '700', val: 700 },
+                      { label: '900', val: 900 },
+                    ]
+                ).map((btn) => (
+                  <button
+                    key={btn.label}
+                    type="button"
+                    onClick={() => updateParam('fontWeight', btn.val)}
+                    className={`flex-1 text-[9px] py-0.5 rounded border text-center transition-all cursor-pointer font-mono ${
+                      params.fontWeight === btn.val
+                        ? 'bg-neutral-200 text-neutral-950 font-semibold border-white shadow-sm'
+                        : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white hover:bg-neutral-800'
+                    }`}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* iA Writer Quattro SPCG Spacing Axis */}
+              {(currentFont?.hasSpacingAxis || params.fontFamily.includes('iAWriter') || params.fontFamily.includes('Quattro')) && (
+                <div className="pt-2 border-t border-neutral-900 space-y-1">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-cyan-300 font-medium flex items-center gap-1">
+                      <span>iA Quattro Spacing (SPCG)</span>
+                    </span>
+                    <span className="font-mono text-[10px] text-neutral-400">
+                      {params.fontSpacingAxis || 0} / 150
+                    </span>
+                  </div>
+                  <SliderRow
+                    label="Glyph tracking"
+                    value={params.fontSpacingAxis || 0}
+                    min={0}
+                    max={150}
+                    step={1}
+                    digits={0}
+                    formatFn={(val) => (val === 0 ? '0 (Default)' : `${Math.round(val)} SPCG`)}
+                    onChange={(val) => updateParam('fontSpacingAxis', Math.round(val))}
+                  />
+                  <div className="grid grid-cols-4 gap-1 pt-0.5">
+                    {[
+                      { label: '0 Norm', val: 0 },
+                      { label: '35 Air', val: 35 },
+                      { label: '75 Open', val: 75 },
+                      { label: '150 Wide', val: 150 },
+                    ].map((btn) => (
+                      <button
+                        key={btn.label}
+                        type="button"
+                        onClick={() => updateParam('fontSpacingAxis', btn.val)}
+                        className={`text-[9px] py-0.5 rounded border text-center transition-all cursor-pointer font-mono ${
+                          (params.fontSpacingAxis || 0) === btn.val
+                            ? 'bg-cyan-950 text-cyan-200 border-cyan-500 font-semibold'
+                            : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
+                        }`}
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Geist Serif ELSH Axis */}
+              {(currentFont?.hasElshAxis || params.fontFamily.includes('Serif')) && (
+                <div className="pt-2 border-t border-neutral-900 space-y-1">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-amber-300 font-medium">Geist Serif Contrast (ELSH)</span>
+                    <span className="font-mono text-[10px] text-neutral-400">
+                      {params.fontElshAxis || 0} / 100
+                    </span>
+                  </div>
+                  <SliderRow
+                    label="Elongation shape"
+                    value={params.fontElshAxis || 0}
+                    min={0}
+                    max={100}
+                    step={1}
+                    digits={0}
+                    formatFn={(val) => (val === 0 ? '0 (Default)' : `${Math.round(val)} ELSH`)}
+                    onChange={(val) => updateParam('fontElshAxis', Math.round(val))}
+                  />
+                </div>
+              )}
+
+              {/* Italic Cut & Style Toggle */}
+              <div className="pt-2 border-t border-neutral-900 flex items-center justify-between">
+                <span className="text-[11px] text-neutral-400 flex items-center gap-1.5">
+                  <Italic size={12} className={params.fontItalic ? 'text-cyan-400' : 'text-neutral-500'} />
+                  <span>Italic Slant / Cursive Cut</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => updateParam('fontItalic', !params.fontItalic)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium border flex items-center gap-1.5 transition-all cursor-pointer ${
+                    params.fontItalic
+                      ? 'bg-cyan-950 border-cyan-500 text-cyan-300 shadow-sm'
+                      : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-800'
+                  }`}
+                >
+                  <Italic size={11} />
+                  <span>{params.fontItalic ? 'Italic Active' : 'Normal'}</span>
+                </button>
+              </div>
+
+              {/* Letter Spacing CSS Tracking */}
+              <div className="pt-2 border-t border-neutral-900">
+                <SliderRow
+                  label="Letter tracking"
+                  value={params.fontLetterSpacing || 0}
+                  min={-2}
+                  max={10}
+                  step={0.5}
+                  digits={1}
+                  formatFn={(val) => (val === 0 ? '0px (Normal)' : `${val > 0 ? '+' : ''}${val.toFixed(1)}px`)}
+                  onChange={(val) => updateParam('fontLetterSpacing', val)}
+                />
+              </div>
+
+              {/* Live Specimen Preview Box */}
+              <div className="mt-2 p-2.5 rounded-lg bg-neutral-900 border border-neutral-800">
+                <div className="flex items-center justify-between text-[9px] text-neutral-500 font-mono mb-1">
+                  <span>LIVE SPECIMEN</span>
+                  <span>{currentFont?.fileName}</span>
+                </div>
+                <div
+                  className="text-base text-white leading-snug transition-all"
+                  style={{
+                    fontFamily: `'${params.fontFamily}', sans-serif`,
+                    fontWeight: params.fontWeight,
+                    fontStyle: params.fontItalic ? 'italic' : 'normal',
+                    fontVariationSettings: previewVariationCss,
+                    letterSpacing: `${params.fontLetterSpacing || 0}px`,
+                  }}
+                >
+                  TEZETT – PLATTE 2023
+                </div>
+                <div
+                  className="text-xs text-neutral-400 leading-relaxed mt-0.5 transition-all"
+                  style={{
+                    fontFamily: `'${params.fontFamily}', sans-serif`,
+                    fontWeight: params.fontWeight,
+                    fontStyle: params.fontItalic ? 'italic' : 'normal',
+                    fontVariationSettings: previewVariationCss,
+                    letterSpacing: `${params.fontLetterSpacing || 0}px`,
+                  }}
+                >
+                  Berlin acoustic research atelier & recording studio
+                </div>
+                <div className="mt-2 pt-1.5 border-t border-neutral-800/80 text-[8px] font-mono text-cyan-400/80 truncate">
+                  font-variation-settings: {previewVariationCss}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1619,6 +1938,30 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             <span>WASM Lab</span>
           </button>
         )}
+
+        {/* Quick Font Picker Cycle Button */}
+        <button
+          type="button"
+          onClick={() => {
+            const currentIndex = AVAILABLE_FONTS.findIndex(
+              (f) => f.fontFamily === params.fontFamily || f.id === params.fontFamily
+            );
+            const nextFont = AVAILABLE_FONTS[(currentIndex + 1) % AVAILABLE_FONTS.length];
+            updateParam('fontFamily', nextFont.fontFamily);
+            let targetWeight = params.fontWeight;
+            if (targetWeight < nextFont.minWeight) targetWeight = nextFont.minWeight;
+            if (targetWeight > nextFont.maxWeight) targetWeight = nextFont.maxWeight;
+            updateParam('fontWeight', targetWeight);
+            if (nextFont.isItalicDefault !== undefined) {
+              updateParam('fontItalic', nextFont.isItalicDefault);
+            }
+          }}
+          className="h-9 px-3 rounded-lg border border-cyan-800/60 bg-neutral-900/90 hover:bg-neutral-800 text-cyan-300 hover:text-white shadow-lg backdrop-blur transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+          title={`Active Font: ${currentFont?.name || params.fontFamily} — Click to quickly cycle between fonts in fonts folder`}
+        >
+          <Type size={13} className="text-cyan-400" />
+          <span className="max-w-[120px] truncate">{currentFont?.name || 'Font'}</span>
+        </button>
 
         {/* Quick Flip H Toggle */}
         <button

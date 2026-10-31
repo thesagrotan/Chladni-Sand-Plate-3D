@@ -64,7 +64,9 @@ ${CHLADNI_GLSL_FUNCTIONS}
 void main() {
   vec3 color = uPlateColor;
 
-  vec2 pField = vPos;
+  // Normalize world-space position into isotropic field space [-1,1]×[-1,1]
+  // so the Chladni pattern looks identical on any viewport aspect ratio.
+  vec2 pField = (vPos - uCamData.xy) / max(uCamData.zw, vec2(0.001));
 
   // Nodal field overlay heatmap across the full viewport
   if (uFieldOverlay > 0.001) {
@@ -156,7 +158,8 @@ void main() {
   vColor = mix(uSandColorPrimary, uSandColorSecondary, colorJitter * 0.7);
 
   // Subtle brightness near nodal lines across full viewport
-  vec2 pField = p;
+  // Normalize to isotropic field space so coloring matches the actual pattern shape
+  vec2 pField = (p - uCamData.xy) / max(uCamData.zw, vec2(0.001));
   float w = computeChladniW(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
   float sharpness = max(uNodalPronouncement, 0.05);
   float grainEdgeWidth = clamp(0.08 / sharpness, 0.005, 0.3);
@@ -997,12 +1000,25 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     grainPointsRef.current = grainPoints;
   }, [params.grainCount]);
 
-  // DOM elements rejection force change — refresh text mask if active
+  // DOM elements rejection force & typography change — refresh text mask
   useEffect(() => {
     if ((params.domRepulsion ?? 1.0) > 0.001) {
       textMaskManagerRef.current?.setDirty();
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => {
+          textMaskManagerRef.current?.setDirty();
+        });
+      }
     }
-  }, [params.domRepulsion]);
+  }, [
+    params.domRepulsion,
+    params.fontFamily,
+    params.fontWeight,
+    params.fontItalic,
+    params.fontSpacingAxis,
+    params.fontElshAxis,
+    params.fontLetterSpacing,
+  ]);
 
   return (
     <div

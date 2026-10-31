@@ -200,14 +200,14 @@ export class TextMaskManager {
       const repulsorType = el.getAttribute('data-text-repulsor');
 
       if (repulsorType === 'line') {
-        const lineY = rect.top + rect.height * 0.5;
+        const height = Math.max(rect.height, 2);
         ctx.filter = 'blur(6px)';
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.fillRect(rect.left, lineY - 1, rect.width, 2);
+        ctx.fillRect(rect.left, rect.top, rect.width, height);
 
         ctx.filter = 'blur(1.5px)';
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(rect.left, lineY - 0.5, rect.width, 1);
+        ctx.fillRect(rect.left, rect.top, rect.width, height);
         continue;
       }
 
@@ -252,6 +252,20 @@ export class TextMaskManager {
       try {
         if ('letterSpacing' in ctx && letterSpacing !== 0) {
           (ctx as any).letterSpacing = `${letterSpacing}px`;
+        }
+      } catch {
+        // Fallback gracefully
+      }
+
+      // Handle variable font axes if supported on canvas 2D context
+      try {
+        const fvs = (style as any).fontVariationSettings || style.getPropertyValue('font-variation-settings');
+        if ('fontVariationSettings' in ctx) {
+          if (fvs && fvs !== 'normal') {
+            (ctx as any).fontVariationSettings = fvs;
+          } else {
+            (ctx as any).fontVariationSettings = 'normal';
+          }
         }
       } catch {
         // Fallback gracefully
