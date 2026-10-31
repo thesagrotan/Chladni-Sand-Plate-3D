@@ -94,6 +94,15 @@ export class TextMaskManager {
       });
     }
 
+    // Catch post-mount layout shifts as styles and flexbox settle
+    [50, 150, 300, 600, 1000, 2000].forEach(delay => {
+      setTimeout(() => {
+        if (!this.isDestroyed) {
+          this.dirty = true;
+        }
+      }, delay);
+    });
+
     // Set up ResizeObserver to catch layout shifts
     try {
       this.resizeObserver = new ResizeObserver(() => {
@@ -219,10 +228,14 @@ export class TextMaskManager {
         continue;
       }
 
-      // Exact text rendering
       const explicitText = el.getAttribute('data-repulsor-text');
       const textToRender = (explicitText !== null ? explicitText : el.innerText || el.textContent || '').trim();
       if (!textToRender) continue;
+
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const clientRects = Array.from(range.getClientRects());
+      console.log(`[RANGE_DEBUG] text: "${textToRender.slice(0, 15)}" elRect: [t:${rect.top.toFixed(1)}, h:${rect.height.toFixed(1)}] clientRects: ${JSON.stringify(clientRects.map(r => ({t: r.top, h: r.height, w: r.width, l: r.left})))}`);
 
       const style = window.getComputedStyle(el);
       const fontSize = parseFloat(style.fontSize) || 28;
@@ -304,20 +317,15 @@ export class TextMaskManager {
     ctx.filter = 'none';
     this.texture.needsUpdate = true;
 
-    // DEBUG: show mask canvas as visible overlay (remove before shipping)
-    if ((window as any).__debugMask) {
-      const dbg: HTMLCanvasElement = (window as any).__debugMaskCanvas || (() => {
-        const c = document.createElement('canvas');
-        c.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:99999;pointer-events:none;opacity:0.55;';
-        document.body.appendChild(c);
-        (window as any).__debugMaskCanvas = c;
-        return c;
-      })();
-      dbg.width = this.canvasW;
-      dbg.height = this.canvasH;
-      const dctx = dbg.getContext('2d')!;
-      dctx.clearRect(0, 0, this.canvasW, this.canvasH);
-      dctx.drawImage(this.canvas, 0, 0);
+    // Export mask canvas for inspection
+    if (typeof window !== 'undefined' && !(window as any).__savedMask) {
+      (window as any).__savedMask = true;
+      try {
+        const data = this.canvas.toDataURL('image/png');
+        console.log(`[MASK_IMAGE_DATA] ${data}`);
+      } catch (e) {
+        console.error(e);
+      }
     }
   }
 

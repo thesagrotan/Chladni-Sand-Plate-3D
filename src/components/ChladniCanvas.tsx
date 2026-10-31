@@ -385,8 +385,13 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     grainPoints.scale.x = cur.flipHorizontal ? -1 : 1;
     grainPoints.scale.y = cur.flipVertical ? -1 : 1;
     grainPoints.rotation.z = (cur.rotationAngle * Math.PI) / 180;
-    bgMesh.scale.x = cur.flipHorizontal ? -1 : 1;
-    bgMesh.scale.y = cur.flipVertical ? -1 : 1;
+    // Background mesh must keep its viewport-fill scale (hRange*2.1 × vRange*2.1);
+    // flip is encoded as a sign on each axis rather than replacing the full scale.
+    bgMesh.scale.set(
+      hRange * 2.1 * (cur.flipHorizontal ? -1 : 1),
+      vRange * 2.1 * (cur.flipVertical ? -1 : 1),
+      1
+    );
     bgMesh.rotation.z = (cur.rotationAngle * Math.PI) / 180;
 
     // -----------------------------------------------------------------------
@@ -622,8 +627,14 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
         grainPointsRef.current.rotation.z = (cp.rotationAngle * Math.PI) / 180;
       }
       if (bgMeshRef.current) {
-        bgMeshRef.current.scale.x = cp.flipHorizontal ? -1 : 1;
-        bgMeshRef.current.scale.y = cp.flipVertical ? -1 : 1;
+        // Preserve viewport-fill scale while encoding flip as a sign on each axis.
+        const bHalfW = camDataRef.current.z;
+        const bHalfH = camDataRef.current.w;
+        bgMeshRef.current.scale.set(
+          bHalfW * 2.1 * (cp.flipHorizontal ? -1 : 1),
+          bHalfH * 2.1 * (cp.flipVertical ? -1 : 1),
+          1
+        );
         bgMeshRef.current.rotation.z = (cp.rotationAngle * Math.PI) / 180;
       }
 
@@ -703,6 +714,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
           const cx = cam ? (cam.left + cam.right) * 0.5 : 0;
           const cy = cam ? (cam.bottom + cam.top) * 0.5 : 0;
           camDataRef.current.set(cx, cy, halfW, halfH);
+          console.log(`[CAM_DEBUG] engine: ${cp.simulationEngine} cx: ${cx} cy: ${cy} halfW: ${halfW} halfH: ${halfH} cam.top: ${cam?.top} cam.bottom: ${cam?.bottom} w: ${window.innerWidth} h: ${window.innerHeight}`);
 
           // Update text mask and dynamic DOM elements rejection strength
           const domRepulsion = cp.domRepulsion !== undefined ? cp.domRepulsion : 1.0;

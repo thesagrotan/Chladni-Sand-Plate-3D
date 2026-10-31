@@ -237,23 +237,23 @@ export default function App() {
       <div className="relative z-10 w-full flex flex-col">
         {/* HERO VIEWPORT — MATCHES SCREENSHOT EXACTLY */}
         <section className="h-screen min-h-[680px] w-full flex flex-col justify-between px-8 sm:px-14 md:px-20 py-8 sm:py-12 select-none">
-          {/* Top Right: Contact */}
-          <div className="w-full flex justify-end">
+          {/* Top: Contact */}
+          <div className="w-full max-w-6xl mx-auto flex justify-start">
             <a
               href="#contact"
               data-text-repulsor
-              className="text-sm sm:text-base font-normal tracking-wide transition-opacity cursor-pointer hover:opacity-100"
+              className="text-sm sm:text-base font-normal tracking-wide transition-opacity cursor-pointer hover:opacity-100 text-left"
               style={{ color: dotColor, opacity: 0.85 }}
             >
               Contact
             </a>
           </div>
 
-          {/* Center: TEZETT – PLATTE & Subtitle */}
-          <div className="my-auto flex flex-col items-center justify-center text-center px-4">
+          {/* Main Title & Subtitle */}
+          <div className="w-full max-w-6xl mx-auto my-auto flex flex-col items-start justify-center text-left">
             <h1
               data-text-repulsor
-              className="text-base sm:text-lg md:text-xl font-bold tracking-[0.16em] uppercase font-sans"
+              className="text-base sm:text-lg md:text-xl font-bold tracking-[0.16em] uppercase font-sans text-left"
               style={{ color: dotColor }}
             >
               TEZETT – PLATTE
@@ -261,15 +261,15 @@ export default function App() {
 
             <p
               data-text-repulsor
-              className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-serif mt-4 sm:mt-5 max-w-4xl leading-tight font-normal"
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-serif mt-4 sm:mt-5 max-w-4xl leading-tight font-normal text-left"
               style={{ color: dotColor }}
             >
-              is a Berlin based label and studio of great musicians
+              is a Berlin based label and studio for uncommon musicians
             </p>
           </div>
 
           {/* Bottom: Releases and Track Rows */}
-          <div className="w-full max-w-6xl mx-auto flex flex-col pb-2 sm:pb-4">
+          <div className="w-full max-w-6xl mx-auto flex flex-col pb-2 sm:pb-4 text-left">
             <div
               data-text-repulsor
               className="text-sm sm:text-base font-sans font-normal mb-6 sm:mb-7 tracking-wide"
@@ -486,10 +486,10 @@ export default function App() {
         </section>
 
         {/* SECTION: ABOUT THE STUDIO */}
-        <section className="min-h-[70vh] px-8 sm:px-14 md:px-20 py-24 sm:py-32 max-w-5xl mx-auto flex flex-col justify-center">
+        <section className="min-h-[70vh] px-8 sm:px-14 md:px-20 py-24 sm:py-32 max-w-6xl mx-auto flex flex-col justify-center text-left">
           <div
             data-text-repulsor
-            className="text-sm sm:text-base font-sans font-normal mb-4 tracking-wide uppercase"
+            className="text-sm sm:text-base font-sans font-normal mb-4 tracking-wide uppercase text-left"
             style={{ color: dotColor, opacity: 0.75 }}
           >
             About
@@ -497,7 +497,7 @@ export default function App() {
 
           <h2
             data-text-repulsor
-            className="text-3xl sm:text-4xl md:text-5xl font-serif font-normal leading-snug"
+            className="text-3xl sm:text-4xl md:text-5xl font-serif font-normal leading-snug text-left"
             style={{ color: dotColor }}
           >
             Acoustic physical research atelier and recording studio
@@ -505,7 +505,7 @@ export default function App() {
 
           <p
             data-text-repulsor
-            className="mt-6 text-lg sm:text-xl font-serif leading-relaxed font-light"
+            className="mt-6 text-lg sm:text-xl font-serif leading-relaxed font-light text-left"
             style={{ color: dotColor, opacity: 0.88 }}
           >
             Founded in Berlin, Tezett – Platte operates as a dedicated laboratory where kinetic
@@ -583,7 +583,7 @@ export default function App() {
         <button
           type="button"
           onClick={handleToggleAudio}
-          className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all flex items-center gap-2 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+          className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xl font-mono backdrop-blur transition-all flex items-center gap-2 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
           style={{ color: dotColor, borderColor: `${dotColor}33` }}
           title="Toggle Umbráfono / Acoustic audio (M)"
         >
@@ -599,7 +599,7 @@ export default function App() {
         <button
           type="button"
           onClick={handleScatter}
-          className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+          className="p-1.5 rounded-lg border bg-neutral-950/80 text-xl font-mono backdrop-blur transition-all cursor-pointer shadow-lg opacity-70 hover:opacity-100"
           style={{ color: dotColor, borderColor: `${dotColor}33` }}
           title="Scatter sand (S)"
         >
@@ -612,7 +612,7 @@ export default function App() {
         <button
           type="button"
           onClick={() => setShowControls((prev) => !prev)}
-          className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all flex items-center gap-1.5 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+          className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xl font-mono backdrop-blur transition-all flex items-center gap-1.5 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
           style={{ color: dotColor, borderColor: `${dotColor}33` }}
           title="Toggle Physics & Tuning Controls (C)"
         >
@@ -624,7 +624,7 @@ export default function App() {
         <button
           type="button"
           onClick={() => setIsWasmLabOpen(true)}
-          className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+          className="p-1.5 rounded-lg border bg-neutral-950/80 text-xl font-mono backdrop-blur transition-all cursor-pointer shadow-lg opacity-70 hover:opacity-100"
           style={{ color: dotColor, borderColor: `${dotColor}33` }}
           title="Open WebAssembly Benchmarks (W)"
         >
@@ -666,7 +666,7 @@ export default function App() {
       {/* 6. STATUS TOAST */}
       {toastMessage && (
         <div className="fixed bottom-14 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
-          <div className="px-3.5 py-1.5 rounded-lg bg-neutral-900/95 border border-neutral-800 shadow-2xl backdrop-blur text-xs text-neutral-200 flex items-center gap-2">
+          <div className="px-3.5 py-1.5 rounded-lg bg-neutral-900/95 border border-neutral-800 shadow-2xl backdrop-blur text-xl text-neutral-200 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
             <span className="font-mono">{toastMessage}</span>
           </div>
