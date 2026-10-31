@@ -35,9 +35,9 @@ interface ChladniCanvasProps {
 const BACKGROUND_VERTEX_SHADER = /* glsl */ `
 varying vec2 vPos;
 void main() {
-  vPos = position.xy;
-  vec4 mvPos = modelViewMatrix * vec4(position.xy, 0.0, 1.0);
-  gl_Position = projectionMatrix * mvPos;
+  vec4 worldPos = modelMatrix * vec4(position.xy, 0.0, 1.0);
+  vPos = worldPos.xy;
+  gl_Position = projectionMatrix * viewMatrix * worldPos;
 }
 `;
 
@@ -60,19 +60,7 @@ varying vec2 vPos;
 ${CHLADNI_GLSL_FUNCTIONS}
 
 void main() {
-  // Discard pixels outside the plate square boundary
-  vec2 absPos = abs(vPos);
-  float plateEdge = max(absPos.x, absPos.y);
-  if (plateEdge > 1.0) {
-    discard;
-  }
-
   vec3 color = uPlateColor;
-
-  // Subtle beveled plate border
-  float rim = smoothstep(0.962, 0.99, plateEdge);
-  vec3 rimColor = mix(uPlateColor * 1.6 + vec3(0.03), vec3(0.18), 0.5);
-  color = mix(color, rimColor, rim * 0.75);
 
   // Nodal field overlay heatmap
   if (uFieldOverlay > 0.001) {
@@ -86,15 +74,16 @@ void main() {
     color = mix(color, fieldColor, uFieldOverlay * 0.85);
   }
 
-  // Void guide ring / square
+  // Void guide ring / square in the center
   if (uShowVoidGuide > 0.5 && uVoidRadius > 0.01) {
+    vec2 absPos = abs(vPos);
     float rDist = (uVoidShape > 0.5) ? max(absPos.x, absPos.y) : length(vPos);
     float distToEdge = abs(rDist - uVoidRadius);
     float guideLine = smoothstep(0.006, 0.0015, distToEdge);
     color = mix(color, uNodeGlowColor, guideLine * 0.75);
   }
 
-  gl_FragColor = vec4(color, 0.94);
+  gl_FragColor = vec4(color, 1.0);
 }
 `;
 
@@ -240,8 +229,8 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
       }
     })();
 
-    const width = container.clientWidth || window.innerWidth;
-    const height = container.clientHeight || window.innerHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
     // Initialize TextMaskManager for exact text contour repulsion
     const textMask = new TextMaskManager({
@@ -256,14 +245,15 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     scene.background = null;
     sceneRef.current = scene;
 
-    // 2D orthographic camera — maps plate [-1,1]x[-1,1] to screen
+    // 2D orthographic camera — maps full viewport to screen
     const aspect = width / height;
-    const vRange = VRANGE; // slight margin around the plate
-    const hRange = vRange * aspect;
+    const vRange = VRANGE; // half-range vertically
+    const hRange = vRange * aspect; // half-range horizontally to cover full viewport
     const camera = new THREE.OrthographicCamera(-hRange, hRange, vRange, -vRange, -1, 1);
     camera.position.set(0, 0, 1);
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
+    camDataRef.current.set(0, 0, hRange, vRange);
 
     const pixelRatio = isSoftwareGl ? 1 : Math.min(window.devicePixelRatio, 2);
     const renderer = new THREE.WebGLRenderer({
@@ -273,7 +263,13 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     });
     renderer.setSize(width, height);
     renderer.setPixelRatio(pixelRatio);
-    renderer.setClearColor(0x000000, 0);
+    renderer.setClearColor(0x050507, 1);
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.top = '0';
+    renderer.domElement.style.left = '0';
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
+    renderer.domElement.style.display = 'block';
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.1;
@@ -287,10 +283,9 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     const sandSecCol = new THREE.Color(cur.sandColorSecondary);
 
     // -----------------------------------------------------------------------
-    // Background plate quad — renders behind all grains
+    // Background plate quad — covers full viewport behind all grains
     // -----------------------------------------------------------------------
-    // Use a PlaneGeometry on the XY plane — camera projects it naturally
-    const bgGeo = new THREE.PlaneGeometry(2.0, 2.0);
+    const bgGeo = new THREE.PlaneGeometry(1.0, 1.0);
     const bgMat = new THREE.ShaderMaterial({
       vertexShader: BACKGROUND_VERTEX_SHADER,
       fragmentShader: BACKGROUND_FRAGMENT_SHADER,
@@ -314,6 +309,8 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     });
     backgroundMaterialRef.current = bgMat;
     const bgMesh = new THREE.Mesh(bgGeo, bgMat);
+    bgMesh.scale.set(hRange * 2.1, vRange * 2.1, 1);
+    bgMesh.position.set(0, 0, 0);
     bgMesh.renderOrder = 0;
     scene.add(bgMesh);
     bgMeshRef.current = bgMesh;
@@ -321,7 +318,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     // -----------------------------------------------------------------------
     // GPU particle simulation
     // -----------------------------------------------------------------------
-    const sim = new ChladniGpuSimulation(renderer, cur.grainCount);
+    const sim = new ChladniGpuSimulation(renderer, cur.grainCount, hRange, vRange);
     simRef.current = sim;
 
     const count = sim.grainCount;
@@ -399,8 +396,8 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     const cpuGrains: { x: number; y: number; settled: boolean }[] = [];
     for (let i = 0; i < 1024; i++) {
       cpuGrains.push({
-        x: (Math.random() * 2 - 1) * 0.95,
-        y: (Math.random() * 2 - 1) * 0.95,
+        x: (Math.random() * 2 - 1) * (hRange * 0.95),
+        y: (Math.random() * 2 - 1) * (vRange * 0.95),
         settled: false,
       });
     }
@@ -412,19 +409,27 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     const updateCameraFrustum = () => {
       const cam = cameraRef.current;
       if (!cam) return;
-      const w = container.clientWidth;
-      const h = container.clientHeight;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
       const asp = w / h;
       const z = zoomRef.current;
       const px = panRef.current.x;
       const py = panRef.current.y;
-      const halfH = vRange / z;
+      const halfH = VRANGE / z;
       const halfW = halfH * asp;
       cam.left = -halfW + px;
       cam.right = halfW + px;
       cam.top = halfH + py;
       cam.bottom = -halfH + py;
       cam.updateProjectionMatrix();
+
+      camDataRef.current.set(px, py, halfW, halfH);
+
+      if (bgMeshRef.current) {
+        bgMeshRef.current.scale.set(halfW * 2.1, halfH * 2.1, 1);
+        bgMeshRef.current.position.set(px, py, 0);
+      }
+
       if (grainMaterialRef.current) {
         grainMaterialRef.current.uniforms.uZoom.value = z;
       }
@@ -577,10 +582,11 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     // -----------------------------------------------------------------------
     const handleResize = () => {
       if (!container || !renderer) return;
-      const w = container.clientWidth;
-      const h = container.clientHeight;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
       renderer.setSize(w, h);
       updateCameraFrustum();
+      textMaskManagerRef.current?.setDirty();
     };
     window.addEventListener('resize', handleResize);
 
@@ -718,6 +724,10 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
           // CPU sample for telemetry
           let settledCount = 0;
           const grains = cpuParticlesRef.current;
+          const camData = camDataRef.current;
+          const bx = camData.z * 0.98;
+          const by = camData.w * 0.98;
+
           for (let i = 0; i < grains.length; i++) {
             const g = grains[i];
             const w = evalChladniW(g.x, g.y, cp.modeM, cp.modeN, cp.waveK, cp.symmetryBlend, gridTypeNum, cp.centerVoidRadius, voidShapeNum, cp.centerExpulsion);
@@ -739,13 +749,13 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
                 dy += g.y * invR * push;
               }
 
-              g.x = Math.max(-0.96, Math.min(0.96, g.x + dx));
-              g.y = Math.max(-0.96, Math.min(0.96, g.y + dy));
+              g.x = Math.max(-bx, Math.min(bx, g.x + dx));
+              g.y = Math.max(-by, Math.min(by, g.y + dy));
             } else {
               if (cp.centerVoidRadius > 0.01 && rDist < cp.centerVoidRadius) {
                 const invR = rDist > 0.001 ? 1.0 / rDist : 0;
-                g.x = Math.max(-0.96, Math.min(0.96, g.x + g.x * invR * 0.004));
-                g.y = Math.max(-0.96, Math.min(0.96, g.y + g.y * invR * 0.004));
+                g.x = Math.max(-bx, Math.min(bx, g.x + g.x * invR * 0.004));
+                g.y = Math.max(-by, Math.min(by, g.y + g.y * invR * 0.004));
                 g.settled = false;
               } else {
                 g.settled = true;
@@ -849,13 +859,14 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
   // Scatter trigger
   useEffect(() => {
     if (scatterTrigger > 0) {
-      simRef.current?.scatter();
+      const cam = camDataRef.current;
+      simRef.current?.scatter(cam.z, cam.w);
       wasmSimRef.current?.resetParticles();
       jsCpuSimRef.current?.resetParticles();
       const grains = cpuParticlesRef.current;
       for (let i = 0; i < grains.length; i++) {
-        grains[i].x = (Math.random() * 2 - 1) * 0.95;
-        grains[i].y = (Math.random() * 2 - 1) * 0.95;
+        grains[i].x = (Math.random() * 2 - 1) * (cam.z * 0.95);
+        grains[i].y = (Math.random() * 2 - 1) * (cam.w * 0.95);
         grains[i].settled = false;
       }
     }
@@ -864,24 +875,37 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
   // Reset trigger — also resets 2D zoom/pan
   useEffect(() => {
     if (resetTrigger > 0) {
-      simRef.current?.scatter();
-      wasmSimRef.current?.resetParticles();
-      jsCpuSimRef.current?.resetParticles();
       zoomRef.current = 1.0;
       panRef.current = { x: 0, y: 0 };
-      const container = mountRef.current;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const asp = w / h;
+      const halfH = VRANGE;
+      const halfW = halfH * asp;
+      camDataRef.current.set(0, 0, halfW, halfH);
+      simRef.current?.scatter(halfW, halfH);
+      wasmSimRef.current?.resetParticles();
+      jsCpuSimRef.current?.resetParticles();
       const cam = cameraRef.current;
-      if (container && cam) {
-        const aspect = container.clientWidth / container.clientHeight;
-        const halfH = VRANGE; // use module-level constant
-        cam.left = -halfH * aspect;
-        cam.right = halfH * aspect;
+      if (cam) {
+        cam.left = -halfW;
+        cam.right = halfW;
         cam.top = halfH;
         cam.bottom = -halfH;
         cam.updateProjectionMatrix();
       }
+      if (bgMeshRef.current) {
+        bgMeshRef.current.scale.set(halfW * 2.1, halfH * 2.1, 1);
+        bgMeshRef.current.position.set(0, 0, 0);
+      }
       if (grainMaterialRef.current) {
         grainMaterialRef.current.uniforms.uZoom.value = 1.0;
+      }
+      const grains = cpuParticlesRef.current;
+      for (let i = 0; i < grains.length; i++) {
+        grains[i].x = (Math.random() * 2 - 1) * (halfW * 0.95);
+        grains[i].y = (Math.random() * 2 - 1) * (halfH * 0.95);
+        grains[i].settled = false;
       }
     }
   }, [resetTrigger]);
@@ -906,7 +930,8 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
 
     simRef.current?.dispose();
 
-    const newSim = new ChladniGpuSimulation(renderer, params.grainCount);
+    const cam = camDataRef.current;
+    const newSim = new ChladniGpuSimulation(renderer, params.grainCount, cam.z, cam.w);
     simRef.current = newSim;
 
     const count = newSim.grainCount;
@@ -943,7 +968,14 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
   return (
     <div
       ref={mountRef}
-      className="fixed inset-0 w-screen h-screen pointer-events-none select-none z-0 overflow-hidden"
+      className="fixed inset-0 w-full h-full pointer-events-none select-none z-0 overflow-hidden"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+      }}
     />
   );
 };

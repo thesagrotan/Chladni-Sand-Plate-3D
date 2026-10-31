@@ -174,10 +174,11 @@ void main() {
     }
   }
 
-  // Contain sand particles within the plate boundaries
-  const float BOUND = 0.975;
-  pos.x = clamp(pos.x, -BOUND, BOUND);
-  pos.y = clamp(pos.y, -BOUND, BOUND);
+  // Contain sand particles within the full visible viewport boundaries
+  float boundX = max(uCamData.z * 0.995, 0.98);
+  float boundY = max(uCamData.w * 0.995, 0.98);
+  pos.x = clamp(pos.x, uCamData.x - boundX, uCamData.x + boundX);
+  pos.y = clamp(pos.y, uCamData.y - boundY, uCamData.y + boundY);
 
   gl_FragColor = pos;
 }
@@ -190,7 +191,12 @@ export class ChladniGpuSimulation {
   public textureHeight: number;
   public grainCount: number;
 
-  constructor(renderer: THREE.WebGLRenderer, grainCount = 100_000) {
+  constructor(
+    renderer: THREE.WebGLRenderer,
+    grainCount = 100_000,
+    initialHalfW = 2.0,
+    initialHalfH = 1.05
+  ) {
     let dim = 1024;
     if (grainCount <= 7_500) dim = 72; // ~5,184 grains
     else if (grainCount <= 18_000) dim = 100; // 10,000 grains
@@ -208,7 +214,7 @@ export class ChladniGpuSimulation {
     this.gpuCompute = new GPUComputationRenderer(dim, dim, renderer);
 
     const dtPosition = this.gpuCompute.createTexture();
-    this.fillInitialData(dtPosition);
+    this.fillInitialData(dtPosition, initialHalfW, initialHalfH);
 
     this.posVariable = this.gpuCompute.addVariable('tPosition', POSITION_FRAGMENT_SHADER, dtPosition);
     this.gpuCompute.setVariableDependencies(this.posVariable, [this.posVariable]);
@@ -233,7 +239,7 @@ export class ChladniGpuSimulation {
     u.uTextMaskActive = { value: 0.0 };
     u.uTextMaskStrength = { value: 0.022 };
     u.uTextMaskRes = { value: 1024.0 };
-    u.uCamData = { value: new THREE.Vector4(0, 0, 1.05, 1.05) };
+    u.uCamData = { value: new THREE.Vector4(0, 0, initialHalfW, initialHalfH) };
     u.uRotAngle = { value: 0.0 };
     u.uFlipH = { value: 0.0 };
     u.uFlipV = { value: 0.0 };
@@ -244,14 +250,17 @@ export class ChladniGpuSimulation {
     }
   }
 
-  public fillInitialData(dtPosition: THREE.DataTexture) {
+  public fillInitialData(dtPosition: THREE.DataTexture, halfW = 2.0, halfH = 1.05) {
     const posArray = dtPosition.image.data as Float32Array;
     const count = this.textureWidth * this.textureHeight;
 
+    const spanX = Math.max(halfW * 0.98, 0.96);
+    const spanY = Math.max(halfH * 0.98, 0.96);
+
     for (let i = 0; i < count; i++) {
       const idx = i * 4;
-      const rx = (Math.random() * 2.0 - 1.0) * 0.96;
-      const ry = (Math.random() * 2.0 - 1.0) * 0.96;
+      const rx = (Math.random() * 2.0 - 1.0) * spanX;
+      const ry = (Math.random() * 2.0 - 1.0) * spanY;
 
       posArray[idx + 0] = rx;
       posArray[idx + 1] = ry;
@@ -261,9 +270,9 @@ export class ChladniGpuSimulation {
     dtPosition.needsUpdate = true;
   }
 
-  public scatter() {
+  public scatter(halfW = 2.0, halfH = 1.05) {
     const dtPos = this.gpuCompute.createTexture();
-    this.fillInitialData(dtPos);
+    this.fillInitialData(dtPos, halfW, halfH);
 
     this.gpuCompute.renderTexture(dtPos, this.posVariable.renderTargets[0]);
     this.gpuCompute.renderTexture(dtPos, this.posVariable.renderTargets[1]);
