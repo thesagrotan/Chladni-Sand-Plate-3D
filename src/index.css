@@ -447,6 +447,56 @@
   font-display: swap;
 }
 
+/* 1e. Aeonik Pro (CoType Foundry — Neo-grotesque) */
+/* 7 weights (Air 100, Thin 200, Light 300, Regular 400, Medium 500, Bold 700, Black 900) + Italics */
+@font-face { font-family: 'Aeonik-Pro'; src: url('/fonts/aeonik-pro/AeonikPro-Air.woff2') format('woff2'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik-Pro'; src: url('/fonts/aeonik-pro/AeonikPro-AirItalic.woff2') format('woff2'); font-weight: 100; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Aeonik-Pro'; src: url('/fonts/aeonik-pro/AeonikPro-Thin.woff2') format('woff2'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik-Pro'; src: url('/fonts/aeonik-pro/AeonikPro-ThinItalic.woff2') format('woff2'); font-weight: 200; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Aeonik-Pro'; src: url('/fonts/aeonik-pro/AeonikPro-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik-Pro'; src: url('/fonts/aeonik-pro/AeonikPro-LightItalic.woff2') format('woff2'); font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Aeonik-Pro'; src: url('/fonts/aeonik-pro/AeonikPro-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik-Pro'; src: url('/fonts/aeonik-pro/AeonikPro-RegularItalic.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Aeonik-Pro'; src: url('/fonts/aeonik-pro/AeonikPro-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik-Pro'; src: url('/fonts/aeonik-pro/AeonikPro-MediumItalic.woff2') format('woff2'); font-weight: 500; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Aeonik-Pro'; src: url('/fonts/aeonik-pro/AeonikPro-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik-Pro'; src: url('/fonts/aeonik-pro/AeonikPro-BoldItalic.woff2') format('woff2'); font-weight: 700; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Aeonik-Pro'; src: url('/fonts/aeonik-pro/AeonikPro-Black.woff2') format('woff2'); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik-Pro'; src: url('/fonts/aeonik-pro/AeonikPro-BlackItalic.woff2') format('woff2'); font-weight: 900; font-style: italic; font-display: swap; }
+
+@font-face { font-family: 'Aeonik Pro'; src: url('/fonts/aeonik-pro/AeonikPro-Air.woff2') format('woff2'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik Pro'; src: url('/fonts/aeonik-pro/AeonikPro-AirItalic.woff2') format('woff2'); font-weight: 100; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Aeonik Pro'; src: url('/fonts/aeonik-pro/AeonikPro-Thin.woff2') format('woff2'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik Pro'; src: url('/fonts/aeonik-pro/AeonikPro-ThinItalic.woff2') format('woff2'); font-weight: 200; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Aeonik Pro'; src: url('/fonts/aeonik-pro/AeonikPro-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik Pro'; src: url('/fonts/aeonik-pro/AeonikPro-LightItalic.woff2') format('woff2'); font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Aeonik Pro'; src: url('/fonts/aeonik-pro/AeonikPro-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik Pro'; src: url('/fonts/aeonik-pro/AeonikPro-RegularItalic.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Aeonik Pro'; src: url('/fonts/aeonik-pro/AeonikPro-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik Pro'; src: url('/fonts/aeonik-pro/AeonikPro-MediumItalic.woff2') format('woff2'); font-weight: 500; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Aeonik Pro'; src: url('/fonts/aeonik-pro/AeonikPro-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik Pro'; src: url('/fonts/aeonik-pro/AeonikPro-BoldItalic.woff2') format('woff2'); font-weight: 700; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Aeonik Pro'; src: url('/fonts/aeonik-pro/AeonikPro-Black.woff2') format('woff2'); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik Pro'; src: url('/fonts/aeonik-pro/AeonikPro-BlackItalic.woff2') format('woff2'); font-weight: 900; font-style: italic; font-display: swap; }
+
+/* 1f. Aeonik Fono (CoType Foundry — Monospaced/Mechanical) */
+/* 7 weights (Air 100, Thin 200, Light 300, Regular 400, Medium 500, Bold 700, Black 900) */
+@font-face { font-family: 'Aeonik-Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Air.woff2') format('woff2'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik-Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Thin.woff2') format('woff2'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik-Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik-Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik-Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik-Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik-Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Black.woff2') format('woff2'); font-weight: 900; font-style: normal; font-display: swap; }
+
+@font-face { font-family: 'Aeonik Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Air.woff2') format('woff2'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Thin.woff2') format('woff2'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Aeonik Fono'; src: url('/fonts/aeonik-fono/AeonikFono-Black.woff2') format('woff2'); font-weight: 900; font-style: normal; font-display: swap; }
+
 /* 2. iA Writer Quattro V (Variable font: wght 400-700, SPCG 0-150) */
 @font-face {
   font-family: 'iA Writer Quattro V';

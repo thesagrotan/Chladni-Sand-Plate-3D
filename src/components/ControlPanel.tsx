@@ -1199,7 +1199,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 value={params.fontWeight}
                 min={currentFont ? currentFont.minWeight : 100}
                 max={currentFont ? currentFont.maxWeight : 900}
-                step={currentFont?.id?.startsWith('BB-Manual-Mono-Pro') ? 50 : currentFont?.id?.startsWith('Scatterplot') ? 100 : currentFont?.category === 'static' ? 300 : 10}
+                step={currentFont?.id?.startsWith('BB-Manual-Mono-Pro') ? 50 : (currentFont?.id?.startsWith('Scatterplot') || currentFont?.id?.startsWith('Aeonik')) ? 100 : currentFont?.category === 'static' ? 300 : 10}
                 digits={0}
                 formatFn={(val) => {
                   let name = '';
@@ -1238,6 +1238,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   ? [
                       { label: '300 Lt', val: 300 },
                       { label: '400 Reg', val: 400 },
+                      { label: '700 Bold', val: 700 },
+                      { label: '900 Blk', val: 900 },
+                    ]
+                  : currentFont?.id?.startsWith('Aeonik')
+                  ? [
+                      { label: '100 Air', val: 100 },
+                      { label: '200 Thin', val: 200 },
+                      { label: '300 Lt', val: 300 },
+                      { label: '400 Reg', val: 400 },
+                      { label: '500 Med', val: 500 },
                       { label: '700 Bold', val: 700 },
                       { label: '900 Blk', val: 900 },
                     ]

@@ -674,6 +674,35 @@ export const AVAILABLE_FONTS: FontOption[] = [
     fileName: 'scatterplot/Scatterplot-UltraWild-*.woff2',
     description: 'Maximum randomized dot displacement into atmospheric sand dust',
   },
+  // Aeonik Pro & Aeonik Fono (CoType Foundry — Mark Bloom & Joe Leadbeater)
+  {
+    id: 'Aeonik-Pro',
+    name: 'Aeonik Pro',
+    fontFamily: 'Aeonik-Pro',
+    category: 'static',
+    minWeight: 100,
+    maxWeight: 900,
+    defaultWeight: 400,
+    hasItalic: true,
+    badge: 'Neo-Grotesque WOFF2',
+    format: 'WOFF2',
+    fileName: 'aeonik-pro/AeonikPro-*.woff2',
+    description: 'Structural neo-grotesque with geometric integrity — 7 weights (Air 100 to Black 900) + Italics',
+  },
+  {
+    id: 'Aeonik-Fono',
+    name: 'Aeonik Fono',
+    fontFamily: 'Aeonik-Fono',
+    category: 'static',
+    minWeight: 100,
+    maxWeight: 900,
+    defaultWeight: 400,
+    hasItalic: false,
+    badge: 'Mono Mechanical WOFF2',
+    format: 'WOFF2',
+    fileName: 'aeonik-fono/AeonikFono-*.woff2',
+    description: 'Monospaced mechanical companion to Aeonik Pro — 7 weights (Air 100 to Black 900)',
+  },
 ];
 
 export function buildFontVariationSettings(params: {
