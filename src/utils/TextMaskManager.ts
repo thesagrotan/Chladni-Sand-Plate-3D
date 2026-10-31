@@ -23,14 +23,32 @@ export class TextMaskManager {
   private boundOnResize: () => void;
   private isDestroyed: boolean = false;
 
+  // Canvas dimensions are kept proportional to the viewport aspect ratio
+  // so that scaleX === scaleY (uniform scale), avoiding text distortion.
+  public canvasW: number;
+  public canvasH: number;
+
   constructor(options: TextMaskManagerOptions = {}) {
     this.resolution = options.resolution || 1024;
     this.trackedSelector = options.trackedSelector || '[data-text-repulsor]';
     this.strength = options.strength ?? 0.022;
 
+    // Compute canvas dimensions that match the current viewport aspect ratio
+    // at roughly `resolution` pixels on the longer axis.
+    const vw = window.innerWidth || 1280;
+    const vh = window.innerHeight || 800;
+    const aspect = vw / vh;
+    if (aspect >= 1) {
+      this.canvasW = this.resolution;
+      this.canvasH = Math.round(this.resolution / aspect);
+    } else {
+      this.canvasH = this.resolution;
+      this.canvasW = Math.round(this.resolution * aspect);
+    }
+
     this.canvas = document.createElement('canvas');
-    this.canvas.width = this.resolution;
-    this.canvas.height = this.resolution;
+    this.canvas.width = this.canvasW;
+    this.canvas.height = this.canvasH;
 
     const ctx = this.canvas.getContext('2d', {
       alpha: false,
@@ -43,7 +61,7 @@ export class TextMaskManager {
 
     // Fill initial black background
     this.ctx.fillStyle = '#000000';
-    this.ctx.fillRect(0, 0, this.resolution, this.resolution);
+    this.ctx.fillRect(0, 0, this.canvasW, this.canvasH);
 
     this.texture = new THREE.CanvasTexture(this.canvas);
     this.texture.minFilter = THREE.LinearFilter;
@@ -111,11 +129,32 @@ export class TextMaskManager {
   public rasterizeText(): void {
     if (this.isDestroyed) return;
 
-    const W = this.resolution;
-    const H = this.resolution;
     const ctx = this.ctx;
     const vw = window.innerWidth || 1;
     const vh = window.innerHeight || 1;
+
+    // Recompute canvas dimensions if the viewport aspect ratio has changed.
+    // This ensures a uniform scale factor (scaleX === scaleY) so that text
+    // drawn on the canvas is not stretched or squished relative to the DOM.
+    const aspect = vw / vh;
+    let needsW: number;
+    let needsH: number;
+    if (aspect >= 1) {
+      needsW = this.resolution;
+      needsH = Math.round(this.resolution / aspect);
+    } else {
+      needsH = this.resolution;
+      needsW = Math.round(this.resolution * aspect);
+    }
+    if (needsW !== this.canvasW || needsH !== this.canvasH) {
+      this.canvasW = needsW;
+      this.canvasH = needsH;
+      this.canvas.width = this.canvasW;
+      this.canvas.height = this.canvasH;
+    }
+
+    const W = this.canvasW;
+    const H = this.canvasH;
 
     // Reset transform to paint full black background
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -123,10 +162,10 @@ export class TextMaskManager {
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, W, H);
 
-    // Map screen pixel coordinates [0, vw] x [0, vh] directly onto [0, W] x [0, H]
-    const scaleX = W / vw;
-    const scaleY = H / vh;
-    ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+    // Uniform scale: both axes use the same factor so text is not distorted.
+    // W/vw == H/vh because we sized the canvas to match the viewport aspect ratio.
+    const scale = W / vw; // == H / vh
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
 
     const elements = document.querySelectorAll(this.trackedSelector);
     if (!elements || elements.length === 0) {
@@ -264,6 +303,22 @@ export class TextMaskManager {
 
     ctx.filter = 'none';
     this.texture.needsUpdate = true;
+
+    // DEBUG: show mask canvas as visible overlay (remove before shipping)
+    if ((window as any).__debugMask) {
+      const dbg: HTMLCanvasElement = (window as any).__debugMaskCanvas || (() => {
+        const c = document.createElement('canvas');
+        c.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:99999;pointer-events:none;opacity:0.55;';
+        document.body.appendChild(c);
+        (window as any).__debugMaskCanvas = c;
+        return c;
+      })();
+      dbg.width = this.canvasW;
+      dbg.height = this.canvasH;
+      const dctx = dbg.getContext('2d')!;
+      dctx.clearRect(0, 0, this.canvasW, this.canvasH);
+      dctx.drawImage(this.canvas, 0, 0);
+    }
   }
 
   public dispose(): void {

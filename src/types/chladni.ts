@@ -77,6 +77,9 @@ export interface ChladniParams {
   centerExpulsion: number; // 0.0 to 5.0
   showVoidGuide: boolean;
 
+  // DOM Elements Rejection
+  domRepulsion: number; // 0.0 to 10.0 (rejection force from dots to DOM elements, default 1.0)
+
   // Canvas Orientation & Flips
   flipHorizontal: boolean; // flip/mirror X
   flipVertical: boolean;   // flip/mirror Y
@@ -163,6 +166,7 @@ export const DEFAULT_PARAMS: ChladniParams = {
   centerVoidShape: 'circle',
   centerExpulsion: 0.0,
   showVoidGuide: false,
+  domRepulsion: 1.0,
 
   // Flips & Orientation
   flipHorizontal: false,

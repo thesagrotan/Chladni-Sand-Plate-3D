@@ -54,6 +54,7 @@ uniform float uCenterExpulsion;
 uniform float uShowVoidGuide;
 uniform vec3 uPlateColor;
 uniform vec3 uNodeGlowColor;
+uniform vec4 uCamData; // (cx, cy, halfW, halfH)
 
 varying vec2 vPos;
 
@@ -62,9 +63,11 @@ ${CHLADNI_GLSL_FUNCTIONS}
 void main() {
   vec3 color = uPlateColor;
 
-  // Nodal field overlay heatmap
+  vec2 pField = (vPos - uCamData.xy) / max(uCamData.zw, vec2(0.001));
+
+  // Nodal field overlay heatmap across the full viewport
   if (uFieldOverlay > 0.001) {
-    float w = computeChladniW(vPos, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
+    float w = computeChladniW(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
     float absW = abs(w);
     float nodeHighlight = 1.0 - smoothstep(0.0, 0.14, absW);
     vec3 nodeColor = uNodeGlowColor;
@@ -76,8 +79,8 @@ void main() {
 
   // Void guide ring / square in the center
   if (uShowVoidGuide > 0.5 && uVoidRadius > 0.01) {
-    vec2 absPos = abs(vPos);
-    float rDist = (uVoidShape > 0.5) ? max(absPos.x, absPos.y) : length(vPos);
+    vec2 absPos = abs(pField);
+    float rDist = (uVoidShape > 0.5) ? max(absPos.x, absPos.y) : length(pField);
     float distToEdge = abs(rDist - uVoidRadius);
     float guideLine = smoothstep(0.006, 0.0015, distToEdge);
     color = mix(color, uNodeGlowColor, guideLine * 0.75);
@@ -106,6 +109,7 @@ uniform float uPixelRatio;
 uniform float uZoom;
 uniform vec3 uSandColorPrimary;
 uniform vec3 uSandColorSecondary;
+uniform vec4 uCamData; // (cx, cy, halfW, halfH)
 
 attribute vec2 aTextureUv;
 
@@ -145,8 +149,9 @@ void main() {
   float colorJitter = hash1(aTextureUv * 543.1);
   vColor = mix(uSandColorPrimary, uSandColorSecondary, colorJitter * 0.7);
 
-  // Subtle brightness near nodal lines
-  float w = computeChladniW(p, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
+  // Subtle brightness near nodal lines across full viewport
+  vec2 pField = (p - uCamData.xy) / max(uCamData.zw, vec2(0.001));
+  float w = computeChladniW(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
   float nodeCloseness = 1.0 - smoothstep(0.0, 0.08, abs(w));
   vColor = mix(vColor, vColor * 1.25, nodeCloseness * 0.35);
 
@@ -233,11 +238,13 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     const height = window.innerHeight;
 
     // Initialize TextMaskManager for exact text contour repulsion
+    const initialDomRepulsion = params.domRepulsion !== undefined ? params.domRepulsion : 1.0;
     const textMask = new TextMaskManager({
       resolution: 1024,
       trackedSelector: '[data-text-repulsor]',
-      strength: 0.012,
+      strength: 0.024 * initialDomRepulsion,
     });
+    textMask.active = initialDomRepulsion > 0.001;
     textMaskManagerRef.current = textMask;
 
     const scene = new THREE.Scene();
@@ -302,6 +309,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
         uShowVoidGuide: { value: cur.showVoidGuide ? 1.0 : 0.0 },
         uPlateColor: { value: plateCol },
         uNodeGlowColor: { value: glowCol },
+        uCamData: { value: camDataRef.current },
       },
       transparent: true,
       depthWrite: false,
@@ -358,6 +366,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
         uZoom: { value: 1.0 },
         uSandColorPrimary: { value: sandPrimCol },
         uSandColorSecondary: { value: sandSecCol },
+        uCamData: { value: camDataRef.current },
       },
       transparent: true,
       depthWrite: false,
@@ -695,10 +704,21 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
           const cy = cam ? (cam.bottom + cam.top) * 0.5 : 0;
           camDataRef.current.set(cx, cy, halfW, halfH);
 
-          // Update text mask texture (draws visible DOM text onto 1024x1024 mask)
-          textMaskManagerRef.current?.update(now);
+          // Update text mask and dynamic DOM elements rejection strength
+          const domRepulsion = cp.domRepulsion !== undefined ? cp.domRepulsion : 1.0;
+          const domActive = domRepulsion > 0.001;
+          const effectiveDomStrength = 0.024 * domRepulsion;
+
+          if (textMaskManagerRef.current) {
+            textMaskManagerRef.current.active = domActive;
+            textMaskManagerRef.current.strength = effectiveDomStrength;
+            if (domActive) {
+              textMaskManagerRef.current.update(now);
+            }
+          }
 
           const t0 = performance.now();
+          const tmm = textMaskManagerRef.current;
           simRef.current!.update(
             simTime, delta,
             effectiveM, effectiveN, effectiveK,
@@ -707,9 +727,11 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
             pointerSimPosRef.current.x, pointerSimPosRef.current.y,
             pointerActiveRef.current,
             0.12, 0.012,
-            textMaskManagerRef.current ? textMaskManagerRef.current.texture : null,
-            textMaskManagerRef.current ? textMaskManagerRef.current.active : false,
-            textMaskManagerRef.current ? textMaskManagerRef.current.strength : 0.024,
+            tmm ? tmm.texture : null,
+            domActive,
+            effectiveDomStrength,
+            tmm ? tmm.canvasW : 1024,
+            tmm ? tmm.canvasH : 1024,
             camDataRef.current,
             (cp.rotationAngle * Math.PI) / 180,
             cp.flipHorizontal,
@@ -730,13 +752,17 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
 
           for (let i = 0; i < grains.length; i++) {
             const g = grains[i];
-            const w = evalChladniW(g.x, g.y, cp.modeM, cp.modeN, cp.waveK, cp.symmetryBlend, gridTypeNum, cp.centerVoidRadius, voidShapeNum, cp.centerExpulsion);
+            const px = (g.x - camData.x) / camData.z;
+            const py = (g.y - camData.y) / camData.w;
+            const w = evalChladniW(px, py, cp.modeM, cp.modeN, cp.waveK, cp.symmetryBlend, gridTypeNum, cp.centerVoidRadius, voidShapeNum, cp.centerExpulsion);
             const accel = cp.driveStrength * Math.abs(w);
-            const rDist = voidShapeNum > 0.5 ? Math.max(Math.abs(g.x), Math.abs(g.y)) : Math.sqrt(g.x * g.x + g.y * g.y);
+            const rDist = voidShapeNum > 0.5 ? Math.max(Math.abs(px), Math.abs(py)) : Math.sqrt(px * px + py * py);
 
             if (accel > 1.0) {
               g.settled = false;
-              const [gradX, gradY] = evalChladniGrad(g.x, g.y, cp.modeM, cp.modeN, cp.waveK, cp.symmetryBlend, gridTypeNum, cp.centerVoidRadius, voidShapeNum, cp.centerExpulsion);
+              const [gradFieldX, gradFieldY] = evalChladniGrad(px, py, cp.modeM, cp.modeN, cp.waveK, cp.symmetryBlend, gridTypeNum, cp.centerVoidRadius, voidShapeNum, cp.centerExpulsion);
+              const gradX = gradFieldX / camData.z;
+              const gradY = gradFieldY / camData.w;
               const signW = w >= 0 ? 1 : -1;
               const kick = Math.sqrt(accel - 1.0);
               let dx = -signW * gradX * 0.00022 * cp.driveStrength + (Math.random() - 0.5) * 0.0042 * kick;
@@ -815,6 +841,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
         u.uShowVoidGuide.value = cp.showVoidGuide ? 1.0 : 0.0;
         u.uPlateColor.value.set(cp.plateColor);
         u.uNodeGlowColor.value.set(cp.glowColor);
+        u.uCamData.value.copy(camDataRef.current);
       }
 
       // Update grain shader uniforms
@@ -831,6 +858,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
         u.uCenterExpulsion.value = cp.centerExpulsion;
         u.uSandColorPrimary.value.set(cp.sandColor);
         u.uSandColorSecondary.value.set(cp.sandColorSecondary);
+        u.uCamData.value.copy(camDataRef.current);
       }
 
       renderer.render(scene, camera);
@@ -964,6 +992,13 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     scene.add(grainPoints);
     grainPointsRef.current = grainPoints;
   }, [params.grainCount]);
+
+  // DOM elements rejection force change — refresh text mask if active
+  useEffect(() => {
+    if ((params.domRepulsion ?? 1.0) > 0.001) {
+      textMaskManagerRef.current?.setDirty();
+    }
+  }, [params.domRepulsion]);
 
   return (
     <div

@@ -21,7 +21,7 @@ uniform float uPointerActive;
 uniform sampler2D uTextMask;
 uniform float uTextMaskActive;
 uniform float uTextMaskStrength;
-uniform float uTextMaskRes;
+uniform vec2  uTextMaskRes;
 uniform vec4  uCamData;   // (cx, cy, halfW, halfH)
 uniform float uRotAngle;  // rotation in radians
 uniform float uFlipH;     // 1.0 if horizontal flip
@@ -45,12 +45,15 @@ void main() {
   vec2 uv = gl_FragCoord.xy / resolution.xy;
   vec4 pos = texture2D(tPosition, uv);
 
-  // Compute wave amplitude and gradient at current grain coordinate
-  float w = computeChladniW(pos.xy, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
+  // Map particle position to normalized plate coordinates [-1, 1] covering the entire viewport
+  vec2 pField = (pos.xy - uCamData.xy) / max(uCamData.zw, vec2(0.001));
+
+  // Compute wave amplitude and gradient across the full viewport
+  float w = computeChladniW(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
   float accel = uDriveStrength * abs(w);
 
   // Distance from center for radial expulsion
-  float rDist = (uVoidShape > 0.5) ? max(abs(pos.x), abs(pos.y)) : length(pos.xy);
+  float rDist = (uVoidShape > 0.5) ? max(abs(pField.x), abs(pField.y)) : length(pField);
 
   // a0 = 1.0 is the gravity liftoff threshold
   if (accel > 1.0) {
@@ -58,8 +61,9 @@ void main() {
     float excess = accel - 1.0;
     float kick = sqrt(excess);
 
-    // Compute analytical wave slope gradient
-    vec2 gradW = computeChladniGrad(pos.xy, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
+    // Compute analytical wave slope gradient in normalized field coordinates and convert to world drift
+    vec2 gradField = computeChladniGrad(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
+    vec2 gradW = vec2(gradField.x / max(uCamData.z, 0.001), gradField.y / max(uCamData.w, 0.001));
     float signW = (w >= 0.0) ? 1.0 : -1.0;
     vec2 gradAbsW = signW * gradW;
 
@@ -94,7 +98,8 @@ void main() {
 
       // Subtle compaction towards the center of the nodal ridge
       if (accel > 0.85) {
-        vec2 gradW = computeChladniGrad(pos.xy, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
+        vec2 gradField = computeChladniGrad(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
+        vec2 gradW = vec2(gradField.x / max(uCamData.z, 0.001), gradField.y / max(uCamData.w, 0.001));
         float signW = (w >= 0.0) ? 1.0 : -1.0;
         pos.xy += -signW * gradW * 0.00008;
       }
@@ -135,16 +140,18 @@ void main() {
     if (screenUV.x >= 0.0 && screenUV.x <= 1.0 && screenUV.y >= 0.0 && screenUV.y <= 1.0) {
       float density = texture2D(uTextMask, screenUV).r;
       if (density > 0.005) {
-        float eps = 1.8 / uTextMaskRes;
+        float eps = 1.8 / uTextMaskRes.x;
+        float epsY = 1.8 / uTextMaskRes.y;
         float gx = texture2D(uTextMask, screenUV + vec2(eps, 0.0)).r - texture2D(uTextMask, screenUV - vec2(eps, 0.0)).r;
-        float gy = texture2D(uTextMask, screenUV + vec2(0.0, eps)).r - texture2D(uTextMask, screenUV - vec2(0.0, eps)).r;
+        float gy = texture2D(uTextMask, screenUV + vec2(0.0, epsY)).r - texture2D(uTextMask, screenUV - vec2(0.0, epsY)).r;
         vec2 gradScreen = vec2(gx, gy);
         float gLen = length(gradScreen);
 
         if (gLen < 0.004) {
-          float epsWide = 6.0 / uTextMaskRes;
+          float epsWide = 6.0 / uTextMaskRes.x;
+          float epsWideY = 6.0 / uTextMaskRes.y;
           float gx2 = texture2D(uTextMask, screenUV + vec2(epsWide, 0.0)).r - texture2D(uTextMask, screenUV - vec2(epsWide, 0.0)).r;
-          float gy2 = texture2D(uTextMask, screenUV + vec2(0.0, epsWide)).r - texture2D(uTextMask, screenUV - vec2(0.0, epsWide)).r;
+          float gy2 = texture2D(uTextMask, screenUV + vec2(0.0, epsWideY)).r - texture2D(uTextMask, screenUV - vec2(0.0, epsWideY)).r;
           gradScreen = vec2(gx2, gy2);
           gLen = length(gradScreen);
         }
@@ -238,7 +245,7 @@ export class ChladniGpuSimulation {
     u.uTextMask = { value: null };
     u.uTextMaskActive = { value: 0.0 };
     u.uTextMaskStrength = { value: 0.022 };
-    u.uTextMaskRes = { value: 1024.0 };
+    u.uTextMaskRes = { value: new THREE.Vector2(1024.0, 1024.0) };
     u.uCamData = { value: new THREE.Vector4(0, 0, initialHalfW, initialHalfH) };
     u.uRotAngle = { value: 0.0 };
     u.uFlipH = { value: 0.0 };
@@ -298,6 +305,8 @@ export class ChladniGpuSimulation {
     textMaskTexture: THREE.Texture | null = null,
     textMaskActive = false,
     textMaskStrength = 0.022,
+    textMaskResW = 1024,
+    textMaskResH = 1024,
     camData?: THREE.Vector4,
     rotAngle = 0,
     flipH = false,
@@ -325,6 +334,7 @@ export class ChladniGpuSimulation {
     }
     u.uTextMaskActive.value = textMaskActive ? 1.0 : 0.0;
     u.uTextMaskStrength.value = textMaskStrength;
+    u.uTextMaskRes.value.set(textMaskResW, textMaskResH);
     if (camData) {
       u.uCamData.value.copy(camData);
     }

@@ -93,6 +93,7 @@ export function sanitizeParams(raw: unknown): ChladniParams {
   if (typeof merged.grainCount !== 'number' || isNaN(merged.grainCount) || merged.grainCount <= 0) merged.grainCount = DEFAULT_PARAMS.grainCount;
   if (typeof merged.centerVoidRadius !== 'number' || isNaN(merged.centerVoidRadius)) merged.centerVoidRadius = DEFAULT_PARAMS.centerVoidRadius;
   if (typeof merged.centerExpulsion !== 'number' || isNaN(merged.centerExpulsion)) merged.centerExpulsion = DEFAULT_PARAMS.centerExpulsion;
+  if (typeof merged.domRepulsion !== 'number' || isNaN(merged.domRepulsion)) merged.domRepulsion = DEFAULT_PARAMS.domRepulsion;
   if (typeof merged.rotationAngle !== 'number' || isNaN(merged.rotationAngle)) merged.rotationAngle = DEFAULT_PARAMS.rotationAngle;
   if (typeof merged.fieldOverlay !== 'number' || isNaN(merged.fieldOverlay)) merged.fieldOverlay = DEFAULT_PARAMS.fieldOverlay;
 

@@ -35,6 +35,7 @@ import {
   Waves,
   Save,
   Check,
+  Type,
 } from 'lucide-react';
 import {
   ChladniParams,
@@ -755,6 +756,85 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 />
                 <div className="w-8 h-4 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-cyan-600"></div>
               </label>
+            </div>
+          </div>
+
+          {/* DOM ELEMENTS REJECTION CONTROLS */}
+          <div className="mt-4 pt-3 border-t border-neutral-900 bg-neutral-900/30 -mx-4 px-4 pb-2.5 rounded-lg">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-cyan-400 flex items-center gap-1">
+                  <Type size={11} />
+                  <span>DOM Elements Rejection</span>
+                </span>
+                <span className="text-[10px] text-neutral-500 font-mono">
+                  {(params.domRepulsion ?? 1.0) > 0.01 ? `(${(params.domRepulsion ?? 1.0).toFixed(2)}×)` : '(Off)'}
+                </span>
+              </div>
+              {(params.domRepulsion ?? 1.0) > 0.01 ? (
+                <button
+                  type="button"
+                  onClick={() => updateParam('domRepulsion', 0)}
+                  className="text-[10px] text-neutral-500 hover:text-neutral-300 underline cursor-pointer"
+                  title="Disable DOM repulsion so sand dots flow through text"
+                >
+                  Disable
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => updateParam('domRepulsion', 1.0)}
+                  className="text-[10px] text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
+                  title="Enable standard repulsion (1.00×)"
+                >
+                  Enable (1.00×)
+                </button>
+              )}
+            </div>
+
+            <p className="text-[11px] text-neutral-400 leading-tight mb-2 font-normal">
+              Controls the repulsive force pushing sand dots away from typography and DOM elements.
+            </p>
+
+            {/* Slider with step buttons and formatted value */}
+            <SliderRow
+              label="Rejection force"
+              value={params.domRepulsion ?? 1.0}
+              min={0.0}
+              max={10.0}
+              step={0.1}
+              digits={2}
+              formatFn={(val) => (val <= 0.01 ? '0.00× (Off)' : `${val.toFixed(2)}×`)}
+              onChange={(val) => updateParam('domRepulsion', val)}
+            />
+
+            {/* Quick Presets */}
+            <div className="grid grid-cols-5 gap-1 mt-1">
+              {[
+                { label: 'Off', value: 0.0, title: 'No rejection (0×)' },
+                { label: '1.0×', value: 1.0, title: 'Standard default rejection (1.0×)' },
+                { label: '3.0×', value: 3.0, title: 'Strong rejection (3.0×)' },
+                { label: '6.0×', value: 6.0, title: 'Very strong rejection (6.0×)' },
+                { label: '10×', value: 10.0, title: 'Maximum rejection (10×)' },
+              ].map((preset) => {
+                const currentVal = params.domRepulsion ?? 1.0;
+                const isActive = Math.abs(currentVal - preset.value) < 0.15;
+                return (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => updateParam('domRepulsion', preset.value)}
+                    title={preset.title}
+                    className={`text-[10px] py-1 rounded border text-center transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-neutral-200 text-neutral-950 font-medium border-white shadow-sm'
+                        : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-neutral-200 hover:bg-neutral-800'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
