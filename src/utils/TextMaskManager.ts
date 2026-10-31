@@ -215,17 +215,35 @@ export class TextMaskManager {
         textX = rect.right;
       }
 
-      // Check for multi-line text (by newlines or wrapped text)
-      const lines = textToRender.split('\n');
+      // Break text into wrapped lines matching actual DOM rendering
+      const explicitLines = textToRender.split('\n');
+      const lines: string[] = [];
+      const maxWidth = rect.width + 4;
+
+      for (const expLine of explicitLines) {
+        const words = expLine.split(/\s+/);
+        let cur = '';
+        for (const w of words) {
+          const test = cur ? `${cur} ${w}` : w;
+          if (ctx.measureText(test).width > maxWidth && cur) {
+            lines.push(cur);
+            cur = w;
+          } else {
+            cur = test;
+          }
+        }
+        if (cur) lines.push(cur);
+      }
+
       const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.25;
 
-      // Calculate blur sizes based on font scale
-      const outerBlur = Math.min(22, Math.max(8, fontSize * 0.28));
-      const coreBlur = Math.min(6, Math.max(2, fontSize * 0.08));
+      // Subtle, tight blur sizes right around the letters (no giant black blobs)
+      const outerBlur = Math.min(8, Math.max(3, fontSize * 0.12));
+      const coreBlur = Math.min(2.5, Math.max(1, fontSize * 0.04));
 
-      // Pass 1: Outer smooth gradient halo (gives grains early outward directional guidance)
+      // Pass 1: Outer smooth subtle halo
       ctx.filter = `blur(${outerBlur.toFixed(1)}px)`;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
       for (let l = 0; l < lines.length; l++) {
         const line = lines[l].trim();
         if (!line) continue;
@@ -233,7 +251,7 @@ export class TextMaskManager {
         ctx.fillText(line, textX, lineY);
       }
 
-      // Pass 2: Sharp core silhouette (ensures grain exclusion from text stroke interior)
+      // Pass 2: Tight core letter contour
       ctx.filter = `blur(${coreBlur.toFixed(1)}px)`;
       ctx.fillStyle = '#ffffff';
       for (let l = 0; l < lines.length; l++) {

@@ -36,6 +36,8 @@ export default function App() {
       sandColorSecondary: '#e4dfd3',
       plateColor: '#070709',
       glowColor: '#ffffff',
+      centerVoidRadius: 0.0,
+      showVoidGuide: false,
     };
   });
   const [hasSavedSettings, setHasSavedSettings] = useState<boolean>(() => {
@@ -150,15 +152,10 @@ export default function App() {
     });
   }, []);
 
-  // Keyboard shortcut to generate next empty-center grid
+  // Keyboard shortcut to generate next grid
   const handleExperimentNextGrid = useCallback(() => {
     const topologies: GridType[] = ['annular', 'rectangular', 'polar', 'hexagonal', 'diamond', 'web'];
     const nextType = topologies[Math.floor(Math.random() * topologies.length)];
-    const randomRadius = +(0.20 + Math.random() * 0.22).toFixed(2);
-    const nextShape: VoidShape =
-      nextType === 'rectangular' || nextType === 'diamond'
-        ? Math.random() > 0.4 ? 'square' : 'circle'
-        : 'circle';
     const m = +(3.0 + Math.floor(Math.random() * 7) * 0.5).toFixed(2);
     const n = +(4.0 + Math.floor(Math.random() * 8) * 0.5).toFixed(2);
     const k = +(28.0 + Math.random() * 10.0).toFixed(1);
@@ -167,9 +164,9 @@ export default function App() {
     setParams((prev) => ({
       ...prev,
       gridType: nextType,
-      centerVoidRadius: randomRadius,
-      centerVoidShape: nextShape,
-      centerExpulsion: +(2.2 + Math.random() * 1.4).toFixed(1),
+      centerVoidRadius: 0.0,
+      centerExpulsion: 0.0,
+      showVoidGuide: false,
       modeM: m,
       modeN: n,
       waveK: k,

@@ -159,10 +159,10 @@ export const GRID_TYPE_LABELS: Record<GridType, { label: string; iconName: strin
 
 export const DEFAULT_PARAMS: ChladniParams = {
   gridType: 'annular',
-  centerVoidRadius: 0.28,
+  centerVoidRadius: 0.0,
   centerVoidShape: 'circle',
-  centerExpulsion: 2.5,
-  showVoidGuide: true,
+  centerExpulsion: 0.0,
+  showVoidGuide: false,
 
   // Flips & Orientation
   flipHorizontal: false,

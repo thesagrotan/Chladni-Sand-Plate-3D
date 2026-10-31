@@ -236,7 +236,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     const textMask = new TextMaskManager({
       resolution: 1024,
       trackedSelector: '[data-text-repulsor]',
-      strength: 0.024,
+      strength: 0.012,
     });
     textMaskManagerRef.current = textMask;
 
