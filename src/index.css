@@ -295,6 +295,158 @@
 @font-face { font-family: 'BB-Manual-Mono-Pro-Cover'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Cover/BB Manual Mono (Pro) Cover Semi Super.otf') format('opentype'); font-weight: 800; font-style: normal; font-display: swap; }
 @font-face { font-family: 'BB-Manual-Mono-Pro-Cover'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Cover/BB Manual Mono (Pro) Cover Super.otf') format('opentype'); font-weight: 900; font-style: normal; font-display: swap; }
 
+/* 1d. Scatterplot (CAST Foundry — Giulio Galli) */
+/* 4 Randomness levels (Mild, Borderline, Wild, UltraWild) across 4 weights (300 Light, 400 Regular, 700 Bold, 900 Black) */
+
+/* Scatterplot / Scatterplot Mild */
+@font-face {
+  font-family: 'Scatterplot';
+  src: url('/fonts/scatterplot/Scatterplot-Mild-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Scatterplot';
+  src: url('/fonts/scatterplot/Scatterplot-Mild-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Scatterplot';
+  src: url('/fonts/scatterplot/Scatterplot-Mild-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Scatterplot';
+  src: url('/fonts/scatterplot/Scatterplot-Mild-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Scatterplot-Mild';
+  src: url('/fonts/scatterplot/Scatterplot-Mild-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Scatterplot-Mild';
+  src: url('/fonts/scatterplot/Scatterplot-Mild-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Scatterplot-Mild';
+  src: url('/fonts/scatterplot/Scatterplot-Mild-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Scatterplot-Mild';
+  src: url('/fonts/scatterplot/Scatterplot-Mild-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Scatterplot Borderline */
+@font-face {
+  font-family: 'Scatterplot-Borderline';
+  src: url('/fonts/scatterplot/Scatterplot-Borderline-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Scatterplot-Borderline';
+  src: url('/fonts/scatterplot/Scatterplot-Borderline-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Scatterplot-Borderline';
+  src: url('/fonts/scatterplot/Scatterplot-Borderline-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Scatterplot-Borderline';
+  src: url('/fonts/scatterplot/Scatterplot-Borderline-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Scatterplot Wild */
+@font-face {
+  font-family: 'Scatterplot-Wild';
+  src: url('/fonts/scatterplot/Scatterplot-Wild-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Scatterplot-Wild';
+  src: url('/fonts/scatterplot/Scatterplot-Wild-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Scatterplot-Wild';
+  src: url('/fonts/scatterplot/Scatterplot-Wild-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Scatterplot-Wild';
+  src: url('/fonts/scatterplot/Scatterplot-Wild-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Scatterplot UltraWild */
+@font-face {
+  font-family: 'Scatterplot-UltraWild';
+  src: url('/fonts/scatterplot/Scatterplot-UltraWild-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Scatterplot-UltraWild';
+  src: url('/fonts/scatterplot/Scatterplot-UltraWild-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Scatterplot-UltraWild';
+  src: url('/fonts/scatterplot/Scatterplot-UltraWild-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Scatterplot-UltraWild';
+  src: url('/fonts/scatterplot/Scatterplot-UltraWild-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* 2. iA Writer Quattro V (Variable font: wght 400-700, SPCG 0-150) */
 @font-face {
   font-family: 'iA Writer Quattro V';
