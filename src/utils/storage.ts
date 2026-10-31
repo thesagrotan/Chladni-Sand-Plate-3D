@@ -3,6 +3,15 @@ import { ChladniParams, DEFAULT_PARAMS, GridType, VoidShape } from '../types/chl
 export const SETTINGS_STORAGE_KEY = 'chladni_plate_saved_settings';
 export const AUTOSAVE_STORAGE_KEY = 'chladni_plate_autosave_enabled';
 export const TIMESTAMP_STORAGE_KEY = 'chladni_plate_saved_timestamp';
+export const VERSION_HISTORY_KEY = 'chladni_plate_version_history';
+export const MAX_VERSIONS = 10;
+
+export interface SavedVersion {
+  id: string;
+  label: string;
+  savedAt: string;
+  params: ChladniParams;
+}
 
 export interface StorageLoadResult {
   params: ChladniParams;
@@ -91,11 +100,13 @@ export function sanitizeParams(raw: unknown): ChladniParams {
   if (typeof merged.symmetryBlend !== 'number' || isNaN(merged.symmetryBlend)) merged.symmetryBlend = DEFAULT_PARAMS.symmetryBlend;
   if (typeof merged.driveStrength !== 'number' || isNaN(merged.driveStrength)) merged.driveStrength = DEFAULT_PARAMS.driveStrength;
   if (typeof merged.grainCount !== 'number' || isNaN(merged.grainCount) || merged.grainCount <= 0) merged.grainCount = DEFAULT_PARAMS.grainCount;
+  if (typeof merged.grainSize !== 'number' || isNaN(merged.grainSize) || merged.grainSize <= 0) merged.grainSize = DEFAULT_PARAMS.grainSize;
   if (typeof merged.centerVoidRadius !== 'number' || isNaN(merged.centerVoidRadius)) merged.centerVoidRadius = DEFAULT_PARAMS.centerVoidRadius;
   if (typeof merged.centerExpulsion !== 'number' || isNaN(merged.centerExpulsion)) merged.centerExpulsion = DEFAULT_PARAMS.centerExpulsion;
   if (typeof merged.domRepulsion !== 'number' || isNaN(merged.domRepulsion)) merged.domRepulsion = DEFAULT_PARAMS.domRepulsion;
   if (typeof merged.rotationAngle !== 'number' || isNaN(merged.rotationAngle)) merged.rotationAngle = DEFAULT_PARAMS.rotationAngle;
   if (typeof merged.fieldOverlay !== 'number' || isNaN(merged.fieldOverlay)) merged.fieldOverlay = DEFAULT_PARAMS.fieldOverlay;
+  if (typeof merged.nodalPronouncement !== 'number' || isNaN(merged.nodalPronouncement)) merged.nodalPronouncement = DEFAULT_PARAMS.nodalPronouncement;
 
   if (typeof merged.audioVolume !== 'number' || isNaN(merged.audioVolume)) merged.audioVolume = DEFAULT_PARAMS.audioVolume;
   if (typeof merged.audioPlaybackRate !== 'number' || isNaN(merged.audioPlaybackRate)) merged.audioPlaybackRate = DEFAULT_PARAMS.audioPlaybackRate;
@@ -203,4 +214,59 @@ export function clearSavedSettings(): void {
  */
 export function setAutoSavePreference(enabled: boolean): void {
   storageSet(AUTOSAVE_STORAGE_KEY, String(enabled));
+}
+
+// ─── Version History ────────────────────────────────────────────────────────
+
+/**
+ * Returns the full list of saved versions, newest first.
+ */
+export function listVersions(): SavedVersion[] {
+  const raw = storageGet(VERSION_HISTORY_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as SavedVersion[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Saves the current params as a named version. Trims oldest beyond MAX_VERSIONS.
+ * Returns the updated list.
+ */
+export function saveVersion(params: ChladniParams, label: string): SavedVersion[] {
+  const versions = listVersions();
+  const now = new Date();
+  const savedAt = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const datePart = now.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const newVersion: SavedVersion = {
+    id: `v_${Date.now()}`,
+    label: label.trim() || `${datePart} ${savedAt}`,
+    savedAt: `${datePart} ${savedAt}`,
+    params: { ...params },
+  };
+  // Newest first; trim to MAX_VERSIONS
+  const next = [newVersion, ...versions].slice(0, MAX_VERSIONS);
+  storageSet(VERSION_HISTORY_KEY, JSON.stringify(next));
+  return next;
+}
+
+/**
+ * Deletes a version by id. Returns the updated list.
+ */
+export function deleteVersion(id: string): SavedVersion[] {
+  const versions = listVersions().filter((v) => v.id !== id);
+  storageSet(VERSION_HISTORY_KEY, JSON.stringify(versions));
+  return versions;
+}
+
+/**
+ * Finds and returns the params of a saved version by id, or null if not found.
+ */
+export function restoreVersion(id: string): ChladniParams | null {
+  const version = listVersions().find((v) => v.id === id);
+  if (!version) return null;
+  return sanitizeParams(version.params);
 }

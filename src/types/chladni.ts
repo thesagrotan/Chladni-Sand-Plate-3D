@@ -101,7 +101,9 @@ export interface ChladniParams {
   // Sand & Simulation
   driveStrength: number;
   grainCount: number;
+  grainSize: number;
   fieldOverlay: number;
+  nodalPronouncement: number;
   simulationEngine: 'gpu' | 'wasm' | 'js_cpu';
 
   // Acoustic Sound & Umbráfono Integration
@@ -186,7 +188,9 @@ export const DEFAULT_PARAMS: ChladniParams = {
   symmetryBlend: 0.72,
   driveStrength: 3.2,
   grainCount: 100_000,
+  grainSize: 1.0,
   fieldOverlay: 0.0,
+  nodalPronouncement: 1.0,
   simulationEngine: 'gpu',
 
   // Acoustic Sound & Umbráfono Integration

@@ -45,8 +45,8 @@ void main() {
   vec2 uv = gl_FragCoord.xy / resolution.xy;
   vec4 pos = texture2D(tPosition, uv);
 
-  // Map particle position to normalized plate coordinates [-1, 1] covering the entire viewport
-  vec2 pField = (pos.xy - uCamData.xy) / max(uCamData.zw, vec2(0.001));
+  // Particle position in isotropic plate coordinates covering the entire viewport
+  vec2 pField = pos.xy;
 
   // Compute wave amplitude and gradient across the full viewport
   float w = computeChladniW(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
@@ -61,9 +61,8 @@ void main() {
     float excess = accel - 1.0;
     float kick = sqrt(excess);
 
-    // Compute analytical wave slope gradient in normalized field coordinates and convert to world drift
-    vec2 gradField = computeChladniGrad(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
-    vec2 gradW = vec2(gradField.x / max(uCamData.z, 0.001), gradField.y / max(uCamData.w, 0.001));
+    // Compute analytical wave slope gradient in isotropic coordinates
+    vec2 gradW = computeChladniGrad(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
     float signW = (w >= 0.0) ? 1.0 : -1.0;
     vec2 gradAbsW = signW * gradW;
 
@@ -98,8 +97,7 @@ void main() {
 
       // Subtle compaction towards the center of the nodal ridge
       if (accel > 0.85) {
-        vec2 gradField = computeChladniGrad(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
-        vec2 gradW = vec2(gradField.x / max(uCamData.z, 0.001), gradField.y / max(uCamData.w, 0.001));
+        vec2 gradW = computeChladniGrad(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
         float signW = (w >= 0.0) ? 1.0 : -1.0;
         pos.xy += -signW * gradW * 0.00008;
       }

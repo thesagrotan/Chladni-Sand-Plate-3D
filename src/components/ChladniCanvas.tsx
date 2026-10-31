@@ -43,6 +43,7 @@ void main() {
 
 const BACKGROUND_FRAGMENT_SHADER = /* glsl */ `
 uniform float uFieldOverlay;
+uniform float uNodalPronouncement;
 uniform float uModeM;
 uniform float uModeN;
 uniform float uWaveK;
@@ -63,17 +64,20 @@ ${CHLADNI_GLSL_FUNCTIONS}
 void main() {
   vec3 color = uPlateColor;
 
-  vec2 pField = (vPos - uCamData.xy) / max(uCamData.zw, vec2(0.001));
+  vec2 pField = vPos;
 
   // Nodal field overlay heatmap across the full viewport
   if (uFieldOverlay > 0.001) {
     float w = computeChladniW(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
     float absW = abs(w);
-    float nodeHighlight = 1.0 - smoothstep(0.0, 0.14, absW);
+    float sharpness = max(uNodalPronouncement, 0.05);
+    float edgeWidth = clamp(0.14 / sharpness, 0.005, 0.45);
+    float nodeHighlight = pow(clamp(1.0 - smoothstep(0.0, edgeWidth, absW), 0.0, 1.0), max(0.4, sharpness * 0.7));
     vec3 nodeColor = uNodeGlowColor;
     vec3 antinodeColor = vec3(0.65, 0.18, 0.08);
-    vec3 fieldColor = mix(nodeColor, antinodeColor, clamp(absW * 0.75, 0.0, 1.0));
-    fieldColor += uNodeGlowColor * nodeHighlight * 0.6;
+    float antinodeFactor = clamp(pow(absW * 0.75, 1.0 / sharpness), 0.0, 1.0);
+    vec3 fieldColor = mix(nodeColor, antinodeColor, antinodeFactor);
+    fieldColor += uNodeGlowColor * nodeHighlight * (0.6 * clamp(sharpness, 0.3, 2.5));
     color = mix(color, fieldColor, uFieldOverlay * 0.85);
   }
 
@@ -104,6 +108,8 @@ uniform float uVoidRadius;
 uniform float uVoidShape;
 uniform float uCenterExpulsion;
 uniform float uGrainCount;
+uniform float uGrainSize;
+uniform float uNodalPronouncement;
 uniform float uUseCpuPositions;
 uniform float uPixelRatio;
 uniform float uZoom;
@@ -138,22 +144,24 @@ void main() {
   vec4 mvPos = modelViewMatrix * vec4(p.x, p.y, 0.0, 1.0);
   gl_Position = projectionMatrix * mvPos;
 
-  // Point sizing scaled by grain density and zoom level
+  // Point sizing scaled by grain density, zoom level, and user grain size multiplier
   float grainSizeHash = hash1(aTextureUv * 987.3);
   float sizeMultiplier = 0.85 + grainSizeHash * 0.5;
   float countScale = clamp(pow(120000.0 / max(uGrainCount, 3000.0), 0.32), 0.85, 2.8);
-  float basePx = 1.4 * uPixelRatio * sizeMultiplier * countScale * uZoom;
-  gl_PointSize = clamp(basePx, 1.0, 8.0);
+  float basePx = 1.4 * uPixelRatio * sizeMultiplier * countScale * uZoom * uGrainSize;
+  gl_PointSize = clamp(basePx, 1.0, 32.0);
 
   // Sand color with hash-based variegation
   float colorJitter = hash1(aTextureUv * 543.1);
   vColor = mix(uSandColorPrimary, uSandColorSecondary, colorJitter * 0.7);
 
   // Subtle brightness near nodal lines across full viewport
-  vec2 pField = (p - uCamData.xy) / max(uCamData.zw, vec2(0.001));
+  vec2 pField = p;
   float w = computeChladniW(pField, uModeM, uModeN, uWaveK, uBlend, uGridType, uVoidRadius, uVoidShape, uCenterExpulsion);
-  float nodeCloseness = 1.0 - smoothstep(0.0, 0.08, abs(w));
-  vColor = mix(vColor, vColor * 1.25, nodeCloseness * 0.35);
+  float sharpness = max(uNodalPronouncement, 0.05);
+  float grainEdgeWidth = clamp(0.08 / sharpness, 0.005, 0.3);
+  float nodeCloseness = clamp(1.0 - smoothstep(0.0, grainEdgeWidth, abs(w)), 0.0, 1.0);
+  vColor = mix(vColor, vColor * (1.0 + 0.35 * clamp(sharpness, 0.2, 2.5)), nodeCloseness * clamp(0.35 * sharpness, 0.0, 0.85));
 
   vAlpha = mix(0.96, 0.82, clamp(uGrainCount / 500000.0, 0.0, 1.0));
 }
@@ -252,15 +260,16 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     scene.background = null;
     sceneRef.current = scene;
 
-    // 2D orthographic camera — maps full viewport to screen
+    // 2D orthographic camera — covers full viewport while preserving 1:1 aspect ratio
     const aspect = width / height;
-    const vRange = VRANGE; // half-range vertically
-    const hRange = vRange * aspect; // half-range horizontally to cover full viewport
-    const camera = new THREE.OrthographicCamera(-hRange, hRange, vRange, -vRange, -1, 1);
+    const baseRange = VRANGE;
+    const halfW = aspect >= 1.0 ? baseRange * aspect : baseRange;
+    const halfH = aspect >= 1.0 ? baseRange : baseRange / aspect;
+    const camera = new THREE.OrthographicCamera(-halfW, halfW, halfH, -halfH, -1, 1);
     camera.position.set(0, 0, 1);
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
-    camDataRef.current.set(0, 0, hRange, vRange);
+    camDataRef.current.set(0, 0, halfW, halfH);
 
     const pixelRatio = isSoftwareGl ? 1 : Math.min(window.devicePixelRatio, 2);
     const renderer = new THREE.WebGLRenderer({
@@ -298,6 +307,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
       fragmentShader: BACKGROUND_FRAGMENT_SHADER,
       uniforms: {
         uFieldOverlay: { value: cur.fieldOverlay },
+        uNodalPronouncement: { value: cur.nodalPronouncement ?? 1.0 },
         uModeM: { value: cur.modeM },
         uModeN: { value: cur.modeN },
         uWaveK: { value: cur.waveK },
@@ -317,7 +327,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     });
     backgroundMaterialRef.current = bgMat;
     const bgMesh = new THREE.Mesh(bgGeo, bgMat);
-    bgMesh.scale.set(hRange * 2.1, vRange * 2.1, 1);
+    bgMesh.scale.set(halfW * 2.1, halfH * 2.1, 1);
     bgMesh.position.set(0, 0, 0);
     bgMesh.renderOrder = 0;
     scene.add(bgMesh);
@@ -326,7 +336,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     // -----------------------------------------------------------------------
     // GPU particle simulation
     // -----------------------------------------------------------------------
-    const sim = new ChladniGpuSimulation(renderer, cur.grainCount, hRange, vRange);
+    const sim = new ChladniGpuSimulation(renderer, cur.grainCount, halfW, halfH);
     simRef.current = sim;
 
     const count = sim.grainCount;
@@ -362,6 +372,8 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
         uVoidShape: { value: voidShapeToNumber(cur.centerVoidShape) },
         uCenterExpulsion: { value: cur.centerExpulsion },
         uGrainCount: { value: count },
+        uGrainSize: { value: cur.grainSize ?? 1.0 },
+        uNodalPronouncement: { value: cur.nodalPronouncement ?? 1.0 },
         uUseCpuPositions: { value: 0.0 },
         uZoom: { value: 1.0 },
         uSandColorPrimary: { value: sandPrimCol },
@@ -385,11 +397,11 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     grainPoints.scale.x = cur.flipHorizontal ? -1 : 1;
     grainPoints.scale.y = cur.flipVertical ? -1 : 1;
     grainPoints.rotation.z = (cur.rotationAngle * Math.PI) / 180;
-    // Background mesh must keep its viewport-fill scale (hRange*2.1 × vRange*2.1);
+    // Background mesh must keep its viewport-fill scale (halfW*2.1 × halfH*2.1);
     // flip is encoded as a sign on each axis rather than replacing the full scale.
     bgMesh.scale.set(
-      hRange * 2.1 * (cur.flipHorizontal ? -1 : 1),
-      vRange * 2.1 * (cur.flipVertical ? -1 : 1),
+      halfW * 2.1 * (cur.flipHorizontal ? -1 : 1),
+      halfH * 2.1 * (cur.flipVertical ? -1 : 1),
       1
     );
     bgMesh.rotation.z = (cur.rotationAngle * Math.PI) / 180;
@@ -410,8 +422,8 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     const cpuGrains: { x: number; y: number; settled: boolean }[] = [];
     for (let i = 0; i < 1024; i++) {
       cpuGrains.push({
-        x: (Math.random() * 2 - 1) * (hRange * 0.95),
-        y: (Math.random() * 2 - 1) * (vRange * 0.95),
+        x: (Math.random() * 2 - 1) * (halfW * 0.95),
+        y: (Math.random() * 2 - 1) * (halfH * 0.95),
         settled: false,
       });
     }
@@ -429,8 +441,9 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
       const z = zoomRef.current;
       const px = panRef.current.x;
       const py = panRef.current.y;
-      const halfH = VRANGE / z;
-      const halfW = halfH * asp;
+      const baseRange = VRANGE / z;
+      const halfW = asp >= 1.0 ? baseRange * asp : baseRange;
+      const halfH = asp >= 1.0 ? baseRange : baseRange / asp;
       cam.left = -halfW + px;
       cam.right = halfW + px;
       cam.top = halfH + py;
@@ -477,42 +490,6 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
       if (cp.flipVertical) sy = -sy;
 
       return { x: sx, y: sy };
-    };
-
-    // Canvas is fixed: mouse wheel zoom is disabled (zooming is keyboard-only: + / -)
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-    };
-
-    // Canvas position is fixed against mouse drags: no right/middle click panning.
-    // Left-click activates interactive sand pointer push.
-    const onPointerDown = (e: PointerEvent) => {
-      if (e.button === 0) {
-        pointerActiveRef.current = true;
-        const sp = clientToSimSpace(e.clientX, e.clientY);
-        pointerSimPosRef.current = sp;
-        container.setPointerCapture(e.pointerId);
-      }
-    };
-
-    const onPointerMove = (e: PointerEvent) => {
-      const sp = clientToSimSpace(e.clientX, e.clientY);
-      pointerSimPosRef.current = sp;
-    };
-
-    const onPointerUp = (e: PointerEvent) => {
-      pointerActiveRef.current = false;
-      if (container.hasPointerCapture(e.pointerId)) {
-        container.releasePointerCapture(e.pointerId);
-      }
-    };
-
-    const onPointerLeave = () => {
-      pointerActiveRef.current = false;
-    };
-
-    const onContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
     };
 
     // Keyboard navigation: + / - to zoom, arrow keys to change viewport position
@@ -563,32 +540,39 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
       }
     };
 
-    // Canvas is fixed in the background: window-level pointer tracking pushes sand
+    // Canvas is fixed in the background: window-level pointer tracking pushes sand always on hover
     const onWindowPointerMove = (e: PointerEvent) => {
       const sp = clientToSimSpace(e.clientX, e.clientY);
       pointerSimPosRef.current = sp;
+      pointerActiveRef.current = true;
     };
 
     const onWindowPointerDown = (e: PointerEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        ['BUTTON', 'INPUT', 'SELECT', 'A', 'TEXTAREA'].includes(target?.tagName) ||
-        target?.closest('button, a, input, select, textarea')
-      ) {
-        return;
-      }
       pointerActiveRef.current = true;
       const sp = clientToSimSpace(e.clientX, e.clientY);
       pointerSimPosRef.current = sp;
     };
 
-    const onWindowPointerUp = () => {
+    const onWindowPointerUp = (e: PointerEvent) => {
+      // Touchscreen: lifting finger ends contact. Mouse: keeps affecting dots on hover.
+      if (e.pointerType === 'touch') {
+        pointerActiveRef.current = false;
+      }
+    };
+
+    const onWindowMouseLeave = () => {
+      pointerActiveRef.current = false;
+    };
+
+    const onWindowBlur = () => {
       pointerActiveRef.current = false;
     };
 
     window.addEventListener('pointermove', onWindowPointerMove, { passive: true });
     window.addEventListener('pointerdown', onWindowPointerDown, { passive: true });
     window.addEventListener('pointerup', onWindowPointerUp, { passive: true });
+    document.addEventListener('mouseleave', onWindowMouseLeave);
+    window.addEventListener('blur', onWindowBlur);
     window.addEventListener('keydown', handleKeyDown);
 
     // -----------------------------------------------------------------------
@@ -635,6 +619,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
           bHalfH * 2.1 * (cp.flipVertical ? -1 : 1),
           1
         );
+        bgMeshRef.current.position.set(camDataRef.current.x, camDataRef.current.y, 0);
         bgMeshRef.current.rotation.z = (cp.rotationAngle * Math.PI) / 180;
       }
 
@@ -714,7 +699,6 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
           const cx = cam ? (cam.left + cam.right) * 0.5 : 0;
           const cy = cam ? (cam.bottom + cam.top) * 0.5 : 0;
           camDataRef.current.set(cx, cy, halfW, halfH);
-          console.log(`[CAM_DEBUG] engine: ${cp.simulationEngine} cx: ${cx} cy: ${cy} halfW: ${halfW} halfH: ${halfH} cam.top: ${cam?.top} cam.bottom: ${cam?.bottom} w: ${window.innerWidth} h: ${window.innerHeight}`);
 
           // Update text mask and dynamic DOM elements rejection strength
           const domRepulsion = cp.domRepulsion !== undefined ? cp.domRepulsion : 1.0;
@@ -764,17 +748,15 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
 
           for (let i = 0; i < grains.length; i++) {
             const g = grains[i];
-            const px = (g.x - camData.x) / camData.z;
-            const py = (g.y - camData.y) / camData.w;
+            const px = g.x;
+            const py = g.y;
             const w = evalChladniW(px, py, cp.modeM, cp.modeN, cp.waveK, cp.symmetryBlend, gridTypeNum, cp.centerVoidRadius, voidShapeNum, cp.centerExpulsion);
             const accel = cp.driveStrength * Math.abs(w);
             const rDist = voidShapeNum > 0.5 ? Math.max(Math.abs(px), Math.abs(py)) : Math.sqrt(px * px + py * py);
 
             if (accel > 1.0) {
               g.settled = false;
-              const [gradFieldX, gradFieldY] = evalChladniGrad(px, py, cp.modeM, cp.modeN, cp.waveK, cp.symmetryBlend, gridTypeNum, cp.centerVoidRadius, voidShapeNum, cp.centerExpulsion);
-              const gradX = gradFieldX / camData.z;
-              const gradY = gradFieldY / camData.w;
+              const [gradX, gradY] = evalChladniGrad(px, py, cp.modeM, cp.modeN, cp.waveK, cp.symmetryBlend, gridTypeNum, cp.centerVoidRadius, voidShapeNum, cp.centerExpulsion);
               const signW = w >= 0 ? 1 : -1;
               const kick = Math.sqrt(accel - 1.0);
               let dx = -signW * gradX * 0.00022 * cp.driveStrength + (Math.random() - 0.5) * 0.0042 * kick;
@@ -846,6 +828,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
         u.uWaveK.value = effectiveK;
         u.uBlend.value = cp.symmetryBlend;
         u.uFieldOverlay.value = cp.fieldOverlay;
+        u.uNodalPronouncement.value = cp.nodalPronouncement ?? 1.0;
         u.uGridType.value = gridTypeToNumber(cp.gridType);
         u.uVoidRadius.value = cp.centerVoidRadius;
         u.uVoidShape.value = voidShapeToNumber(cp.centerVoidShape);
@@ -871,6 +854,12 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
         u.uSandColorPrimary.value.set(cp.sandColor);
         u.uSandColorSecondary.value.set(cp.sandColorSecondary);
         u.uCamData.value.copy(camDataRef.current);
+        if (u.uGrainSize) {
+          u.uGrainSize.value = cp.grainSize ?? 1.0;
+        }
+        if (u.uNodalPronouncement) {
+          u.uNodalPronouncement.value = cp.nodalPronouncement ?? 1.0;
+        }
       }
 
       renderer.render(scene, camera);
@@ -886,6 +875,8 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
       window.removeEventListener('pointermove', onWindowPointerMove);
       window.removeEventListener('pointerdown', onWindowPointerDown);
       window.removeEventListener('pointerup', onWindowPointerUp);
+      document.removeEventListener('mouseleave', onWindowMouseLeave);
+      window.removeEventListener('blur', onWindowBlur);
       textMaskManagerRef.current?.dispose();
       textMaskManagerRef.current = null;
       simRef.current?.dispose();
@@ -902,7 +893,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
       const cam = camDataRef.current;
       simRef.current?.scatter(cam.z, cam.w);
       wasmSimRef.current?.resetParticles();
-      jsCpuSimRef.current?.resetParticles();
+      jsCpuSimRef.current?.resetParticles(cam.z * 0.95, cam.w * 0.95);
       const grains = cpuParticlesRef.current;
       for (let i = 0; i < grains.length; i++) {
         grains[i].x = (Math.random() * 2 - 1) * (cam.z * 0.95);
@@ -920,12 +911,13 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
       const w = window.innerWidth;
       const h = window.innerHeight;
       const asp = w / h;
-      const halfH = VRANGE;
-      const halfW = halfH * asp;
+      const baseRange = VRANGE;
+      const halfW = asp >= 1.0 ? baseRange * asp : baseRange;
+      const halfH = asp >= 1.0 ? baseRange : baseRange / asp;
       camDataRef.current.set(0, 0, halfW, halfH);
       simRef.current?.scatter(halfW, halfH);
       wasmSimRef.current?.resetParticles();
-      jsCpuSimRef.current?.resetParticles();
+      jsCpuSimRef.current?.resetParticles(halfW * 0.95, halfH * 0.95);
       const cam = cameraRef.current;
       if (cam) {
         cam.left = -halfW;

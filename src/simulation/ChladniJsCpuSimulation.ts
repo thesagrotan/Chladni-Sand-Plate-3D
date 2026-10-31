@@ -15,11 +15,11 @@ export class ChladniJsCpuSimulation {
     this.resetParticles();
   }
 
-  public resetParticles() {
+  public resetParticles(spanX = 0.95, spanY = 0.95) {
     for (let i = 0; i < this.grainCount; i++) {
       const idx = i * 4;
-      this.positions[idx + 0] = (Math.random() * 2.0 - 1.0) * 0.95;
-      this.positions[idx + 1] = (Math.random() * 2.0 - 1.0) * 0.95;
+      this.positions[idx + 0] = (Math.random() * 2.0 - 1.0) * spanX;
+      this.positions[idx + 1] = (Math.random() * 2.0 - 1.0) * spanY;
       this.positions[idx + 2] = 0.0;
       this.positions[idx + 3] = 1.0;
     }
@@ -36,7 +36,9 @@ export class ChladniJsCpuSimulation {
     gridType: number,
     voidRadius: number,
     voidShape: number,
-    centerExpulsion: number
+    centerExpulsion: number,
+    boundX = 0.97,
+    boundY = 0.97
   ): { settledCount: number; computeTimeMs: number } {
     const t0 = performance.now();
     let settledCount = 0;
@@ -74,8 +76,8 @@ export class ChladniJsCpuSimulation {
         px += dx + wanderX;
         py += dy + wanderY;
 
-        px = Math.max(-0.97, Math.min(0.97, px));
-        py = Math.max(-0.97, Math.min(0.97, py));
+        px = Math.max(-boundX, Math.min(boundX, px));
+        py = Math.max(-boundY, Math.min(boundY, py));
 
         pos[base + 0] = px;
         pos[base + 1] = py;
@@ -86,8 +88,8 @@ export class ChladniJsCpuSimulation {
           const invR = rDist > 0.001 ? 1.0 / rDist : 0;
           px += px * invR * 0.004;
           py += py * invR * 0.004;
-          px = Math.max(-0.97, Math.min(0.97, px));
-          py = Math.max(-0.97, Math.min(0.97, py));
+          px = Math.max(-boundX, Math.min(boundX, px));
+          py = Math.max(-boundY, Math.min(boundY, py));
 
           pos[base + 0] = px;
           pos[base + 1] = py;

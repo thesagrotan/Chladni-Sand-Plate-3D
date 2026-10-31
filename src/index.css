@@ -1,24 +1,58 @@
 @import "tailwindcss";
 
 @font-face {
+  font-family: 'GT-Pressura';
+  src: url('/fonts/GT-Pressura-Standard-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Pressura';
+  src: url('/fonts/GT-Pressura-Standard-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT Pressura';
+  src: url('/fonts/GT-Pressura-Standard-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT Pressura';
+  src: url('/fonts/GT-Pressura-Standard-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Alias 'Geist' to GT-Pressura for backward compatibility */
+@font-face {
   font-family: 'Geist';
   src: url('/fonts/GT-Pressura-Standard-Regular.woff2') format('woff2');
-  font-weight: 100 900;
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Geist';
-  src: url('/fonts/GT-Pressura-Standard-Regular.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: italic;
+  src: url('/fonts/GT-Pressura-Standard-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
   font-display: swap;
 }
 
+/* Geist Mono for telemetry and numeric indicators */
 @font-face {
   font-family: 'Geist Mono';
-  src: url('/fonts/GT-Pressura-Standard-Regular.woff2') format('woff2');
+  src: url('/fonts/GeistMono-Variable.woff2') format('woff2');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -32,16 +66,9 @@
   font-display: swap;
 }
 
-@font-face {
-  font-family: 'Geist Serif';
-  src: url('/fonts/GT-Pressura-Standard-Regular.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
 @theme {
-  --font-sans: 'Geist', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'GT-Pressura', 'GT Pressura', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'GT-Pressura', 'GT Pressura', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -57,11 +84,11 @@ body {
   overflow-x: hidden;
   background-color: #070709;
   color: var(--sand-color, #c4bdb2);
-  font-family: 'Geist', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'GT-Pressura', 'GT Pressura', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .font-serif {
-  font-family: 'Geist', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'GT-Pressura', 'GT Pressura', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* Custom dark scrollbar */

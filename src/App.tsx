@@ -17,6 +17,11 @@ import {
   saveSettings,
   clearSavedSettings,
   setAutoSavePreference,
+  listVersions,
+  saveVersion,
+  deleteVersion,
+  restoreVersion,
+  SavedVersion,
 } from './utils/storage.ts';
 import { getPerceivedDotColor } from './utils/color.ts';
 import {
@@ -51,6 +56,7 @@ export default function App() {
     return loadSavedSettings().savedAt;
   });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [savedVersions, setSavedVersions] = useState<SavedVersion[]>(() => listVersions());
 
   const isResettingRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(false);
@@ -113,6 +119,29 @@ export default function App() {
       setToastMessage(next ? '✓ Auto-save enabled' : 'Auto-save disabled');
       return next;
     });
+  }, []);
+
+  // Handle Save Version (named snapshot)
+  const handleSaveVersion = useCallback((label: string) => {
+    const updated = saveVersion(params, label);
+    setSavedVersions(updated);
+    setToastMessage(`📌 Version saved: "${label || updated[0].label}"`);
+  }, [params]);
+
+  // Handle Restore Version
+  const handleRestoreVersion = useCallback((id: string) => {
+    const restored = restoreVersion(id);
+    if (!restored) return;
+    const version = listVersions().find((v) => v.id === id);
+    setParams(restored);
+    setToastMessage(`↩ Restored: "${version?.label ?? id}"`);
+  }, []);
+
+  // Handle Delete Version
+  const handleDeleteVersion = useCallback((id: string) => {
+    const updated = deleteVersion(id);
+    setSavedVersions(updated);
+    setToastMessage('🗑 Version deleted');
   }, []);
 
   // Persist settings across sessions when autoSave is enabled
@@ -241,10 +270,10 @@ export default function App() {
 
 
           {/* Main Title & Subtitle */}
-          <div className="w-full mx-auto my-auto flex flex-col items-start justify-center text-left">
+          <div className="w-full my-auto flex flex-col items-start justify-center text-left">
             <p
               data-text-repulsor
-              className="text-8xl font-serif mt-4 sm:mt-5 max-w-4xl leading-tight font-normal text-left"
+              className="w-full max-w-none text-8xl font-serif mt-4 sm:mt-5 leading-none tracking-tight font-normal text-left"
               style={{ color: dotColor }}
             >
               TEZETT PLATTE is a Berlin based label and studio for uncommon musicians
@@ -506,6 +535,10 @@ export default function App() {
           autoSaveEnabled={autoSaveEnabled}
           onToggleAutoSave={handleToggleAutoSave}
           lastSavedTime={lastSavedTime}
+          savedVersions={savedVersions}
+          onSaveVersion={handleSaveVersion}
+          onRestoreVersion={handleRestoreVersion}
+          onDeleteVersion={handleDeleteVersion}
         />
       )}
 

@@ -36,6 +36,10 @@ import {
   Save,
   Check,
   Type,
+  History,
+  Trash2,
+  CornerUpLeft,
+  PlusCircle,
 } from 'lucide-react';
 import {
   ChladniParams,
@@ -47,6 +51,7 @@ import {
   AudioMetrics,
 } from '../types/chladni.ts';
 import { plateAudio } from '../simulation/audioSynth.ts';
+import { SavedVersion, MAX_VERSIONS } from '../utils/storage.ts';
 
 interface ControlPanelProps {
   params: ChladniParams;
@@ -64,6 +69,10 @@ interface ControlPanelProps {
   autoSaveEnabled?: boolean;
   onToggleAutoSave?: () => void;
   lastSavedTime?: string | null;
+  savedVersions?: SavedVersion[];
+  onSaveVersion?: (label: string) => void;
+  onRestoreVersion?: (id: string) => void;
+  onDeleteVersion?: (id: string) => void;
 }
 
 const formatTime = (sec: number) => {
@@ -222,12 +231,18 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   autoSaveEnabled = true,
   onToggleAutoSave,
   lastSavedTime = null,
+  savedVersions = [],
+  onSaveVersion,
+  onRestoreVersion,
+  onDeleteVersion,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
   const [showColorCustomizer, setShowColorCustomizer] = useState(false);
   const [presetFilter, setPresetFilter] = useState<'all' | 'empty-center' | 'classic'>('empty-center');
   const [justSaved, setJustSaved] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [versionLabel, setVersionLabel] = useState('');
 
   const updateParam = <K extends keyof ChladniParams>(key: K, val: ChladniParams[K]) => {
     onChange({
@@ -245,6 +260,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     { label: '250k', value: 250_000 },
     { label: '500k', value: 500_000 },
     { label: '1M', value: 1_000_000 },
+  ];
+
+  const grainSizeOptions = [
+    { label: 'Fine', value: 0.6 },
+    { label: 'Normal', value: 1.0 },
+    { label: 'Medium', value: 1.6 },
+    { label: 'Coarse', value: 2.5 },
   ];
 
   const gridTopologies: { type: GridType; label: string; icon: React.ReactNode; desc: string }[] = [
@@ -403,6 +425,105 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     <span className="text-[9px] text-neutral-500 font-mono">
                       {autoSaveEnabled ? 'Auto: ON' : 'Auto: OFF'}
                     </span>
+                  </div>
+                )}
+
+                {/* Version History */}
+                {onSaveVersion && (
+                  <div className="pt-1 border-t border-neutral-800/60">
+                    <button
+                      type="button"
+                      onClick={() => setShowVersionHistory((prev) => !prev)}
+                      className="w-full flex items-center justify-between text-[10px] text-neutral-400 hover:text-white transition-colors cursor-pointer py-0.5"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <History size={11} className="text-indigo-400" />
+                        <span className="font-medium">Version History</span>
+                        {savedVersions.length > 0 && (
+                          <span className="px-1 py-0 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 font-mono text-[9px]">
+                            {savedVersions.length}/{MAX_VERSIONS}
+                          </span>
+                        )}
+                      </span>
+                      {showVersionHistory ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                    </button>
+
+                    {showVersionHistory && (
+                      <div className="mt-1.5 flex flex-col gap-1.5">
+                        {/* Save new version input */}
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={versionLabel}
+                            onChange={(e) => setVersionLabel(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && onSaveVersion) {
+                                onSaveVersion(versionLabel);
+                                setVersionLabel('');
+                              }
+                            }}
+                            placeholder="Version name (optional)…"
+                            maxLength={40}
+                            className="flex-1 h-6 px-2 rounded border border-neutral-700 bg-neutral-900 text-[10px] text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-indigo-600 transition-colors"
+                          />
+                          <button
+                            type="button"
+                            disabled={savedVersions.length >= MAX_VERSIONS}
+                            onClick={() => {
+                              onSaveVersion(versionLabel);
+                              setVersionLabel('');
+                            }}
+                            title={savedVersions.length >= MAX_VERSIONS ? `Max ${MAX_VERSIONS} versions` : 'Save new version'}
+                            className="h-6 px-2 rounded border border-indigo-700/70 bg-indigo-950/80 text-indigo-300 hover:bg-indigo-900/80 hover:text-white text-[10px] flex items-center gap-1 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <PlusCircle size={11} />
+                            <span>Save</span>
+                          </button>
+                        </div>
+
+                        {/* Version list */}
+                        {savedVersions.length === 0 ? (
+                          <p className="text-[10px] text-neutral-600 italic px-0.5">
+                            No versions saved yet. Name and save one above.
+                          </p>
+                        ) : (
+                          <div className="flex flex-col gap-1 max-h-44 overflow-y-auto scrollbar-thin pr-0.5">
+                            {savedVersions.map((v) => (
+                              <div
+                                key={v.id}
+                                className="flex items-center gap-1.5 p-1.5 rounded bg-neutral-900/70 border border-neutral-800/80 group"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[10px] font-medium text-neutral-200 truncate leading-tight">
+                                    {v.label}
+                                  </div>
+                                  <div className="text-[9px] text-neutral-500 font-mono leading-tight">
+                                    {v.savedAt}
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => onRestoreVersion?.(v.id)}
+                                  title={`Restore "${v.label}"`}
+                                  className="shrink-0 h-5 px-1.5 rounded border border-indigo-800/60 bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 hover:text-white text-[9px] flex items-center gap-0.5 transition-all cursor-pointer"
+                                >
+                                  <CornerUpLeft size={10} />
+                                  <span>Load</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => onDeleteVersion?.(v.id)}
+                                  title="Delete this version"
+                                  className="shrink-0 w-5 h-5 flex items-center justify-center rounded border border-neutral-800 bg-neutral-900 hover:bg-red-950/60 hover:border-red-800/60 text-neutral-600 hover:text-red-400 transition-all cursor-pointer"
+                                >
+                                  <Trash2 size={10} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1295,6 +1416,82 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               </div>
             </div>
 
+            {/* Grain size selector with quick presets and continuous slider */}
+            <div className="flex flex-col gap-1.5 py-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-neutral-400 font-normal">Grain size</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const current = params.grainSize ?? 1.0;
+                      const next = Math.max(0.2, +(current - 0.1).toFixed(1));
+                      updateParam('grainSize', next);
+                    }}
+                    className="w-5 h-5 flex items-center justify-center rounded text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                    title="Decrease grain size"
+                  >
+                    <ChevronLeft size={13} />
+                  </button>
+                  <span className="w-14 text-center font-mono text-neutral-200 text-xs bg-neutral-900/80 py-0.5 rounded border border-neutral-800/80">
+                    {(params.grainSize ?? 1.0).toFixed(1)}x
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const current = params.grainSize ?? 1.0;
+                      const next = Math.min(4.0, +(current + 0.1).toFixed(1));
+                      updateParam('grainSize', next);
+                    }}
+                    className="w-5 h-5 flex items-center justify-center rounded text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                    title="Increase grain size"
+                  >
+                    <ChevronRight size={13} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Select Buttons: Fine to Coarse */}
+              <div className="grid grid-cols-4 gap-1 mt-0.5">
+                {grainSizeOptions.map((opt) => {
+                  const current = params.grainSize ?? 1.0;
+                  const isMatch = Math.abs(current - opt.value) < 0.15;
+                  return (
+                    <button
+                      key={opt.label}
+                      type="button"
+                      onClick={() => updateParam('grainSize', opt.value)}
+                      className={`text-[10px] py-1 rounded border text-center transition-all cursor-pointer ${
+                        isMatch
+                          ? 'bg-neutral-200 text-neutral-950 font-medium border-white shadow-sm'
+                          : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-neutral-200 hover:bg-neutral-800'
+                      }`}
+                    >
+                      {opt.label} ({opt.value.toFixed(1)}x)
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Continuous Grain Size Range Slider */}
+              <div className="pt-1.5">
+                <input
+                  type="range"
+                  min={0.2}
+                  max={4.0}
+                  step={0.1}
+                  value={params.grainSize ?? 1.0}
+                  onChange={(e) => updateParam('grainSize', parseFloat(e.target.value))}
+                  className="w-full h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-neutral-300 hover:accent-white transition-all"
+                />
+                <div className="flex justify-between text-[9px] text-neutral-500 font-mono mt-0.5">
+                  <span>0.2x (micro)</span>
+                  <span>1.0x (standard)</span>
+                  <span>4.0x (macro)</span>
+                </div>
+              </div>
+            </div>
+
             <SliderRow
               label="Nodal field overlay"
               value={params.fieldOverlay}
@@ -1303,6 +1500,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               step={0.01}
               digits={2}
               onChange={(val) => updateParam('fieldOverlay', val)}
+            />
+
+            <SliderRow
+              label="Nodal pronouncement"
+              value={params.nodalPronouncement ?? 1.0}
+              min={0.1}
+              max={3.0}
+              step={0.05}
+              digits={2}
+              onChange={(val) => updateParam('nodalPronouncement', val)}
             />
 
             {/* SIMULATION ENGINE & WASM ACCELERATION */}
