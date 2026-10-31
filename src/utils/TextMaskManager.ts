@@ -49,9 +49,6 @@ export class TextMaskManager {
     this.canvas = document.createElement('canvas');
     this.canvas.width = this.canvasW;
     this.canvas.height = this.canvasH;
-    if (typeof window !== 'undefined') {
-      (window as any).__maskCanvas = this.canvas;
-    }
 
     const ctx = this.canvas.getContext('2d', {
       alpha: false,
