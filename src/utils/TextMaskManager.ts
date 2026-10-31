@@ -138,6 +138,86 @@ export class TextMaskManager {
     return true;
   }
 
+  /**
+   * Collect all text lines to draw for a given element, using DOM Range measurements
+   * to locate the exact screen position of each wrapped line.
+   *
+   * Strategy:
+   *   - Walk every text node inside the element via TreeWalker.
+   *   - For single-line text nodes (one clientRect) use that rect directly.
+   *   - For multi-line text nodes, scan character-by-character to find where
+   *     the browser wrapped, recording each line's actual bounding rect.
+   *   - Compute the canvas alphabetic baseline y so glyphs are centered inside
+   *     their DOM line box: y = lineRect.top + lineRect.height/2 + (ascent–descent)/2
+   *
+   * This is far more accurate than the old approach of rect.top + l*lineHeight
+   * because it uses the browser's own layout geometry instead of re-simulating it.
+   */
+  private collectLines(
+    el: HTMLElement,
+    ctx: CanvasRenderingContext2D,
+    rangeHelper: Range,
+    fontAscent: number,
+    fontDescent: number,
+  ): { text: string; x: number; y: number }[] {
+    const lines: { text: string; x: number; y: number }[] = [];
+    const baselineShift = (fontAscent - fontDescent) * 0.5; // centers glyphs in the line box
+
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const textNode = node as Text;
+      const rawText = textNode.textContent ?? '';
+      if (!rawText.trim()) continue;
+
+      rangeHelper.selectNode(textNode);
+      const lineRects = Array.from(rangeHelper.getClientRects());
+
+      if (lineRects.length === 0) continue;
+
+      if (lineRects.length === 1) {
+        // Single-line node: use its rect directly.
+        const r = lineRects[0];
+        const y = r.top + r.height * 0.5 + baselineShift;
+        lines.push({ text: rawText.trim(), x: r.left, y });
+        continue;
+      }
+
+      // Multi-line node: walk characters to find line-break boundaries.
+      let currentLine = '';
+      let currentRect: { top: number; left: number; right: number; height: number } | null = null;
+      let lastTop: number | null = null;
+
+      const pushLine = () => {
+        if (currentLine.trim() && currentRect) {
+          const y = currentRect.top + currentRect.height * 0.5 + baselineShift;
+          lines.push({ text: currentLine.trim(), x: currentRect.left, y });
+        }
+      };
+
+      for (let c = 0; c < rawText.length; c++) {
+        rangeHelper.setStart(textNode, c);
+        rangeHelper.setEnd(textNode, c + 1);
+        const r = rangeHelper.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) continue;
+
+        if (lastTop === null || Math.abs(r.top - lastTop) > 6) {
+          pushLine();
+          currentLine = rawText[c];
+          currentRect = { top: r.top, left: r.left, right: r.right, height: r.height };
+          lastTop = r.top;
+        } else {
+          currentLine += rawText[c];
+          currentRect!.right = r.right;
+          currentRect!.height = Math.max(currentRect!.height, r.height);
+        }
+      }
+      pushLine();
+    }
+
+    return lines;
+  }
+
   public rasterizeText(): void {
     if (this.isDestroyed) return;
 
@@ -184,6 +264,9 @@ export class TextMaskManager {
       this.texture.needsUpdate = true;
       return;
     }
+
+    // Reuse a single Range object for all measurements to avoid GC pressure.
+    const rangeHelper = document.createRange();
 
     for (let i = 0; i < elements.length; i++) {
       const el = elements[i] as HTMLElement;
@@ -235,21 +318,16 @@ export class TextMaskManager {
       const textToRender = (explicitText !== null ? explicitText : el.innerText || el.textContent || '').trim();
       if (!textToRender) continue;
 
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      const clientRects = Array.from(range.getClientRects());
-      console.log(`[RANGE_DEBUG] text: "${textToRender.slice(0, 15)}" elRect: [t:${rect.top.toFixed(1)}, h:${rect.height.toFixed(1)}] clientRects: ${JSON.stringify(clientRects.map(r => ({t: r.top, h: r.height, w: r.width, l: r.left})))}`);
-
       const style = window.getComputedStyle(el);
       const fontSize = parseFloat(style.fontSize) || 28;
       const fontWeight = style.fontWeight || '700';
       const fontFamily = style.fontFamily || 'system-ui, -apple-system, sans-serif';
       const fontStyle = style.fontStyle || 'normal';
       const letterSpacing = parseFloat(style.letterSpacing) || 0;
-      const textAlign = (style.textAlign as CanvasTextAlign) || 'left';
 
-      ctx.textBaseline = 'top';
-      ctx.textAlign = textAlign;
+      // Always draw left-aligned at the exact per-line X position from DOM Range.
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'left';
 
       // Handle letter-spacing if supported on canvas
       try {
@@ -276,35 +354,18 @@ export class TextMaskManager {
 
       ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
 
-      // Calculate anchor X based on text-align
-      let textX = rect.left;
-      if (textAlign === 'center') {
-        textX = rect.left + rect.width * 0.5;
-      } else if (textAlign === 'right') {
-        textX = rect.right;
-      }
+      // Measure font ascent/descent for alphabetic → centered-in-line-box baseline shift.
+      // fontBoundingBoxAscent/Descent are the full em-box metrics (preferred).
+      // actualBoundingBoxAscent/Descent are the tightest ink-bounds (fallback).
+      const probe = ctx.measureText('Mg|');
+      const fontAscent =
+        (probe as any).fontBoundingBoxAscent ?? probe.actualBoundingBoxAscent;
+      const fontDescent =
+        (probe as any).fontBoundingBoxDescent ?? probe.actualBoundingBoxDescent;
 
-      // Break text into wrapped lines matching actual DOM rendering
-      const explicitLines = textToRender.split('\n');
-      const lines: string[] = [];
-      const maxWidth = rect.width + 4;
-
-      for (const expLine of explicitLines) {
-        const words = expLine.split(/\s+/);
-        let cur = '';
-        for (const w of words) {
-          const test = cur ? `${cur} ${w}` : w;
-          if (ctx.measureText(test).width > maxWidth && cur) {
-            lines.push(cur);
-            cur = w;
-          } else {
-            cur = test;
-          }
-        }
-        if (cur) lines.push(cur);
-      }
-
-      const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.25;
+      // Collect exact per-line text + positions via DOM Range measurements.
+      const lines = this.collectLines(el, ctx, rangeHelper, fontAscent, fontDescent);
+      if (lines.length === 0) continue;
 
       // Subtle, tight blur sizes right around the letters (no giant black blobs)
       const outerBlur = Math.min(8, Math.max(3, fontSize * 0.12));
@@ -313,37 +374,20 @@ export class TextMaskManager {
       // Pass 1: Outer smooth subtle halo
       ctx.filter = `blur(${outerBlur.toFixed(1)}px)`;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
-      for (let l = 0; l < lines.length; l++) {
-        const line = lines[l].trim();
-        if (!line) continue;
-        const lineY = rect.top + l * lineHeight;
-        ctx.fillText(line, textX, lineY);
+      for (const line of lines) {
+        ctx.fillText(line.text, line.x, line.y);
       }
 
       // Pass 2: Tight core letter contour
       ctx.filter = `blur(${coreBlur.toFixed(1)}px)`;
       ctx.fillStyle = '#ffffff';
-      for (let l = 0; l < lines.length; l++) {
-        const line = lines[l].trim();
-        if (!line) continue;
-        const lineY = rect.top + l * lineHeight;
-        ctx.fillText(line, textX, lineY);
+      for (const line of lines) {
+        ctx.fillText(line.text, line.x, line.y);
       }
     }
 
     ctx.filter = 'none';
     this.texture.needsUpdate = true;
-
-    // Export mask canvas for inspection
-    if (typeof window !== 'undefined' && !(window as any).__savedMask) {
-      (window as any).__savedMask = true;
-      try {
-        const data = this.canvas.toDataURL('image/png');
-        console.log(`[MASK_IMAGE_DATA] ${data}`);
-      } catch (e) {
-        console.error(e);
-      }
-    }
   }
 
   public dispose(): void {

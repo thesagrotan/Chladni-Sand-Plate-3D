@@ -223,6 +223,78 @@
   font-display: swap;
 }
 
+/* 1c. BB Manual Mono Pro — Static OTF family (4 optical cuts, 12 weights each) */
+/* Weight mapping: Hairline→100, Thin→200, Semi Light→250, Light→300, Semi Regular→350,
+   Regular→400, Semi Medium→450, Medium→500, Semi Bold→600, Bold→700, Semi Super→800, Super→900 */
+
+/* BB Manual Mono Pro Text (has italic cuts) */
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Hairline.otf') format('opentype'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Hairline Italic.otf') format('opentype'); font-weight: 100; font-style: italic; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Thin.otf') format('opentype'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Thin Italic.otf') format('opentype'); font-weight: 200; font-style: italic; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Semi Light.otf') format('opentype'); font-weight: 250; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Semi Light Italic.otf') format('opentype'); font-weight: 250; font-style: italic; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Light.otf') format('opentype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Light Italic.otf') format('opentype'); font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Semi Regular.otf') format('opentype'); font-weight: 350; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Semi Regular Italic.otf') format('opentype'); font-weight: 350; font-style: italic; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Regular.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Regular Italic.otf') format('opentype'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Semi Medium.otf') format('opentype'); font-weight: 450; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Semi Medium Italic.otf') format('opentype'); font-weight: 450; font-style: italic; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Medium.otf') format('opentype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Medium Italic.otf') format('opentype'); font-weight: 500; font-style: italic; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Semi Bold.otf') format('opentype'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Semi Bold Italic.otf') format('opentype'); font-weight: 600; font-style: italic; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Bold.otf') format('opentype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Bold Italic.otf') format('opentype'); font-weight: 700; font-style: italic; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Semi Super.otf') format('opentype'); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Semi Super Italic.otf') format('opentype'); font-weight: 800; font-style: italic; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Super.otf') format('opentype'); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Text'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Text/BB Manual Mono (Pro) Text Super Italic.otf') format('opentype'); font-weight: 900; font-style: italic; font-display: swap; }
+
+/* BB Manual Mono Pro Original (no italics) */
+@font-face { font-family: 'BB-Manual-Mono-Pro-Original'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Original/BB Manual Mono (Pro) Original Hairline.otf') format('opentype'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Original'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Original/BB Manual Mono (Pro) Original Thin.otf') format('opentype'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Original'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Original/BB Manual Mono (Pro) Original Semi Light.otf') format('opentype'); font-weight: 250; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Original'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Original/BB Manual Mono (Pro) Original Light.otf') format('opentype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Original'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Original/BB Manual Mono (Pro) Original Semi Regular.otf') format('opentype'); font-weight: 350; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Original'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Original/BB Manual Mono (Pro) Original Regular.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Original'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Original/BB Manual Mono (Pro) Original Semi Medium.otf') format('opentype'); font-weight: 450; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Original'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Original/BB Manual Mono (Pro) Original Medium.otf') format('opentype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Original'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Original/BB Manual Mono (Pro) Original Semi Bold.otf') format('opentype'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Original'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Original/BB Manual Mono (Pro) Original Bold.otf') format('opentype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Original'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Original/BB Manual Mono (Pro) Original Semi Super.otf') format('opentype'); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Original'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Original/BB Manual Mono (Pro) Original Super.otf') format('opentype'); font-weight: 900; font-style: normal; font-display: swap; }
+
+/* BB Manual Mono Pro Headline (no italics) */
+@font-face { font-family: 'BB-Manual-Mono-Pro-Headline'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Headline/BB Manual Mono (Pro) Headline Hairline.otf') format('opentype'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Headline'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Headline/BB Manual Mono (Pro) Headline Thin.otf') format('opentype'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Headline'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Headline/BB Manual Mono (Pro) Headline Semi Light.otf') format('opentype'); font-weight: 250; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Headline'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Headline/BB Manual Mono (Pro) Headline Light.otf') format('opentype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Headline'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Headline/BB Manual Mono (Pro) Headline Semi Regular.otf') format('opentype'); font-weight: 350; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Headline'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Headline/BB Manual Mono (Pro) Headline Regular.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Headline'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Headline/BB Manual Mono (Pro) Headline Semi Medium.otf') format('opentype'); font-weight: 450; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Headline'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Headline/BB Manual Mono (Pro) Headline Medium.otf') format('opentype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Headline'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Headline/BB Manual Mono (Pro) Headline Semi Bold.otf') format('opentype'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Headline'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Headline/BB Manual Mono (Pro) Headline Bold.otf') format('opentype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Headline'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Headline/BB Manual Mono (Pro) Headline Semi Super.otf') format('opentype'); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Headline'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Headline/BB Manual Mono (Pro) Headline Super.otf') format('opentype'); font-weight: 900; font-style: normal; font-display: swap; }
+
+/* BB Manual Mono Pro Cover (no italics) */
+@font-face { font-family: 'BB-Manual-Mono-Pro-Cover'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Cover/BB Manual Mono (Pro) Cover Hairline.otf') format('opentype'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Cover'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Cover/BB Manual Mono (Pro) Cover Thin.otf') format('opentype'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Cover'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Cover/BB Manual Mono (Pro) Cover Semi Light.otf') format('opentype'); font-weight: 250; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Cover'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Cover/BB Manual Mono (Pro) Cover Light.otf') format('opentype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Cover'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Cover/BB Manual Mono (Pro) Cover Semi Regular.otf') format('opentype'); font-weight: 350; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Cover'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Cover/BB Manual Mono (Pro) Cover Regular.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Cover'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Cover/BB Manual Mono (Pro) Cover Semi Medium.otf') format('opentype'); font-weight: 450; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Cover'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Cover/BB Manual Mono (Pro) Cover Medium.otf') format('opentype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Cover'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Cover/BB Manual Mono (Pro) Cover Semi Bold.otf') format('opentype'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Cover'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Cover/BB Manual Mono (Pro) Cover Bold.otf') format('opentype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Cover'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Cover/BB Manual Mono (Pro) Cover Semi Super.otf') format('opentype'); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'BB-Manual-Mono-Pro-Cover'; src: url('/fonts/bb-manual-mono-pro/BB Manual Mono Pro Cover/BB Manual Mono (Pro) Cover Super.otf') format('opentype'); font-weight: 900; font-style: normal; font-display: swap; }
+
 /* 2. iA Writer Quattro V (Variable font: wght 400-700, SPCG 0-150) */
 @font-face {
   font-family: 'iA Writer Quattro V';
