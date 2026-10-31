@@ -12,7 +12,7 @@ import { ChladniCanvas } from './components/ChladniCanvas.tsx';
 import { HudStats } from './components/HudStats.tsx';
 import { ControlPanel } from './components/ControlPanel.tsx';
 import { WasmResearchLab } from './components/WasmResearchLab.tsx';
-import { CircleCursor } from './components/CircleCursor.tsx';
+import { CustomCursor } from './components/CircleCursor.tsx';
 import { plateSynth } from './simulation/audioSynth.ts';
 import {
   loadSavedSettings,
@@ -103,6 +103,7 @@ export default function App() {
   // Pre-load font when switched to ensure canvas text mask and DOM render immediately
   useEffect(() => {
     if (document.fonts && document.fonts.load) {
+      document.fonts.load(`16px "${params.fontFamily}"`).catch(() => {});
       document.fonts.load(`${params.fontWeight} 24px "${params.fontFamily}"`).catch(() => {});
       if (params.fontItalic) {
         document.fonts.load(`italic ${params.fontWeight} 24px "${params.fontFamily}"`).catch(() => {});
@@ -301,7 +302,7 @@ export default function App() {
       style={{
         '--sand-color': dotColor,
         '--sand-color-sec': params.sandColorSecondary,
-        '--active-font-family': `'${params.fontFamily}', 'iA Writer Quattro V', -apple-system, sans-serif`,
+        '--active-font-family': `"${params.fontFamily}", system-ui, -apple-system, sans-serif`,
         '--active-font-weight': params.fontWeight,
         '--active-font-style': params.fontItalic ? 'italic' : 'normal',
         '--active-font-variation': fontVariationCss,
@@ -834,8 +835,8 @@ export default function App() {
         currentEngine={params.simulationEngine}
       />
 
-      {/* 8. CUSTOM CIRCLE POINTER */}
-      <CircleCursor color={dotColor} />
+      {/* 8. CUSTOM POINTER (FULL CIRCLE) */}
+      <CustomCursor color={dotColor} shape="circle" filled={true} />
     </div>
   );
 }

@@ -1,10 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-interface CircleCursorProps {
+export interface CustomCursorProps {
   color?: string;
+  shape?: 'square' | 'circle';
+  filled?: boolean;
 }
 
-export const CircleCursor: React.FC<CircleCursorProps> = ({ color }) => {
+export const CustomCursor: React.FC<CustomCursorProps> = ({
+  color,
+  shape = 'circle',
+  filled = true,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState<boolean>(false);
   const [isHovered, setIsHovered] = useState<boolean>(false);
@@ -106,13 +112,15 @@ export const CircleCursor: React.FC<CircleCursorProps> = ({ color }) => {
 
   const cursorColor = color || 'var(--sand-color, #c4bdb2)';
 
-  // Calculate diameter and styles based on state
-  let size = 26; // Default ring diameter (px)
+  // Sizing for cursor
+  let size = shape === 'circle' ? 14 : 12; // Default size (px)
   if (isHovered) {
-    size = 46; // Expanded over clickable elements
+    size = shape === 'circle' ? 34 : 28; // Expanded over clickable elements
   } else if (isPressed) {
-    size = 20; // Snapped on press / click
+    size = shape === 'circle' ? 9 : 8; // Snapped on click / press
   }
+
+  const isSquare = shape === 'square';
 
   return (
     <div
@@ -125,31 +133,24 @@ export const CircleCursor: React.FC<CircleCursorProps> = ({ color }) => {
       aria-hidden="true"
     >
       <div
-        className="relative -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all duration-150 ease-out"
+        className={`relative -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-all duration-150 ease-out ${
+          isSquare ? 'rounded-none' : 'rounded-full'
+        }`}
         style={{
           width: `${size}px`,
           height: `${size}px`,
-          border: `1.5px solid ${cursorColor}`,
-          backgroundColor: isHovered
-            ? 'rgba(255, 255, 255, 0.08)'
-            : 'rgba(255, 255, 255, 0.02)',
+          backgroundColor: filled ? cursorColor : 'transparent',
+          border: filled ? 'none' : `1.5px solid ${cursorColor}`,
+          mixBlendMode: 'difference',
           boxShadow: isHovered
-            ? '0 0 16px rgba(255, 255, 255, 0.12)'
-            : '0 0 8px rgba(0, 0, 0, 0.4)',
-          transform: isPressed ? 'scale(0.92)' : 'scale(1)',
+            ? '0 0 14px rgba(255, 255, 255, 0.2)'
+            : '0 0 6px rgba(0, 0, 0, 0.4)',
+          transform: isPressed ? 'scale(0.85)' : 'scale(1)',
         }}
-      >
-        {/* Subtle center precision dot */}
-        <div
-          className="rounded-full transition-all duration-150 ease-out"
-          style={{
-            width: isHovered ? '4px' : '3px',
-            height: isHovered ? '4px' : '3px',
-            backgroundColor: cursorColor,
-            opacity: isHovered ? 0.35 : 0.85,
-          }}
-        />
-      </div>
+      />
     </div>
   );
 };
+
+// Backward-compatible alias
+export const CircleCursor = CustomCursor;

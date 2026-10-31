@@ -37,10 +37,48 @@
   font-display: swap;
 }
 
-/* 1b. GT-America Standard */
+/* 1b. GT-America OTF Font Family */
+/* Standard Cuts (Thin 100, Light 300, Regular 400, Medium 500, Bold 700, Black 900) */
 @font-face {
   font-family: 'GT-America';
-  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Regular.otf') format('opentype');
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Thin.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Standard-Thin.otf');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-America';
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Thin-Italic.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Standard-Thin-Italic.otf');
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-America';
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Light.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Standard-Light.otf');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-America';
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Light-Italic.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Standard-Light-Italic.otf');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-America';
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Regular.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Standard-Regular.otf');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -48,7 +86,138 @@
 
 @font-face {
   font-family: 'GT-America';
-  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Bold.otf') format('opentype');
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Regular-Italic.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Standard-Regular-Italic.otf');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-America';
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Medium.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Standard-Medium.otf');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-America';
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Medium-Italic.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Standard-Medium-Italic.otf');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-America';
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Bold.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Standard-Bold.otf');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-America';
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Bold-Italic.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Standard-Bold-Italic.otf');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-America';
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Black.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Standard-Black.otf');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-America';
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Black-Italic.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Standard-Black-Italic.otf');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Also register 'GT America' for spacing tolerance */
+@font-face {
+  font-family: 'GT America';
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Regular.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Standard-Regular.otf');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT America';
+  src: url('/fonts/GT-America/GT-America-LCGV-Standard-Bold.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Standard-Bold.otf');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* GT America Mono */
+@font-face {
+  font-family: 'GT-America-Mono';
+  src: url('/fonts/GT-America/GT-America-LCGV-Mono-Regular.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Mono-Regular.otf');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-America-Mono';
+  src: url('/fonts/GT-America/GT-America-LCGV-Mono-Bold.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Mono-Bold.otf');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* GT America Expanded */
+@font-face {
+  font-family: 'GT-America-Expanded';
+  src: url('/fonts/GT-America/GT-America-LCGV-Expanded-Regular.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Expanded-Regular.otf');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-America-Expanded';
+  src: url('/fonts/GT-America/GT-America-LCGV-Expanded-Bold.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Expanded-Bold.otf');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* GT America Compressed */
+@font-face {
+  font-family: 'GT-America-Compressed';
+  src: url('/fonts/GT-America/GT-America-LCGV-Compressed-Regular.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Compressed-Regular.otf');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-America-Compressed';
+  src: url('/fonts/GT-America/GT-America-LCGV-Compressed-Bold.otf') format('opentype'),
+       url('/fonts/GT-America/GT-America-LCGV-Compressed-Bold.otf');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -184,29 +353,33 @@ body {
   overflow-x: hidden;
   background-color: #070709;
   color: var(--sand-color, #c4bdb2);
-  font-family: var(--active-font-family, 'iAWriterQuattroV', system-ui, sans-serif);
+  font-family: var(--active-font-family, system-ui, sans-serif);
   line-height: 1.25;
 }
 
 /* Primary layout typography classes reacting to font picker & variable controls */
 .font-serif {
-  font-family: var(--active-font-family, 'iAWriterQuattroV', system-ui, sans-serif);
+  font-family: var(--active-font-family, system-ui, sans-serif);
   font-variation-settings: var(--active-font-variation, normal);
   letter-spacing: var(--active-letter-spacing, normal);
 }
 
 .font-sans {
-  font-family: var(--active-font-family, 'iAWriterQuattroV', system-ui, sans-serif);
+  font-family: var(--active-font-family, system-ui, sans-serif);
   font-variation-settings: var(--active-font-variation, normal);
   letter-spacing: var(--active-letter-spacing, normal);
 }
 
-/* Variable weight binding for base serif headings & paragraphs */
+/* Variable weight binding for base serif headings & paragraphs & spans */
 .font-serif.font-normal,
 p.font-serif,
 h1.font-serif,
 h2.font-serif,
-h3.font-serif {
+h3.font-serif,
+span.font-serif,
+div.font-serif,
+.font-serif:not([class*="font-semibold"]):not([class*="font-bold"]):not([class*="font-light"]):not([class*="font-black"]),
+.font-sans:not([class*="font-semibold"]):not([class*="font-bold"]):not([class*="font-light"]):not([class*="font-black"]) {
   font-weight: var(--active-font-weight, 400);
 }
 

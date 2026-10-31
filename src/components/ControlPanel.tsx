@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -42,6 +42,7 @@ import {
   PlusCircle,
   Italic,
   SlidersHorizontal,
+  Upload,
 } from 'lucide-react';
 import {
   ChladniParams,
@@ -248,11 +249,80 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const [justSaved, setJustSaved] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [versionLabel, setVersionLabel] = useState('');
+  const [customFonts, setCustomFonts] = useState<FontOption[]>([]);
+  const [fontLoadError, setFontLoadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const allFonts = useMemo(() => {
+    return [...AVAILABLE_FONTS, ...customFonts];
+  }, [customFonts]);
+
+  const handleFontFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setFontLoadError(null);
+      const buffer = await file.arrayBuffer();
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'otf';
+      const rawBaseName = file.name.replace(/\.[^/.]+$/, '').trim();
+      const sanitizedFamily = rawBaseName.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+      // Register new FontFace into document fonts
+      const fontFace = new FontFace(sanitizedFamily, buffer);
+      const loadedFace = await fontFace.load();
+      document.fonts.add(loadedFace);
+
+      const isItalic = rawBaseName.toLowerCase().includes('italic');
+      const newOption: FontOption = {
+        id: `custom-${Date.now()}`,
+        name: rawBaseName,
+        fontFamily: sanitizedFamily,
+        category: 'static',
+        minWeight: 100,
+        maxWeight: 900,
+        defaultWeight: 400,
+        hasItalic: isItalic,
+        isItalicDefault: isItalic,
+        badge: ext === 'otf' ? 'Custom OTF' : `Custom ${ext.toUpperCase()}`,
+        format: ext.toUpperCase(),
+        fileName: file.name,
+        description: `Locally loaded font: ${file.name}`,
+      };
+
+      setCustomFonts((prev) => [newOption, ...prev]);
+      updateParams({
+        fontFamily: sanitizedFamily,
+        fontWeight: 400,
+        fontItalic: isItalic,
+        fontSpacingAxis: 0,
+        fontElshAxis: 0,
+      });
+
+      if (document.fonts.ready) {
+        await document.fonts.ready;
+      }
+    } catch (err) {
+      console.error('Failed to load font file:', err);
+      setFontLoadError(err instanceof Error ? err.message : String(err));
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const updateParam = <K extends keyof ChladniParams>(key: K, val: ChladniParams[K]) => {
     onChange({
       ...params,
       [key]: val,
+    });
+  };
+
+  const updateParams = (updates: Partial<ChladniParams>) => {
+    onChange({
+      ...params,
+      ...updates,
     });
   };
 
@@ -339,9 +409,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     return p.tag !== 'empty-center';
   });
 
-  const currentFont = AVAILABLE_FONTS.find(
+  const currentFont = allFonts.find(
     (f) => f.fontFamily === params.fontFamily || f.id === params.fontFamily
-  ) || AVAILABLE_FONTS[0];
+  ) || allFonts[0];
 
   const previewVariationCss = buildFontVariationSettings({
     fontFamily: params.fontFamily,
@@ -989,12 +1059,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  updateParam('fontFamily', 'iAWriterQuattroV');
-                  updateParam('fontWeight', 400);
-                  updateParam('fontItalic', false);
-                  updateParam('fontSpacingAxis', 0);
-                  updateParam('fontElshAxis', 0);
-                  updateParam('fontLetterSpacing', 0);
+                  updateParams({
+                    fontFamily: 'iAWriterQuattroV',
+                    fontWeight: 400,
+                    fontItalic: false,
+                    fontSpacingAxis: 0,
+                    fontElshAxis: 0,
+                    fontLetterSpacing: 0,
+                  });
                 }}
                 className="text-[10px] text-neutral-500 hover:text-neutral-300 underline cursor-pointer"
                 title="Reset typography to iA Writer Quattro V Regular default"
@@ -1007,29 +1079,70 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               Quickly switch between fonts in the <code className="text-cyan-300/80 font-mono text-[10px]">fonts/</code> folder. Real-time variable font axes dynamically reshape text contours and sand repulsion.
             </p>
 
+            {/* Hidden File Input for loading custom OTF/TTF/WOFF2 fonts */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".otf,.ttf,.woff2,.woff,font/*"
+              className="hidden"
+              onChange={handleFontFileUpload}
+            />
+
+            {/* Load Local Font Button */}
+            <div className="mb-2.5">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full py-1.5 px-3 rounded-lg border border-dashed border-cyan-700/70 hover:border-cyan-400 bg-cyan-950/40 hover:bg-cyan-900/50 text-cyan-200 hover:text-white text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer group shadow-sm"
+                title="Load an external .otf, .ttf, or .woff2 font file directly from your disk"
+              >
+                <Upload size={12} className="text-cyan-400 group-hover:-translate-y-0.5 transition-transform" />
+                <span>Load Font File (.otf, .ttf, .woff2)</span>
+              </button>
+              {fontLoadError && (
+                <div className="mt-1 px-2 py-1 rounded bg-red-950/80 border border-red-800 text-[10px] text-red-300">
+                  {fontLoadError}
+                </div>
+              )}
+            </div>
+
             {/* Font Picker Grid */}
             <div className="text-[10px] uppercase tracking-wider font-semibold text-neutral-500 mb-1.5 flex items-center justify-between">
-              <span>Font Folder ({AVAILABLE_FONTS.length} Fonts)</span>
-              <span className="text-[9px] text-neutral-500 font-mono">public/fonts/</span>
+              <span>Font Options ({allFonts.length} Available)</span>
+              <span className="text-[9px] text-neutral-500 font-mono">public/fonts/ & custom</span>
             </div>
 
             <div className="grid grid-cols-2 gap-1.5 mb-3">
-              {AVAILABLE_FONTS.map((font) => {
+              {allFonts.map((font) => {
                 const isSelected = params.fontFamily === font.fontFamily || params.fontFamily === font.id;
                 return (
                   <button
                     key={font.id}
                     type="button"
                     onClick={() => {
-                      updateParam('fontFamily', font.fontFamily);
                       let targetWeight = params.fontWeight;
                       if (targetWeight < font.minWeight) targetWeight = font.minWeight;
                       if (targetWeight > font.maxWeight) targetWeight = font.maxWeight;
-                      updateParam('fontWeight', targetWeight);
+
+                      const updates: Partial<ChladniParams> = {
+                        fontFamily: font.fontFamily,
+                        fontWeight: targetWeight,
+                      };
 
                       if (font.isItalicDefault !== undefined) {
-                        updateParam('fontItalic', font.isItalicDefault);
+                        updates.fontItalic = font.isItalicDefault;
+                      } else if (!font.hasItalic) {
+                        updates.fontItalic = false;
                       }
+
+                      if (!font.hasSpacingAxis) {
+                        updates.fontSpacingAxis = 0;
+                      }
+                      if (!font.hasElshAxis) {
+                        updates.fontElshAxis = 0;
+                      }
+
+                      updateParams(updates);
                     }}
                     className={`p-2 rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between min-h-[64px] ${
                       isSelected
@@ -1943,18 +2056,30 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         <button
           type="button"
           onClick={() => {
-            const currentIndex = AVAILABLE_FONTS.findIndex(
+            const currentIndex = allFonts.findIndex(
               (f) => f.fontFamily === params.fontFamily || f.id === params.fontFamily
             );
-            const nextFont = AVAILABLE_FONTS[(currentIndex + 1) % AVAILABLE_FONTS.length];
-            updateParam('fontFamily', nextFont.fontFamily);
+            const nextFont = allFonts[(currentIndex + 1) % allFonts.length];
             let targetWeight = params.fontWeight;
             if (targetWeight < nextFont.minWeight) targetWeight = nextFont.minWeight;
             if (targetWeight > nextFont.maxWeight) targetWeight = nextFont.maxWeight;
-            updateParam('fontWeight', targetWeight);
+
+            const updates: Partial<ChladniParams> = {
+              fontFamily: nextFont.fontFamily,
+              fontWeight: targetWeight,
+            };
             if (nextFont.isItalicDefault !== undefined) {
-              updateParam('fontItalic', nextFont.isItalicDefault);
+              updates.fontItalic = nextFont.isItalicDefault;
+            } else if (!nextFont.hasItalic) {
+              updates.fontItalic = false;
             }
+            if (!nextFont.hasSpacingAxis) {
+              updates.fontSpacingAxis = 0;
+            }
+            if (!nextFont.hasElshAxis) {
+              updates.fontElshAxis = 0;
+            }
+            updateParams(updates);
           }}
           className="h-9 px-3 rounded-lg border border-cyan-800/60 bg-neutral-900/90 hover:bg-neutral-800 text-cyan-300 hover:text-white shadow-lg backdrop-blur transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
           title={`Active Font: ${currentFont?.name || params.fontFamily} — Click to quickly cycle between fonts in fonts folder`}

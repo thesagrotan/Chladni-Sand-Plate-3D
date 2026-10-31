@@ -463,17 +463,59 @@ export const AVAILABLE_FONTS: FontOption[] = [
   },
   {
     id: 'GT-America',
-    name: 'GT America',
+    name: 'GT America Standard',
     fontFamily: 'GT-America',
+    category: 'static',
+    minWeight: 100,
+    maxWeight: 900,
+    defaultWeight: 400,
+    hasItalic: true,
+    badge: 'Swiss Gothic OTF',
+    format: 'OTF',
+    fileName: 'GT-America/GT-America-LCGV-Standard-*.otf',
+    description: 'Synthesis of American Gothic and European Grotesk (Thin 100 to Black 900 + Italic)',
+  },
+  {
+    id: 'GT-America-Mono',
+    name: 'GT America Mono',
+    fontFamily: 'GT-America-Mono',
+    category: 'static',
+    minWeight: 400,
+    maxWeight: 700,
+    defaultWeight: 400,
+    hasItalic: true,
+    badge: 'Swiss Mono OTF',
+    format: 'OTF',
+    fileName: 'GT-America/GT-America-LCGV-Mono-*.otf',
+    description: 'Monospaced cut of GT America (Regular 400 & Bold 700)',
+  },
+  {
+    id: 'GT-America-Expanded',
+    name: 'GT America Expanded',
+    fontFamily: 'GT-America-Expanded',
     category: 'static',
     minWeight: 400,
     maxWeight: 700,
     defaultWeight: 400,
     hasItalic: false,
-    badge: 'Swiss Gothic',
+    badge: 'Wide OTF',
     format: 'OTF',
-    fileName: 'GT-America/GT-America-LCGV-Standard-*.otf',
-    description: 'Synthesis of American Gothic and European Grotesk (Regular 400 & Bold 700)',
+    fileName: 'GT-America/GT-America-LCGV-Expanded-*.otf',
+    description: 'Ultra-wide horizontal expansion architecture (Regular 400 & Bold 700)',
+  },
+  {
+    id: 'GT-America-Compressed',
+    name: 'GT America Compressed',
+    fontFamily: 'GT-America-Compressed',
+    category: 'static',
+    minWeight: 400,
+    maxWeight: 700,
+    defaultWeight: 400,
+    hasItalic: false,
+    badge: 'Dense OTF',
+    format: 'OTF',
+    fileName: 'GT-America/GT-America-LCGV-Compressed-*.otf',
+    description: 'Narrow compressed display cut of GT America (Regular 400 & Bold 700)',
   },
   {
     id: 'Geist',
@@ -526,30 +568,29 @@ export function buildFontVariationSettings(params: {
   fontSpacingAxis?: number;
   fontElshAxis?: number;
 }): string {
-  const parts: string[] = [];
   const fam = params.fontFamily || '';
-  const weight = params.fontWeight ?? 400;
 
-  // Add 'wght' for variable fonts
-  if (!fam.includes('GT-Pressura') && !fam.includes('GT Pressura')) {
-    parts.push(`'wght' ${weight}`);
-  }
-
-  // Add 'SPCG' for iA Writer Quattro V (0 to 150)
+  // 1. iA Writer Quattro V (wght & SPCG)
   if (fam.includes('iAWriter') || fam.includes('iA Writer') || fam.includes('Quattro')) {
+    const parts: string[] = [`'wght' ${params.fontWeight ?? 400}`];
     const spcg = params.fontSpacingAxis ?? 0;
     if (spcg > 0) {
       parts.push(`'SPCG' ${spcg}`);
     }
+    return parts.join(', ');
   }
 
-  // Add 'ELSH' for Geist Serif VF (0 to 100)
+  // 2. Geist Sans & Geist Mono (wght only)
+  if (fam === 'Geist' || fam === 'Geist Mono') {
+    return `'wght' ${params.fontWeight ?? 400}`;
+  }
+
+  // 3. Geist Serif VF (ELSH only, no wght axis)
   if (fam.includes('Serif')) {
     const elsh = params.fontElshAxis ?? 0;
-    if (elsh > 0) {
-      parts.push(`'ELSH' ${elsh}`);
-    }
+    return elsh > 0 ? `'ELSH' ${elsh}` : 'normal';
   }
 
-  return parts.length > 0 ? parts.join(', ') : 'normal';
+  // 4. Static fonts (GT Pressura, GT America, Custom OTF/TTF fonts) -> MUST be 'normal'
+  return 'normal';
 }
