@@ -236,44 +236,26 @@ export default function App() {
       {/* 2. FOREGROUND DOM ELEMENTS (EXACT LAYOUT FROM REFERENCE IMAGE) */}
       <div className="relative z-10 w-full flex flex-col">
         {/* HERO VIEWPORT — MATCHES SCREENSHOT EXACTLY */}
-        <section className="h-screen min-h-[680px] w-full flex flex-col justify-between px-8 sm:px-14 md:px-20 py-8 sm:py-12 select-none">
-          {/* Top: Contact */}
-          <div className="w-full max-w-6xl mx-auto flex justify-start">
-            <a
-              href="#contact"
-              data-text-repulsor
-              className="text-sm sm:text-base font-normal tracking-wide transition-opacity cursor-pointer hover:opacity-100 text-left"
-              style={{ color: dotColor, opacity: 0.85 }}
-            >
-              Contact
-            </a>
-          </div>
+        <section className="h-screen min-h-[680px] w-full flex flex-col justify-between px-2 sm:px-14 md:px-20 py-8 sm:py-12 select-none">
+
+
 
           {/* Main Title & Subtitle */}
-          <div className="w-full max-w-6xl mx-auto my-auto flex flex-col items-start justify-center text-left">
-            <h1
-              data-text-repulsor
-              className="text-base sm:text-lg md:text-xl font-bold tracking-[0.16em] uppercase font-sans text-left"
-              style={{ color: dotColor }}
-            >
-              TEZETT – PLATTE
-            </h1>
-
+          <div className="w-full mx-auto my-auto flex flex-col items-start justify-center text-left">
             <p
               data-text-repulsor
-              className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-serif mt-4 sm:mt-5 max-w-4xl leading-tight font-normal text-left"
+              className="text-8xl font-serif mt-4 sm:mt-5 max-w-4xl leading-tight font-normal text-left"
               style={{ color: dotColor }}
             >
-              is a Berlin based label and studio for uncommon musicians
+              TEZETT PLATTE is a Berlin based label and studio for uncommon musicians
             </p>
           </div>
 
           {/* Bottom: Releases and Track Rows */}
-          <div className="w-full max-w-6xl mx-auto flex flex-col pb-2 sm:pb-4 text-left">
+          <div className="w-full mx-auto flex flex-col pb-2 sm:pb-4 text-left">
             <div
               data-text-repulsor
-              className="text-sm sm:text-base font-sans font-normal mb-6 sm:mb-7 tracking-wide"
-              style={{ color: dotColor, opacity: 0.8 }}
+              className="text-4xl font-sans font-normal mb-6 sm:mb-7 tracking-wide"
             >
               Releases
             </div>
@@ -287,7 +269,7 @@ export default function App() {
               >
                 <span
                   data-text-repulsor
-                  className="font-serif text-xl sm:text-2xl md:text-3xl transition-opacity group-hover:opacity-100"
+                  className="font-serif text-4xl transition-opacity group-hover:opacity-100"
                   style={{ color: dotColor }}
                 >
                   Umbrafono
@@ -295,7 +277,7 @@ export default function App() {
                 <span className="mx-1.5" />
                 <span
                   data-text-repulsor
-                  className="font-serif italic text-xl sm:text-2xl md:text-3xl transition-opacity group-hover:opacity-100"
+                  className="font-serif italic text-4xl transition-opacity group-hover:opacity-100"
                   style={{ color: dotColor, opacity: 0.88 }}
                 >
                   Sound Film Series
@@ -307,7 +289,7 @@ export default function App() {
                 />
                 <span
                   data-text-repulsor
-                  className="font-serif text-xl sm:text-2xl md:text-3xl transition-opacity group-hover:opacity-100"
+                  className="font-serif text-4xl transition-opacity group-hover:opacity-100"
                   style={{ color: dotColor, opacity: 0.88 }}
                 >
                   2023
@@ -318,7 +300,7 @@ export default function App() {
               <div className="flex items-baseline w-full group cursor-pointer">
                 <span
                   data-text-repulsor
-                  className="font-serif text-xl sm:text-2xl md:text-3xl transition-opacity group-hover:opacity-100"
+                  className="font-serif text-4xl transition-opacity group-hover:opacity-100"
                   style={{ color: dotColor }}
                 >
                   Severine Beata
@@ -326,7 +308,7 @@ export default function App() {
                 <span className="mx-1.5" />
                 <span
                   data-text-repulsor
-                  className="font-serif italic text-xl sm:text-2xl md:text-3xl transition-opacity group-hover:opacity-100"
+                  className="font-serif italic text-4xl transition-opacity group-hover:opacity-100"
                   style={{ color: dotColor, opacity: 0.88 }}
                 >
                   That Great Album
@@ -338,7 +320,7 @@ export default function App() {
                 />
                 <span
                   data-text-repulsor
-                  className="font-serif text-xl sm:text-2xl md:text-3xl transition-opacity group-hover:opacity-100"
+                  className="font-serif text-4xl transition-opacity group-hover:opacity-100"
                   style={{ color: dotColor, opacity: 0.88 }}
                 >
                   2023
@@ -348,156 +330,20 @@ export default function App() {
           </div>
         </section>
 
-        {/* SCROLLABLE CATALOG & STUDIO SECTIONS (REVEALED WHEN SCROLLING) */}
-        <section className="min-h-[80vh] px-8 sm:px-14 md:px-20 py-24 sm:py-32 max-w-6xl mx-auto flex flex-col justify-center">
-          <div
-            data-text-repulsor
-            className="text-sm sm:text-base font-sans font-normal mb-8 tracking-wide uppercase"
-            style={{ color: dotColor, opacity: 0.75 }}
-          >
-            Archive & Recordings
-          </div>
-
-          <div className="flex flex-col gap-6 sm:gap-8 w-full">
-            {/* Archive Row 1 */}
-            <div className="flex items-baseline w-full group cursor-pointer">
-              <span
-                data-text-repulsor
-                className="font-serif text-xl sm:text-2xl md:text-3xl"
-                style={{ color: dotColor }}
-              >
-                Enrique del Castillo
-              </span>
-              <span className="mx-1.5" />
-              <span
-                data-text-repulsor
-                className="font-serif italic text-xl sm:text-2xl md:text-3xl"
-                style={{ color: dotColor, opacity: 0.88 }}
-              >
-                Optical Sound Compositions
-              </span>
-              <div
-                data-text-repulsor="line"
-                className="flex-1 mx-3 sm:mx-6 border-b mb-2"
-                style={{ borderColor: dotColor, opacity: 0.3 }}
-              />
-              <span
-                data-text-repulsor
-                className="font-serif text-xl sm:text-2xl md:text-3xl"
-                style={{ color: dotColor, opacity: 0.88 }}
-              >
-                2022
-              </span>
-            </div>
-
-            {/* Archive Row 2 */}
-            <div className="flex items-baseline w-full group cursor-pointer">
-              <span
-                data-text-repulsor
-                className="font-serif text-xl sm:text-2xl md:text-3xl"
-                style={{ color: dotColor }}
-              >
-                Klara Lewis
-              </span>
-              <span className="mx-1.5" />
-              <span
-                data-text-repulsor
-                className="font-serif italic text-xl sm:text-2xl md:text-3xl"
-                style={{ color: dotColor, opacity: 0.88 }}
-              >
-                Live In Berlin
-              </span>
-              <div
-                data-text-repulsor="line"
-                className="flex-1 mx-3 sm:mx-6 border-b mb-2"
-                style={{ borderColor: dotColor, opacity: 0.3 }}
-              />
-              <span
-                data-text-repulsor
-                className="font-serif text-xl sm:text-2xl md:text-3xl"
-                style={{ color: dotColor, opacity: 0.88 }}
-              >
-                2022
-              </span>
-            </div>
-
-            {/* Archive Row 3 */}
-            <div className="flex items-baseline w-full group cursor-pointer">
-              <span
-                data-text-repulsor
-                className="font-serif text-xl sm:text-2xl md:text-3xl"
-                style={{ color: dotColor }}
-              >
-                Chladni Waveforms
-              </span>
-              <span className="mx-1.5" />
-              <span
-                data-text-repulsor
-                className="font-serif italic text-xl sm:text-2xl md:text-3xl"
-                style={{ color: dotColor, opacity: 0.88 }}
-              >
-                Acoustic Levitation & Resonance
-              </span>
-              <div
-                data-text-repulsor="line"
-                className="flex-1 mx-3 sm:mx-6 border-b mb-2"
-                style={{ borderColor: dotColor, opacity: 0.3 }}
-              />
-              <span
-                data-text-repulsor
-                className="font-serif text-xl sm:text-2xl md:text-3xl"
-                style={{ color: dotColor, opacity: 0.88 }}
-              >
-                2021
-              </span>
-            </div>
-
-            {/* Archive Row 4 */}
-            <div className="flex items-baseline w-full group cursor-pointer">
-              <span
-                data-text-repulsor
-                className="font-serif text-xl sm:text-2xl md:text-3xl"
-                style={{ color: dotColor }}
-              >
-                Jan Jelinek
-              </span>
-              <span className="mx-1.5" />
-              <span
-                data-text-repulsor
-                className="font-serif italic text-xl sm:text-2xl md:text-3xl"
-                style={{ color: dotColor, opacity: 0.88 }}
-              >
-                Zwischen den Zeilen
-              </span>
-              <div
-                data-text-repulsor="line"
-                className="flex-1 mx-3 sm:mx-6 border-b mb-2"
-                style={{ borderColor: dotColor, opacity: 0.3 }}
-              />
-              <span
-                data-text-repulsor
-                className="font-serif text-xl sm:text-2xl md:text-3xl"
-                style={{ color: dotColor, opacity: 0.88 }}
-              >
-                2021
-              </span>
-            </div>
-          </div>
-        </section>
 
         {/* SECTION: ABOUT THE STUDIO */}
-        <section className="min-h-[70vh] px-8 sm:px-14 md:px-20 py-24 sm:py-32 max-w-6xl mx-auto flex flex-col justify-center text-left">
+        <section className="min-h-[70vh] px-2 sm:px-14 md:px-20 py-24 sm:py-32  mx-auto flex flex-col justify-center text-left">
           <div
             data-text-repulsor
-            className="text-sm sm:text-base font-sans font-normal mb-4 tracking-wide uppercase text-left"
-            style={{ color: dotColor, opacity: 0.75 }}
+            className="text-4xl font-sans font-normal mb-4 tracking-wide text-left"
+
           >
             About
           </div>
 
           <h2
             data-text-repulsor
-            className="text-3xl sm:text-4xl md:text-5xl font-serif font-normal leading-snug text-left"
+            className="text-4xl font-serif font-normal leading-snug text-left"
             style={{ color: dotColor }}
           >
             Acoustic physical research atelier and recording studio
@@ -505,7 +351,7 @@ export default function App() {
 
           <p
             data-text-repulsor
-            className="mt-6 text-lg sm:text-xl font-serif leading-relaxed font-light text-left"
+            className="mt-6 text-4xl font-serif leading-relaxed font-light text-left"
             style={{ color: dotColor, opacity: 0.88 }}
           >
             Founded in Berlin, Tezett – Platte operates as a dedicated laboratory where kinetic
@@ -517,28 +363,28 @@ export default function App() {
         {/* SECTION: CONTACT & IMPRINT */}
         <footer
           id="contact"
-          className="px-8 sm:px-14 md:px-20 py-28 sm:py-36 max-w-6xl mx-auto w-full border-t"
+          className="px-8 sm:px-14 md:px-20 py-28 sm:py-36  mx-auto w-full border-t"
           style={{ borderColor: `${dotColor}22` }}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             <div>
               <div
                 data-text-repulsor
-                className="text-sm font-sans uppercase tracking-wider mb-2"
+                className="text-4xl font-sans uppercase tracking-wider mb-2"
                 style={{ color: dotColor, opacity: 0.75 }}
               >
                 Contact
               </div>
               <p
                 data-text-repulsor
-                className="text-2xl sm:text-3xl font-serif font-normal"
+                className="text-4xl sm:text-4xl font-serif font-normal"
                 style={{ color: dotColor }}
               >
                 contact@tezett-platte.berlin
               </p>
               <p
                 data-text-repulsor
-                className="text-sm font-sans mt-4"
+                className="text-4xl font-sans mt-4"
                 style={{ color: dotColor, opacity: 0.75 }}
               >
                 Klanglabor Berlin · Kreuzberg
@@ -549,14 +395,14 @@ export default function App() {
               <div>
                 <div
                   data-text-repulsor
-                  className="text-sm font-sans uppercase tracking-wider mb-2"
+                  className="text-4xl font-sans uppercase tracking-wider mb-2"
                   style={{ color: dotColor, opacity: 0.75 }}
                 >
                   Physical Studio
                 </div>
                 <p
                   data-text-repulsor
-                  className="text-sm font-sans leading-relaxed"
+                  className="text-4xl font-sans leading-relaxed"
                   style={{ color: dotColor, opacity: 0.8 }}
                 >
                   Analog tape mastering, optical film projectors, and 2D acoustic sand plates for
@@ -565,7 +411,7 @@ export default function App() {
               </div>
 
               <div
-                className="mt-8 text-xs font-mono flex items-center gap-3"
+                className="mt-8 text-4xl font-mono flex items-center gap-3"
                 style={{ color: dotColor, opacity: 0.55 }}
               >
                 <span>© 2026 TEZETT – PLATTE</span>
@@ -583,7 +429,7 @@ export default function App() {
         <button
           type="button"
           onClick={handleToggleAudio}
-          className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xl font-mono backdrop-blur transition-all flex items-center gap-2 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+          className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all flex items-center gap-2 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
           style={{ color: dotColor, borderColor: `${dotColor}33` }}
           title="Toggle Umbráfono / Acoustic audio (M)"
         >
@@ -599,7 +445,7 @@ export default function App() {
         <button
           type="button"
           onClick={handleScatter}
-          className="p-1.5 rounded-lg border bg-neutral-950/80 text-xl font-mono backdrop-blur transition-all cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+          className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all cursor-pointer shadow-lg opacity-70 hover:opacity-100"
           style={{ color: dotColor, borderColor: `${dotColor}33` }}
           title="Scatter sand (S)"
         >
@@ -612,7 +458,7 @@ export default function App() {
         <button
           type="button"
           onClick={() => setShowControls((prev) => !prev)}
-          className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xl font-mono backdrop-blur transition-all flex items-center gap-1.5 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+          className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all flex items-center gap-1.5 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
           style={{ color: dotColor, borderColor: `${dotColor}33` }}
           title="Toggle Physics & Tuning Controls (C)"
         >
@@ -624,7 +470,7 @@ export default function App() {
         <button
           type="button"
           onClick={() => setIsWasmLabOpen(true)}
-          className="p-1.5 rounded-lg border bg-neutral-950/80 text-xl font-mono backdrop-blur transition-all cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+          className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all cursor-pointer shadow-lg opacity-70 hover:opacity-100"
           style={{ color: dotColor, borderColor: `${dotColor}33` }}
           title="Open WebAssembly Benchmarks (W)"
         >
@@ -666,7 +512,7 @@ export default function App() {
       {/* 6. STATUS TOAST */}
       {toastMessage && (
         <div className="fixed bottom-14 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
-          <div className="px-3.5 py-1.5 rounded-lg bg-neutral-900/95 border border-neutral-800 shadow-2xl backdrop-blur text-xl text-neutral-200 flex items-center gap-2">
+          <div className="px-3.5 py-1.5 rounded-lg bg-neutral-900/95 border border-neutral-800 shadow-2xl backdrop-blur text-xs text-neutral-200 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
             <span className="font-mono">{toastMessage}</span>
           </div>
