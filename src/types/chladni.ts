@@ -160,15 +160,6 @@ export interface Preset {
   description: string;
 }
 
-export const GRID_TYPE_LABELS: Record<GridType, { label: string; desc: string }> = {
-  annular: { label: 'Annular Halo', desc: 'Circuits around center with radial ribs' },
-  rectangular: { label: 'Courtyard Lattice', desc: 'Orthogonal grid with empty central zone' },
-  polar: { label: 'Polar Orbitals', desc: 'Concentric wave rings & rays around core' },
-  hexagonal: { label: 'Hex Honeycomb', desc: 'Triaxial 60° interference honeycomb' },
-  diamond: { label: 'Diamond Cage', desc: '45° rotated diagonal rhombus mesh' },
-  web: { label: 'Spiderweb', desc: 'Concentric web looping around center' },
-};
-
 export const DEFAULT_PARAMS: ChladniParams = {
   gridType: 'annular',
   centerVoidRadius: 0.0,

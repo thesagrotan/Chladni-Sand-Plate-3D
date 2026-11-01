@@ -3,9 +3,9 @@ import {
   ChladniParams,
   ChladniMetrics,
   DEFAULT_PARAMS,
-  GridType,
   buildFontVariationSettings,
 } from './types/chladni.ts';
+import { randomizeGridParams } from './utils/grid.ts';
 import { ChladniCanvas } from './components/ChladniCanvas.tsx';
 import { HudStats } from './components/HudStats.tsx';
 import { ControlPanel } from './components/ControlPanel.tsx';
@@ -213,24 +213,7 @@ export default function App() {
 
   // Keyboard shortcut to generate next grid
   const handleExperimentNextGrid = useCallback(() => {
-    const topologies: GridType[] = ['annular', 'rectangular', 'polar', 'hexagonal', 'diamond', 'web'];
-    const nextType = topologies[Math.floor(Math.random() * topologies.length)];
-    const m = +(3.0 + Math.floor(Math.random() * 7) * 0.5).toFixed(2);
-    const n = +(4.0 + Math.floor(Math.random() * 8) * 0.5).toFixed(2);
-    const k = +(28.0 + Math.random() * 10.0).toFixed(1);
-    const blend = +(0.55 + Math.random() * 0.4).toFixed(2);
-
-    setParams((prev) => ({
-      ...prev,
-      gridType: nextType,
-      centerVoidRadius: 0.0,
-      centerExpulsion: 0.0,
-      showVoidGuide: false,
-      modeM: m,
-      modeN: n,
-      waveK: k,
-      symmetryBlend: blend,
-    }));
+    setParams((prev) => ({ ...prev, ...randomizeGridParams() }));
   }, []);
 
   // Keyboard shortcuts

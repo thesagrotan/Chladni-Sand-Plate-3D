@@ -1,6 +1,7 @@
 import React from 'react';
 import { Zap } from 'lucide-react';
-import { ChladniMetrics, ChladniParams, GRID_TYPE_LABELS } from '../types/chladni.ts';
+import { ChladniMetrics, ChladniParams } from '../types/chladni.ts';
+import { GRID_CATALOG_BY_TYPE } from '../utils/grid.ts';
 
 interface HudStatsProps {
   metrics: ChladniMetrics;
@@ -19,7 +20,7 @@ export const HudStats: React.FC<HudStatsProps> = ({
   const activeFraction = Math.min(1, Math.max(0, metrics.activeFraction));
   const hasVoid = params.centerVoidRadius > 0.01;
   const clearance = Math.min(100, Math.max(0, metrics.centerClearance ?? 100));
-  const gridInfo = GRID_TYPE_LABELS[params.gridType] || { label: params.gridType };
+  const gridInfo = GRID_CATALOG_BY_TYPE[params.gridType] || { label: params.gridType };
   const engine = metrics.activeEngine || params.simulationEngine || 'gpu';
 
   const engineDetails = {

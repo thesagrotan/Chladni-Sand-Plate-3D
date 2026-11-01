@@ -44,9 +44,7 @@ import {
 import {
   ChladniParams,
   GridType,
-  VoidShape,
   PRESETS,
-  GRID_TYPE_LABELS,
   COLOR_PALETTES,
   AudioMetrics,
   AVAILABLE_FONTS,
@@ -55,6 +53,8 @@ import {
 } from '../types/chladni.ts';
 import { plateAudio } from '../simulation/audioSynth.ts';
 import { SavedVersion, MAX_VERSIONS } from '../utils/storage.ts';
+import { GRID_CATALOG, GRID_CATALOG_BY_TYPE, randomizeGridParams } from '../utils/grid.ts';
+import { findFont, fontSelectionUpdates, nextFontUpdates } from '../utils/fonts.ts';
 
 interface ControlPanelProps {
   params: ChladniParams;
@@ -385,39 +385,17 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     { label: 'Coarse', value: 2.5 },
   ];
 
-  const gridTopologies: { type: GridType; label: string; icon: React.ReactNode; desc: string }[] = [
-    { type: 'annular', label: 'Annular', icon: <CircleDot size={13} />, desc: 'Ring circuit around empty center' },
-    { type: 'rectangular', label: 'Courtyard', icon: <Grid size={13} />, desc: 'Orthogonal grid with open courtyard' },
-    { type: 'polar', label: 'Polar', icon: <Disc size={13} />, desc: 'Concentric rings & radiating rays' },
-    { type: 'hexagonal', label: 'Hexagon', icon: <Hexagon size={13} />, desc: '60° triaxial honeycomb' },
-    { type: 'diamond', label: 'Diamond', icon: <Boxes size={13} />, desc: '45° rotated diagonal rhombus grid' },
-    { type: 'web', label: 'Spiderweb', icon: <Radar size={13} />, desc: 'Concentric web looping around center' },
-  ];
+  const GRID_ICONS: Record<GridType, React.ReactNode> = {
+    annular: <CircleDot size={13} />,
+    rectangular: <Grid size={13} />,
+    polar: <Disc size={13} />,
+    hexagonal: <Hexagon size={13} />,
+    diamond: <Boxes size={13} />,
+    web: <Radar size={13} />,
+  };
 
   const handleExperimentNextGrid = () => {
-    const topologies: GridType[] = ['annular', 'rectangular', 'polar', 'hexagonal', 'diamond', 'web'];
-    const nextType = topologies[Math.floor(Math.random() * topologies.length)];
-    const randomRadius = +(0.20 + Math.random() * 0.22).toFixed(2);
-    const nextShape: VoidShape =
-      nextType === 'rectangular' || nextType === 'diamond'
-        ? Math.random() > 0.4 ? 'square' : 'circle'
-        : 'circle';
-    const m = +(3.0 + Math.floor(Math.random() * 7) * 0.5).toFixed(2);
-    const n = +(4.0 + Math.floor(Math.random() * 8) * 0.5).toFixed(2);
-    const k = +(28.0 + Math.random() * 10.0).toFixed(1);
-    const blend = +(0.55 + Math.random() * 0.4).toFixed(2);
-
-    onChange({
-      ...params,
-      gridType: nextType,
-      centerVoidRadius: randomRadius,
-      centerVoidShape: nextShape,
-      centerExpulsion: +(2.2 + Math.random() * 1.4).toFixed(1),
-      modeM: m,
-      modeN: n,
-      waveK: k,
-      symmetryBlend: blend,
-    });
+    onChange({ ...params, ...randomizeGridParams() });
   };
 
   const handleApplyPalette = (paletteId: string) => {
@@ -448,39 +426,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     return p.tag === presetFilter;
   });
 
-  const currentFont = allFonts.find(
-    (f) => f.fontFamily === params.fontFamily || f.id === params.fontFamily
-  ) || allFonts[0];
+  const currentFont = findFont(allFonts, params.fontFamily) || allFonts[0];
 
   const handleSelectFont = (selectedFamily: string) => {
-    const font = allFonts.find(
-      (f) => f.fontFamily === selectedFamily || f.id === selectedFamily
-    );
+    const font = findFont(allFonts, selectedFamily);
     if (!font) return;
-
-    let targetWeight = params.fontWeight;
-    if (targetWeight < font.minWeight) targetWeight = font.minWeight;
-    if (targetWeight > font.maxWeight) targetWeight = font.maxWeight;
-
-    const updates: Partial<ChladniParams> = {
-      fontFamily: font.fontFamily,
-      fontWeight: targetWeight,
-    };
-
-    if (font.isItalicDefault !== undefined) {
-      updates.fontItalic = font.isItalicDefault;
-    } else if (!font.hasItalic) {
-      updates.fontItalic = false;
-    }
-
-    if (!font.hasSpacingAxis) {
-      updates.fontSpacingAxis = 0;
-    }
-    if (!font.hasElshAxis) {
-      updates.fontElshAxis = 0;
-    }
-
-    updateParams(updates);
+    updateParams(fontSelectionUpdates(font, params.fontWeight));
   };
 
   const previewVariationCss = buildFontVariationSettings({
@@ -564,7 +515,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   title={hasSavedSettings ? 'Saved Session Active' : 'Default Configuration'}
                 />
                 <span className="text-neutral-300 truncate font-mono text-[9px]">
-                  <span className="text-cyan-300">{GRID_TYPE_LABELS[params.gridType]?.label || params.gridType}</span>
+                  <span className="text-cyan-300">{GRID_CATALOG_BY_TYPE[params.gridType]?.label || params.gridType}</span>
                 </span>
               </div>
 
@@ -750,7 +701,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                 {/* 6 Grid Architecture Buttons: Compact 3x2 Grid */}
                 <div className="grid grid-cols-3 gap-1">
-                  {gridTopologies.map((t) => {
+                  {GRID_CATALOG.map((t) => {
                     const isActive = params.gridType === t.type;
                     return (
                       <button
@@ -765,9 +716,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         }`}
                       >
                         <span className={isActive ? 'text-neutral-950' : 'text-cyan-400 shrink-0'}>
-                          {t.icon}
+                          {GRID_ICONS[t.type]}
                         </span>
-                        <span className="text-[10px] truncate">{t.label}</span>
+                        <span className="text-[10px] truncate">{t.shortLabel}</span>
                       </button>
                     );
                   })}
@@ -1848,30 +1799,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         <button
           type="button"
           onClick={() => {
-            const currentIndex = allFonts.findIndex(
-              (f) => f.fontFamily === params.fontFamily || f.id === params.fontFamily
-            );
-            const nextFont = allFonts[(currentIndex + 1) % allFonts.length];
-            let targetWeight = params.fontWeight;
-            if (targetWeight < nextFont.minWeight) targetWeight = nextFont.minWeight;
-            if (targetWeight > nextFont.maxWeight) targetWeight = nextFont.maxWeight;
-
-            const updates: Partial<ChladniParams> = {
-              fontFamily: nextFont.fontFamily,
-              fontWeight: targetWeight,
-            };
-            if (nextFont.isItalicDefault !== undefined) {
-              updates.fontItalic = nextFont.isItalicDefault;
-            } else if (!nextFont.hasItalic) {
-              updates.fontItalic = false;
-            }
-            if (!nextFont.hasSpacingAxis) {
-              updates.fontSpacingAxis = 0;
-            }
-            if (!nextFont.hasElshAxis) {
-              updates.fontElshAxis = 0;
-            }
-            updateParams(updates);
+            const updates = nextFontUpdates(allFonts, params);
+            if (updates) updateParams(updates);
           }}
           className="h-8 px-2.5 rounded-lg border border-cyan-800/60 bg-neutral-900/90 hover:bg-neutral-800 text-cyan-300 hover:text-white shadow-lg backdrop-blur transition-all flex items-center gap-1 text-xs font-medium cursor-pointer"
           title={`Active Font: ${currentFont?.name || params.fontFamily} — Click to cycle fonts`}
