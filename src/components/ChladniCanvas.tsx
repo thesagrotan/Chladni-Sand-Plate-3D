@@ -412,17 +412,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     );
     bgMesh.rotation.z = (cur.rotationAngle * Math.PI) / 180;
 
-    // -----------------------------------------------------------------------
-    // CPU/WASM fallback simulation engines
-    // -----------------------------------------------------------------------
-    const wasmSim = new ChladniWasmSimulation(Math.min(count, 35_000));
-    wasmSimRef.current = wasmSim;
-    const jsSim = new ChladniJsCpuSimulation(Math.min(count, 35_000));
-    jsCpuSimRef.current = jsSim;
-
-    getChladniWasm().then((w) => {
-      wasmExportsRef.current = w;
-    });
+    // CPU/WASM engines are constructed lazily when their engine is selected.
 
     // CPU telemetry grains (lightweight sample for metrics)
     const cpuGrains: { x: number; y: number; settled: boolean }[] = [];
@@ -947,17 +937,11 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
 
     pendingGrainCount.current = params.grainCount;
     const nextCount = params.grainCount;
-    const nextCpuCount = Math.min(nextCount, 35_000);
     const nextGpuDim = gpuTextureSizeForGrainCount(nextCount);
 
     const currentSim = simRef.current;
     const gpuNeedsRebuild = !currentSim || currentSim.textureWidth !== nextGpuDim;
-    const wasmSim = wasmSimRef.current;
-    const jsSim = jsCpuSimRef.current;
-    const cpuNeedsRebuild =
-      !wasmSim || wasmSim.grainCount !== nextCpuCount || !jsSim || jsSim.grainCount !== nextCpuCount;
-
-    if (!gpuNeedsRebuild && !cpuNeedsRebuild) return;
+    if (!gpuNeedsRebuild) return;
 
     // Debounce slider drags; the last value in a 150 ms window wins.
     const timer = window.setTimeout(() => {
@@ -967,14 +951,6 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
       const scene = sceneRef.current;
       const grainMat = grainMaterialRef.current;
       if (!renderer || !scene || !grainMat) return;
-
-      if (cpuNeedsRebuild) {
-        wasmSimRef.current?.dispose();
-        wasmSimRef.current = new ChladniWasmSimulation(nextCpuCount);
-        jsCpuSimRef.current = new ChladniJsCpuSimulation(nextCpuCount);
-      }
-
-      if (!gpuNeedsRebuild) return;
 
       if (grainPointsRef.current) {
         scene.remove(grainPointsRef.current);
@@ -1021,6 +997,40 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
 
     return () => window.clearTimeout(timer);
   }, [params.grainCount]);
+
+  // Lazily construct the selected CPU engine; the default GPU path never
+  // allocates CPU particle buffers or fetches the WASM binary.
+  useEffect(() => {
+    const engine = params.simulationEngine;
+    if (engine === 'gpu') return;
+
+    const cpuCount = Math.min(params.grainCount, 35_000);
+    let cancelled = false;
+
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+
+      if (engine === 'wasm') {
+        if (!wasmSimRef.current || wasmSimRef.current.grainCount !== cpuCount) {
+          wasmSimRef.current?.dispose();
+          wasmSimRef.current = new ChladniWasmSimulation(cpuCount);
+        }
+        getChladniWasm().then((wasm) => {
+          if (!cancelled) wasmExportsRef.current = wasm;
+        });
+      } else if (
+        !jsCpuSimRef.current ||
+        jsCpuSimRef.current.grainCount !== cpuCount
+      ) {
+        jsCpuSimRef.current = new ChladniJsCpuSimulation(cpuCount);
+      }
+    }, 150);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [params.simulationEngine, params.grainCount]);
 
   // DOM elements rejection force & typography change — refresh text mask
   useEffect(() => {
