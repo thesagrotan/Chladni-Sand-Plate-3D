@@ -527,6 +527,95 @@
   font-display: swap;
 }
 
+/* 1i. GT Sectra Fine (Grilli Type — Contemporary Serif) */
+/* Weights: Book 400, Regular 400, Medium 500, Bold 700, Black 900 + Italics */
+@font-face {
+  font-family: 'GT-Sectra-Fine';
+  src: url('/fonts/gt-sectra-fine/GT-Sectra-Fine-Book.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GT-Sectra-Fine';
+  src: url('/fonts/gt-sectra-fine/GT-Sectra-Fine-Book-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GT-Sectra-Fine';
+  src: url('/fonts/gt-sectra-fine/GT-Sectra-Fine-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GT-Sectra-Fine';
+  src: url('/fonts/gt-sectra-fine/GT-Sectra-Fine-Regular-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GT-Sectra-Fine';
+  src: url('/fonts/gt-sectra-fine/GT-Sectra-Fine-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GT-Sectra-Fine';
+  src: url('/fonts/gt-sectra-fine/GT-Sectra-Fine-Medium-Italic.ttf') format('truetype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GT-Sectra-Fine';
+  src: url('/fonts/gt-sectra-fine/GT-Sectra-Fine-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GT-Sectra-Fine';
+  src: url('/fonts/gt-sectra-fine/GT-Sectra-Fine-Bold-Italic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GT-Sectra-Fine';
+  src: url('/fonts/gt-sectra-fine/GT-Sectra-Fine-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GT-Sectra-Fine';
+  src: url('/fonts/gt-sectra-fine/GT-Sectra-Fine-Black-Italic.ttf') format('truetype');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Also register 'GT Sectra Fine' for spacing tolerance */
+@font-face {
+  font-family: 'GT Sectra Fine';
+  src: url('/fonts/gt-sectra-fine/GT-Sectra-Fine-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GT Sectra Fine';
+  src: url('/fonts/gt-sectra-fine/GT-Sectra-Fine-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* 1h. Replica Pro & Replica Mono (Lineto — Norm / Dimitri Bruni & Manuel Krebs) */
 /* Replica Pro: Light 300, Regular 400, Bold 700 + Italics */
 @font-face {
@@ -746,6 +835,65 @@
   font-display: swap;
 }
 
+/* 6. Neue Montreal (Pangram Pangram — Geometric Sans OTF) */
+/* Weights: Light 300, Regular 400, Medium 500, Bold 700 + Italics */
+@font-face {
+  font-family: 'Neue-Montreal';
+  src: url('/fonts/neue-montreal/NeueMontreal-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Neue-Montreal';
+  src: url('/fonts/neue-montreal/NeueMontreal-LightItalic.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Neue-Montreal';
+  src: url('/fonts/neue-montreal/NeueMontreal-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Neue-Montreal';
+  src: url('/fonts/neue-montreal/NeueMontreal-RegularItalic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Neue-Montreal';
+  src: url('/fonts/neue-montreal/NeueMontreal-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Neue-Montreal';
+  src: url('/fonts/neue-montreal/NeueMontreal-MediumItalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Neue-Montreal';
+  src: url('/fonts/neue-montreal/NeueMontreal-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Neue-Montreal';
+  src: url('/fonts/neue-montreal/NeueMontreal-BoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 /* =====================================================================
    ROOT TYPOGRAPHY & THEME VARIABLES
    ===================================================================== */
@@ -811,7 +959,36 @@ div.font-serif,
   font-style: italic !important;
 }
 
-/* Custom dark scrollbar */
+/* UI isolation: Prevent reactive canvas typography & letter tracking from altering control panel & UI components */
+[data-ui-panel],
+.ui-panel {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: normal;
+  --active-letter-spacing: normal;
+}
+
+[data-ui-panel] .font-sans,
+[data-ui-panel] .font-serif,
+.ui-panel .font-sans,
+.ui-panel .font-serif {
+  font-family: inherit;
+  letter-spacing: inherit;
+}
+
+/* Explicit font-size utility classes for dynamic Tailwind interpolation */
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-base { font-size: 1rem; line-height: 1.5rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+.text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+.text-5xl { font-size: 3rem; line-height: 1; }
+.text-6xl { font-size: 3.75rem; line-height: 1; }
+.text-7xl { font-size: 4.5rem; line-height: 1; }
+.text-8xl { font-size: 6rem; line-height: 1; }
+.text-9xl { font-size: 8rem; line-height: 1; }
 ::-webkit-scrollbar {
   width: 8px;
 }

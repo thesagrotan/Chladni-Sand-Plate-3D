@@ -316,7 +316,15 @@ registerProcessor('chladni-audio-processor', ChladniAudioProcessor);`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-5xl h-[88vh] bg-neutral-950 border border-neutral-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-neutral-200">
+      <div
+        data-ui-panel
+        className="relative w-full max-w-5xl h-[88vh] bg-neutral-950 border border-neutral-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-neutral-200"
+        style={{
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          letterSpacing: 'normal',
+          ['--active-letter-spacing' as any]: 'normal',
+        }}
+      >
         {/* Header Bar */}
         <div className="px-6 py-4 border-b border-neutral-800 flex items-center justify-between bg-neutral-900/60">
           <div className="flex items-center gap-3">
@@ -696,32 +704,32 @@ registerProcessor('chladni-audio-processor', ChladniAudioProcessor);`;
                     </thead>
                     <tbody className="divide-y divide-neutral-850 font-mono text-[11px]">
                       <tr>
-                        <td className="py-2.5 px-3 font-sans text-neutral-200">1,000,000 Particles</td>
+                        <td className="py-2.5 px-3 text-neutral-200">1,000,000 Particles</td>
                         <td className="py-2.5 px-3 text-emerald-400">60 FPS (Fastest)</td>
                         <td className="py-2.5 px-3 text-amber-400">~6-10 FPS</td>
                         <td className="py-2.5 px-3 text-rose-400">&lt; 1 FPS</td>
-                        <td className="py-2.5 px-3 text-cyan-300 font-sans">WebGL GPGPU</td>
+                        <td className="py-2.5 px-3 text-cyan-300">WebGL GPGPU</td>
                       </tr>
                       <tr>
-                        <td className="py-2.5 px-3 font-sans text-neutral-200">10,000 - 50,000 Particles</td>
+                        <td className="py-2.5 px-3 text-neutral-200">10,000 - 50,000 Particles</td>
                         <td className="py-2.5 px-3 text-emerald-400">60 FPS</td>
                         <td className="py-2.5 px-3 text-emerald-400">120+ FPS (Zero-copy)</td>
                         <td className="py-2.5 px-3 text-amber-400">30-45 FPS</td>
-                        <td className="py-2.5 px-3 text-cyan-300 font-sans">Wasm CPU (Battery Efficient)</td>
+                        <td className="py-2.5 px-3 text-cyan-300">Wasm CPU (Battery Efficient)</td>
                       </tr>
                       <tr>
-                        <td className="py-2.5 px-3 font-sans text-neutral-200">Nodal Telemetry / Active Area</td>
+                        <td className="py-2.5 px-3 text-neutral-200">Nodal Telemetry / Active Area</td>
                         <td className="py-2.5 px-3 text-rose-400">Slow (Texture Readback Stall)</td>
                         <td className="py-2.5 px-3 text-emerald-400">0.2ms (Zero stall)</td>
                         <td className="py-2.5 px-3 text-amber-400">3.5ms (Jank)</td>
-                        <td className="py-2.5 px-3 text-cyan-300 font-sans">WebAssembly</td>
+                        <td className="py-2.5 px-3 text-cyan-300">WebAssembly</td>
                       </tr>
                       <tr>
-                        <td className="py-2.5 px-3 font-sans text-neutral-200">Acoustic AudioWorklet Synth</td>
+                        <td className="py-2.5 px-3 text-neutral-200">Acoustic AudioWorklet Synth</td>
                         <td className="py-2.5 px-3 text-neutral-500">N/A (No Audio on GPU)</td>
                         <td className="py-2.5 px-3 text-emerald-400">Jitter-Free (0 GC)</td>
                         <td className="py-2.5 px-3 text-rose-400">Occasional Audio Pops</td>
-                        <td className="py-2.5 px-3 text-cyan-300 font-sans">WebAssembly AudioWorklet</td>
+                        <td className="py-2.5 px-3 text-cyan-300">WebAssembly AudioWorklet</td>
                       </tr>
                     </tbody>
                   </table>

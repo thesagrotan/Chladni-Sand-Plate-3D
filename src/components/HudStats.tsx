@@ -44,7 +44,15 @@ export const HudStats: React.FC<HudStatsProps> = ({
   }[engine];
 
   return (
-    <div className="absolute top-5 left-5 z-20 pointer-events-none select-none font-sans flex flex-col gap-2">
+    <div
+      data-ui-panel
+      className="absolute top-5 left-5 z-20 pointer-events-none select-none flex flex-col gap-2"
+      style={{
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        letterSpacing: 'normal',
+        ['--active-letter-spacing' as any]: 'normal',
+      }}
+    >
       {/* Active Grid Badge & Wasm Research Trigger */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-neutral-900/90 border border-neutral-700/60 text-neutral-200 backdrop-blur shadow-sm">

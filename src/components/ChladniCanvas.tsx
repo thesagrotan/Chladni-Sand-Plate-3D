@@ -1018,6 +1018,8 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     params.fontSpacingAxis,
     params.fontElshAxis,
     params.fontLetterSpacing,
+    params.headerFontSize,
+    params.bodyFontSize,
   ]);
 
   return (

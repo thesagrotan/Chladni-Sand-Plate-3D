@@ -216,29 +216,6 @@ export default function App() {
     });
   }, []);
 
-  // Modal preset tuner — sets the plate to a named frequency character
-  const handleModalPreset = useCallback((preset: {
-    gridType: GridType;
-    modeM: number;
-    modeN: number;
-    waveK: number;
-    symmetryBlend: number;
-    label: string;
-  }) => {
-    setParams((prev) => ({
-      ...prev,
-      gridType: preset.gridType,
-      centerVoidRadius: 0.0,
-      centerExpulsion: 0.0,
-      showVoidGuide: false,
-      modeM: preset.modeM,
-      modeN: preset.modeN,
-      waveK: preset.waveK,
-      symmetryBlend: preset.symmetryBlend,
-    }));
-    setToastMessage(`◈ ${preset.label}`);
-  }, []);
-
   // Keyboard shortcut to generate next grid
   const handleExperimentNextGrid = useCallback(() => {
     const topologies: GridType[] = ['annular', 'rectangular', 'polar', 'hexagonal', 'diamond', 'web'];
@@ -331,119 +308,60 @@ export default function App() {
           <div className="w-full my-auto flex flex-col items-start justify-center text-left">
             <p
               data-text-repulsor
-              className="w-full max-w-none text-8xl font-serif mt-4 sm:mt-5 leading-none tracking-tight font-normal text-left"
+              className="w-full max-w-none text-8xl font-serif mx mt-4 sm:mt-5 leading-none tracking-tight font-normal text-left"
               style={{ color: dotColor }}
             >
-              TEZETT – PLATTE is a Berlin label and recording studio
+              TEZETT PLATTE is a Berlin label and recording studio
             </p>
           </div>
 
-          {/* Bottom: Releases Catalog */}
-          <div className="w-full mx-auto flex flex-col pb-2 sm:pb-4 text-left">
+          {/* Bottom: Releases Catalog — Artsy & Minimalist: Single Font Size (text-3xl) & Style (font-serif) matching Section About */}
+          <div
+            className="w-full mx-auto flex flex-col pb-2 sm:pb-4 text-left font-serif text-3xl"
+            style={{ color: dotColor }}
+          >
             <div
               data-text-repulsor
-              className="text-4xl font-sans font-normal mb-6 sm:mb-7 tracking-wide"
+              className="text-3xl font-serif font-normal mb-6 sm:mb-7 tracking-wide text-left"
             >
               Releases
             </div>
 
-            {/* Catalog header row */}
-            <div
-              data-text-repulsor
-              className="flex w-full mb-3 font-mono text-xs uppercase tracking-widest"
-              style={{ color: dotColor, opacity: 0.4 }}
-            >
-              <span className="w-20 shrink-0">Cat.</span>
-              <span className="flex-1">Artist / Title</span>
-              <span className="hidden sm:block w-36 shrink-0 text-right pr-6">Format</span>
-              <span className="w-16 shrink-0 text-right">Year</span>
-            </div>
-
-            <div className="flex flex-col gap-4 sm:gap-5 w-full">
+            <div className="flex flex-col gap-5 sm:gap-6 w-full text-3xl font-serif leading-tight font-normal">
               {/* Row 1: Umbrafono Sound Film Series */}
               <div
                 onClick={handleToggleAudio}
-                className="flex items-baseline w-full group cursor-pointer"
+                className="flex items-start w-full group cursor-pointer text-3xl font-serif leading-tight"
                 title="Click to play / toggle Umbráfono sound"
               >
-                <span
-                  data-text-repulsor
-                  className="font-mono text-sm w-20 shrink-0 self-center"
-                  style={{ color: dotColor, opacity: 0.5 }}
-                >
-                  TZ-01
-                </span>
-                <span
-                  data-text-repulsor
-                  className="font-serif text-4xl transition-opacity group-hover:opacity-100"
-                  style={{ color: dotColor }}
-                >
-                  Enrique del Castillo
-                </span>
-                <span className="mx-1.5" />
-                <span
-                  data-text-repulsor
-                  className="font-serif italic text-4xl transition-opacity group-hover:opacity-100"
-                  style={{ color: dotColor, opacity: 0.88 }}
-                >
-                  Umbráfono — Sound Film Series
-                </span>
-                <div className="flex-1" />
-                <span
-                  data-text-repulsor
-                  className="hidden sm:block font-mono text-sm w-36 shrink-0 text-right pr-6 self-center"
-                  style={{ color: dotColor, opacity: 0.5 }}
-                >
-                  10″ / 35mm
-                </span>
-                <span
-                  data-text-repulsor
-                  className="font-serif text-4xl transition-opacity group-hover:opacity-100 w-16 text-right"
-                  style={{ color: dotColor, opacity: 0.88 }}
-                >
-                  2023
-                </span>
+                <span data-text-repulsor className="text-3xl font-serif shrink-0 w-32 sm:w-44">TZ-01</span>
+                <div className="flex flex-col text-3xl font-serif leading-tight flex-1">
+                  <div className="flex items-baseline justify-between w-full">
+                    <span data-text-repulsor className="text-3xl font-serif">Enrique del Castillo</span>
+                    <span
+                      data-text-repulsor
+                      className="text-3xl font-serif italic underline underline-offset-8 cursor-pointer shrink-0 ml-4"
+                    >
+                      {params.audioEnabled ? '[Playing]' : '[Play]'}
+                    </span>
+                  </div>
+                  <span data-text-repulsor className="text-3xl font-serif italic">Umbráfono (Sound Film Series)</span>
+                  <span data-text-repulsor className="text-3xl font-serif">10″ / 35mm — 2023</span>
+                </div>
               </div>
 
               {/* Row 2: Severine Beata That Great Album */}
-              <div className="flex items-baseline w-full group cursor-pointer">
-                <span
-                  data-text-repulsor
-                  className="font-mono text-sm w-20 shrink-0 self-center"
-                  style={{ color: dotColor, opacity: 0.5 }}
-                >
-                  TZ-02
-                </span>
-                <span
-                  data-text-repulsor
-                  className="font-serif text-4xl transition-opacity group-hover:opacity-100"
-                  style={{ color: dotColor }}
-                >
-                  Severine Beata
-                </span>
-                <span className="mx-1.5" />
-                <span
-                  data-text-repulsor
-                  className="font-serif italic text-4xl transition-opacity group-hover:opacity-100"
-                  style={{ color: dotColor, opacity: 0.88 }}
-                >
-                  That Great Album
-                </span>
-                <div className="flex-1" />
-                <span
-                  data-text-repulsor
-                  className="hidden sm:block font-mono text-sm w-36 shrink-0 text-right pr-6 self-center"
-                  style={{ color: dotColor, opacity: 0.5 }}
-                >
-                  12″ LP
-                </span>
-                <span
-                  data-text-repulsor
-                  className="font-serif text-4xl transition-opacity group-hover:opacity-100 w-16 text-right"
-                  style={{ color: dotColor, opacity: 0.88 }}
-                >
-                  2023
-                </span>
+              <div
+                onClick={() => setToastMessage('TZ-02: Severine Beata — That Great Album (12″ Vinyl LP)')}
+                className="flex items-start w-full group cursor-pointer text-3xl font-serif leading-tight"
+                title="TZ-02: Severine Beata — That Great Album"
+              >
+                <span data-text-repulsor className="text-3xl font-serif shrink-0 w-32 sm:w-44">TZ-02</span>
+                <div className="flex flex-col text-3xl font-serif leading-tight">
+                  <span data-text-repulsor className="text-3xl font-serif">Severine Beata</span>
+                  <span data-text-repulsor className="text-3xl font-serif italic">That Great Album</span>
+                  <span data-text-repulsor className="text-3xl font-serif">12″ LP — 2023</span>
+                </div>
               </div>
             </div>
           </div>
@@ -454,7 +372,7 @@ export default function App() {
         <section className="min-h-[70vh] px-2 sm:px-14 md:px-20 py-24 sm:py-32  mx-auto flex flex-col justify-center text-left">
           <div
             data-text-repulsor
-            className="text-4xl font-sans font-normal mb-4 tracking-wide text-left"
+            className="text-3xl font-sans font-normal mb-4 tracking-wide text-left"
 
           >
             About
@@ -462,7 +380,7 @@ export default function App() {
 
           <h2
             data-text-repulsor
-            className="text-4xl font-serif font-normal leading-tight text-left"
+            className="text-3xl font-serif font-normal leading-tight text-left"
             style={{ color: dotColor }}
           >
             Acoustic research atelier, independent label, and recording studio
@@ -470,7 +388,7 @@ export default function App() {
 
           <p
             data-text-repulsor
-            className="mt-6 text-4xl font-serif leading-tight font-light text-left"
+            className="mt-6 text-3xl font-serif leading-tight font-light text-left"
             style={{ color: dotColor, opacity: 0.88 }}
           >
             Founded in Berlin-Kreuzberg, Tezett – Platte is an independent label and recording studio.
@@ -489,7 +407,7 @@ export default function App() {
         >
           <div
             data-text-repulsor
-            className="text-4xl font-sans font-normal mb-10 tracking-wide"
+            className="text-3xl font-sans font-normal mb-10 tracking-wide"
           >
             Facility
           </div>
@@ -582,59 +500,6 @@ export default function App() {
         </section>
 
 
-        {/* SECTION C: FREQUENCY TUNER — INTERACTIVE MODAL PRESETS */}
-        <section
-          className="px-2 sm:px-14 md:px-20 py-16 sm:py-20 w-full"
-        >
-          <div
-            data-text-repulsor
-            className="font-mono text-xs uppercase tracking-widest mb-6"
-            style={{ color: dotColor, opacity: 0.5 }}
-          >
-            Resonance Tuner — tune the plate
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {([
-              {
-                label: 'Pure Plate — annular m=4 n=8',
-                gridType: 'annular' as GridType,
-                modeM: 4.0, modeN: 8.0, waveK: 32.0, symmetryBlend: 0.72,
-              },
-              {
-                label: 'Umbráfono field — polar m=3 n=10',
-                gridType: 'polar' as GridType,
-                modeM: 3.5, modeN: 10.0, waveK: 28.0, symmetryBlend: 0.8,
-              },
-              {
-                label: 'Hexagonal lattice — m=5 n=6',
-                gridType: 'hexagonal' as GridType,
-                modeM: 5.5, modeN: 6.0, waveK: 34.0, symmetryBlend: 0.6,
-              },
-              {
-                label: 'Low sub scatter — web m=5 n=8',
-                gridType: 'web' as GridType,
-                modeM: 5.0, modeN: 8.0, waveK: 30.0, symmetryBlend: 0.7,
-              },
-              {
-                label: 'High frequency matrix — rectangular m=6 n=10',
-                gridType: 'rectangular' as GridType,
-                modeM: 6.05, modeN: 10.21, waveK: 37.38, symmetryBlend: 0.65,
-              },
-            ] as const).map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                onClick={() => handleModalPreset(preset)}
-                data-text-repulsor
-                className="px-4 py-2 rounded-full border font-mono text-sm tracking-wide transition-all cursor-pointer hover:opacity-100 opacity-60"
-                style={{ color: dotColor, borderColor: `${dotColor}44` }}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        </section>
-
 
         {/* SECTION: CONTACT & IMPRINT */}
         <footer
@@ -645,21 +510,21 @@ export default function App() {
             <div>
               <div
                 data-text-repulsor
-                className="text-4xl font-sans uppercase tracking-wider mb-2"
+                className="text-3xl font-sans uppercase tracking-wider mb-2"
                 style={{ color: dotColor, opacity: 0.75 }}
               >
                 Contact
               </div>
               <p
                 data-text-repulsor
-                className="text-4xl sm:text-4xl font-serif font-normal"
+                className="text-3xl sm:text-3xl font-serif font-normal"
                 style={{ color: dotColor }}
               >
                 contact@tezett-platte.berlin
               </p>
               <p
                 data-text-repulsor
-                className="text-4xl font-sans mt-4"
+                className="text-3xl font-sans mt-4"
                 style={{ color: dotColor, opacity: 0.75 }}
               >
                 Klanglabor Berlin · Kreuzberg
@@ -670,14 +535,14 @@ export default function App() {
             <div>
               <div
                 data-text-repulsor
-                className="text-4xl font-sans uppercase tracking-wider mb-2"
+                className="text-3xl font-sans uppercase tracking-wider mb-2"
                 style={{ color: dotColor, opacity: 0.75 }}
               >
                 Visit
               </div>
               <p
                 data-text-repulsor
-                className="text-4xl font-serif leading-tight"
+                className="text-3xl font-serif leading-tight"
                 style={{ color: dotColor, opacity: 0.88 }}
               >
                 Köpenicker Straße · Hinterhof
@@ -699,14 +564,14 @@ export default function App() {
               <div>
                 <div
                   data-text-repulsor
-                  className="text-4xl font-sans uppercase tracking-wider mb-2"
+                  className="text-3xl font-sans uppercase tracking-wider mb-2"
                   style={{ color: dotColor, opacity: 0.75 }}
                 >
                   Physical Studio
                 </div>
                 <p
                   data-text-repulsor
-                  className="text-4xl font-sans leading-tight"
+                  className="text-3xl font-sans leading-tight"
                   style={{ color: dotColor, opacity: 0.8 }}
                 >
                   Recording, mixing, and mastering for independent artists and labels. Acoustic research
@@ -715,7 +580,7 @@ export default function App() {
               </div>
 
               <div
-                className="mt-8 text-4xl font-mono flex items-center gap-3"
+                className="mt-8 text-3xl font-mono flex items-center gap-3"
                 style={{ color: dotColor, opacity: 0.55 }}
               >
                 <span>© 2026 TEZETT – PLATTE</span>
@@ -728,7 +593,7 @@ export default function App() {
       </div>
 
       {/* 3. MINIMALIST CORNER CONTROLS (DISCREET & UNINTRUSIVE) */}
-      <div className="fixed bottom-4 left-4 z-30 flex items-center gap-2 select-none">
+      <div data-ui-panel className="fixed bottom-4 left-4 z-30 flex items-center gap-2 select-none">
         {/* Audio Toggle */}
         <button
           type="button"
@@ -757,7 +622,7 @@ export default function App() {
         </button>
       </div>
 
-      <div className="fixed bottom-4 right-4 z-30 flex items-center gap-2 select-none">
+      <div data-ui-panel className="fixed bottom-4 right-4 z-30 flex items-center gap-2 select-none">
         {/* Toggle Controls Drawer */}
         <button
           type="button"

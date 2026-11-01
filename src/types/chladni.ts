@@ -81,12 +81,14 @@ export interface ChladniParams {
   domRepulsion: number; // 0.0 to 10.0 (rejection force from dots to DOM elements, default 1.0)
 
   // Typography & Variable Font Controls
-  fontFamily: string; // 'iAWriterQuattroV' | 'iAWriterQuattroV-Italic' | 'GT-Pressura' | 'Geist' | 'Geist Mono' | 'Geist Serif'
+  fontFamily: string; // 'iAWriterQuattroV' | 'iAWriterQuattroV-Italic' | 'GT-Pressura' | 'Geist' | 'Geist Mono' | 'Geist Serif' | 'Neue-Montreal' | 'Replica-Pro' | 'Replica-Mono' | ...
   fontWeight: number; // e.g. 100 to 900
   fontItalic: boolean; // normal vs italic cut
   fontSpacingAxis: number; // SPCG axis 0 to 150 (for iA Writer Quattro V)
   fontElshAxis: number; // ELSH axis 0 to 100 (for Geist Serif VF)
   fontLetterSpacing: number; // CSS tracking in px (-2 to 10)
+  headerFontSize?: string; // Tailwind text size class e.g. '8xl' | '3xl'
+  bodyFontSize?: string;   // Tailwind text size class e.g. '4xl' | 'base'
 
   // Canvas Orientation & Flips
   flipHorizontal: boolean; // flip/mirror X
@@ -185,6 +187,8 @@ export const DEFAULT_PARAMS: ChladniParams = {
   fontSpacingAxis: 0,
   fontElshAxis: 0,
   fontLetterSpacing: 0,
+  headerFontSize: '8xl',
+  bodyFontSize: '4xl',
 
   // Flips & Orientation
   flipHorizontal: false,
@@ -718,6 +722,21 @@ export const AVAILABLE_FONTS: FontOption[] = [
     fileName: 'ortica-angular-bold/OrticaAngular-Bold.otf',
     description: 'Sharp, aggressive serif display typeface designed by Benedetta Bovani & Collletttivo',
   },
+  // GT Sectra Fine (Grilli Type — Contemporary Serif)
+  {
+    id: 'GT-Sectra-Fine',
+    name: 'GT Sectra Fine',
+    fontFamily: 'GT-Sectra-Fine',
+    category: 'static',
+    minWeight: 400,
+    maxWeight: 900,
+    defaultWeight: 400,
+    hasItalic: true,
+    badge: 'Contemporary Serif TTF',
+    format: 'TTF',
+    fileName: 'gt-sectra-fine/GT-Sectra-Fine-*.ttf',
+    description: 'Contemporary serif by Grilli Type — Book, Regular, Medium, Bold, Black (400–900) + Italics',
+  },
   // Replica Pro & Replica Mono (Lineto — Norm / Dimitri Bruni & Manuel Krebs)
   {
     id: 'Replica-Pro',
@@ -747,6 +766,43 @@ export const AVAILABLE_FONTS: FontOption[] = [
     fileName: 'replica-pro/ReplicaPro-Regular2.otf',
     description: 'Monospaced companion cut of Replica by Norm (Lineto)',
   },
+  // Neue Montreal (Pangram Pangram — Geometric Sans OTF)
+  {
+    id: 'Neue-Montreal',
+    name: 'Neue Montreal',
+    fontFamily: 'Neue-Montreal',
+    category: 'static',
+    minWeight: 300,
+    maxWeight: 700,
+    defaultWeight: 400,
+    hasItalic: true,
+    badge: 'Geometric Sans OTF',
+    format: 'OTF',
+    fileName: 'neue-montreal/NeueMontreal-*.otf',
+    description: 'Geometric sans-serif by Pangram Pangram — Light 300, Regular 400, Medium 500, Bold 700 + Italics',
+  },
+];
+
+export interface FontSizeOption {
+  value: string; // e.g. '3xl', '4xl', '8xl'
+  label: string; // Display name
+  fontSizeCss: string; // approximate px for preview
+}
+
+export const TAILWIND_FONT_SIZE_OPTIONS: FontSizeOption[] = [
+  { value: 'xs', label: 'xs (12px)', fontSizeCss: '12px' },
+  { value: 'sm', label: 'sm (14px)', fontSizeCss: '14px' },
+  { value: 'base', label: 'base (16px)', fontSizeCss: '16px' },
+  { value: 'lg', label: 'lg (18px)', fontSizeCss: '18px' },
+  { value: 'xl', label: 'xl (20px)', fontSizeCss: '20px' },
+  { value: '2xl', label: '2xl (24px)', fontSizeCss: '24px' },
+  { value: '3xl', label: '3xl (30px)', fontSizeCss: '30px' },
+  { value: '4xl', label: '4xl (36px)', fontSizeCss: '36px' },
+  { value: '5xl', label: '5xl (48px)', fontSizeCss: '48px' },
+  { value: '6xl', label: '6xl (60px)', fontSizeCss: '60px' },
+  { value: '7xl', label: '7xl (72px)', fontSizeCss: '72px' },
+  { value: '8xl', label: '8xl (96px)', fontSizeCss: '96px' },
+  { value: '9xl', label: '9xl (128px)', fontSizeCss: '128px' },
 ];
 
 export function buildFontVariationSettings(params: {
