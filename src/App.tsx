@@ -32,6 +32,7 @@ import {
   Sparkles,
   Sliders,
   Zap,
+  Activity,
 } from 'lucide-react';
 
 export default function App() {
@@ -82,7 +83,7 @@ export default function App() {
   const [scatterTrigger, setScatterTrigger] = useState<number>(0);
   const [resetTrigger, setResetTrigger] = useState<number>(0);
   const [isWasmLabOpen, setIsWasmLabOpen] = useState<boolean>(false);
-  const [showHud, setShowHud] = useState<boolean>(false);
+  const [showHud, setShowHud] = useState<boolean>(true);
   const [showControls, setShowControls] = useState<boolean>(false);
 
   // Exact perceived on-screen color rendered by the WebGL grain shader
@@ -258,6 +259,8 @@ export default function App() {
         setShowControls((prev) => !prev);
       } else if (e.key === 'm' || e.key === 'M') {
         handleToggleAudio();
+      } else if (e.key === 'h' || e.key === 'H') {
+        setShowHud((prev) => !prev);
       } else if (e.key === 'g' || e.key === 'G') {
         handleExperimentNextGrid();
       }
@@ -619,6 +622,20 @@ export default function App() {
           title="Scatter sand (S)"
         >
           <Sparkles size={13} style={{ color: dotColor }} />
+        </button>
+
+        {/* Telemetry HUD */}
+        <button
+          type="button"
+          onClick={() => setShowHud((prev) => !prev)}
+          aria-pressed={showHud}
+          className={`p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all cursor-pointer shadow-lg hover:opacity-100 ${
+            showHud ? 'opacity-100' : 'opacity-70'
+          }`}
+          style={{ color: dotColor, borderColor: showHud ? `${dotColor}66` : `${dotColor}33` }}
+          title="Toggle telemetry HUD (H)"
+        >
+          <Activity size={13} style={{ color: dotColor }} />
         </button>
       </div>
 
