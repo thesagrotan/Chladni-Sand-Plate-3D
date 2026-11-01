@@ -8,6 +8,15 @@ import {
 import { ChladniWasmSimulation } from '../simulation/ChladniWasmSimulation.ts';
 import { ChladniJsCpuSimulation } from '../simulation/ChladniJsCpuSimulation.ts';
 import { TextMaskManager } from '../utils/TextMaskManager.ts';
+import {
+  createGrainGeometry,
+  createGrainPoints,
+  createTelemetryGrains,
+  scatterEngines,
+  rebuildGpuEngine,
+  ensureSelectedCpuEngine,
+  type EngineRefs,
+} from '../simulation/EngineManager.ts';
 import { useCameraControls, VRANGE } from '../hooks/useCameraControls.ts';
 import {
   renderChladniFrame,
@@ -20,7 +29,7 @@ import {
   GRAIN_VERTEX_SHADER,
   GRAIN_FRAGMENT_SHADER,
 } from '../simulation/shaders/chladniShaders.ts';
-import { getChladniWasm, ChladniWasmExports } from '../simulation/wasm/chladniWasmModule.ts';
+import type { ChladniWasmExports } from '../simulation/wasm/chladniWasmModule.ts';
 import { gridTypeToNumber, voidShapeToNumber } from '../simulation/chladniMath.ts';
 
 interface ChladniCanvasProps {
@@ -74,6 +83,19 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
   const frameTimestampsRef = useRef<number[]>([]);
   const textMaskManagerRef = useRef<TextMaskManager | null>(null);
   const camDataRef = useRef<THREE.Vector4>(new THREE.Vector4(0, 0, 1.05, 1.05));
+
+  // Stable refs bag consumed by the engine helpers; the refs themselves never
+  // change identity, so building this once per render is cheap.
+  const engineRefs: EngineRefs = {
+    sim: simRef,
+    wasmSim: wasmSimRef,
+    jsCpuSim: jsCpuSimRef,
+    wasmExports: wasmExportsRef,
+    cpuParticles: cpuParticlesRef,
+    grainPoints: grainPointsRef,
+    grainMaterial: grainMaterialRef,
+    camData: camDataRef,
+  };
 
   useCameraControls({
     container: mountRef,
@@ -206,22 +228,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     simRef.current = sim;
 
     const count = sim.grainCount;
-    const grainGeo = new THREE.BufferGeometry();
-    const positions = new Float32Array(count * 3);
-    const textureUvs = new Float32Array(count * 2);
-
-    for (let i = 0; i < count; i++) {
-      const u = ((i % sim.textureWidth) + 0.5) / sim.textureWidth;
-      const v = (Math.floor(i / sim.textureWidth) + 0.5) / sim.textureHeight;
-      textureUvs[i * 2 + 0] = u;
-      textureUvs[i * 2 + 1] = v;
-      positions[i * 3 + 0] = 0;
-      positions[i * 3 + 1] = 0;
-      positions[i * 3 + 2] = 0;
-    }
-
-    grainGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    grainGeo.setAttribute('aTextureUv', new THREE.BufferAttribute(textureUvs, 2));
+    const grainGeo = createGrainGeometry(sim);
 
     const grainMat = new THREE.ShaderMaterial({
       vertexShader: GRAIN_VERTEX_SHADER,
@@ -253,16 +260,11 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     });
     grainMaterialRef.current = grainMat;
 
-    const grainPoints = new THREE.Points(grainGeo, grainMat);
-    grainPoints.frustumCulled = false;
-    grainPoints.renderOrder = 1;
+    // Grain points apply the initial flip/rotation transforms on construction.
+    const grainPoints = createGrainPoints(grainGeo, grainMat, cur);
     scene.add(grainPoints);
     grainPointsRef.current = grainPoints;
 
-    // Apply initial flips/rotation (2D: scale.x/scale.y and rotation.z)
-    grainPoints.scale.x = cur.flipHorizontal ? -1 : 1;
-    grainPoints.scale.y = cur.flipVertical ? -1 : 1;
-    grainPoints.rotation.z = (cur.rotationAngle * Math.PI) / 180;
     // Background mesh must keep its viewport-fill scale (halfW*2.1 × halfH*2.1);
     // flip is encoded as a sign on each axis rather than replacing the full scale.
     bgMesh.scale.set(
@@ -275,15 +277,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     // CPU/WASM engines are constructed lazily when their engine is selected.
 
     // CPU telemetry grains (lightweight sample for metrics)
-    const cpuGrains: { x: number; y: number; settled: boolean }[] = [];
-    for (let i = 0; i < 1024; i++) {
-      cpuGrains.push({
-        x: (Math.random() * 2 - 1) * (halfW * 0.95),
-        y: (Math.random() * 2 - 1) * (halfH * 0.95),
-        settled: false,
-      });
-    }
-    cpuParticlesRef.current = cpuGrains;
+    cpuParticlesRef.current = createTelemetryGrains(halfW, halfH);
 
 
     // -----------------------------------------------------------------------
@@ -337,15 +331,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
   useEffect(() => {
     if (scatterTrigger > 0) {
       const cam = camDataRef.current;
-      simRef.current?.scatter(cam.z, cam.w);
-      wasmSimRef.current?.resetParticles();
-      jsCpuSimRef.current?.resetParticles(cam.z * 0.95, cam.w * 0.95);
-      const grains = cpuParticlesRef.current;
-      for (let i = 0; i < grains.length; i++) {
-        grains[i].x = (Math.random() * 2 - 1) * (cam.z * 0.95);
-        grains[i].y = (Math.random() * 2 - 1) * (cam.w * 0.95);
-        grains[i].settled = false;
-      }
+      scatterEngines(engineRefs, cam.z, cam.w);
     }
   }, [scatterTrigger]);
 
@@ -361,9 +347,7 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
       const halfW = asp >= 1.0 ? baseRange * asp : baseRange;
       const halfH = asp >= 1.0 ? baseRange : baseRange / asp;
       camDataRef.current.set(0, 0, halfW, halfH);
-      simRef.current?.scatter(halfW, halfH);
-      wasmSimRef.current?.resetParticles();
-      jsCpuSimRef.current?.resetParticles(halfW * 0.95, halfH * 0.95);
+      scatterEngines(engineRefs, halfW, halfH);
       const cam = cameraRef.current;
       if (cam) {
         cam.left = -halfW;
@@ -378,12 +362,6 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
       }
       if (grainMaterialRef.current) {
         grainMaterialRef.current.uniforms.uZoom.value = 1.0;
-      }
-      const grains = cpuParticlesRef.current;
-      for (let i = 0; i < grains.length; i++) {
-        grains[i].x = (Math.random() * 2 - 1) * (halfW * 0.95);
-        grains[i].y = (Math.random() * 2 - 1) * (halfH * 0.95);
-        grains[i].settled = false;
       }
     }
   }, [resetTrigger]);
@@ -408,50 +386,9 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
 
       const renderer = rendererRef.current;
       const scene = sceneRef.current;
-      const grainMat = grainMaterialRef.current;
-      if (!renderer || !scene || !grainMat) return;
+      if (!renderer || !scene) return;
 
-      if (grainPointsRef.current) {
-        scene.remove(grainPointsRef.current);
-        grainPointsRef.current.geometry.dispose();
-        grainPointsRef.current = null;
-      }
-
-      simRef.current?.dispose();
-
-      const cam = camDataRef.current;
-      const newSim = new ChladniGpuSimulation(renderer, nextCount, cam.z, cam.w);
-      simRef.current = newSim;
-
-      const count = newSim.grainCount;
-      const grainGeo = new THREE.BufferGeometry();
-      const positions = new Float32Array(count * 3);
-      const textureUvs = new Float32Array(count * 2);
-
-      for (let i = 0; i < count; i++) {
-        const u = ((i % newSim.textureWidth) + 0.5) / newSim.textureWidth;
-        const v = (Math.floor(i / newSim.textureWidth) + 0.5) / newSim.textureHeight;
-        textureUvs[i * 2 + 0] = u;
-        textureUvs[i * 2 + 1] = v;
-      }
-
-      grainGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      grainGeo.setAttribute('aTextureUv', new THREE.BufferAttribute(textureUvs, 2));
-
-      grainMat.uniforms.uPosTex.value = newSim.getPositionTexture();
-      if (grainMat.uniforms.uGrainCount) {
-        grainMat.uniforms.uGrainCount.value = count;
-      }
-
-      const grainPoints = new THREE.Points(grainGeo, grainMat);
-      grainPoints.frustumCulled = false;
-      grainPoints.renderOrder = 1;
-      grainPoints.scale.x = params.flipHorizontal ? -1 : 1;
-      grainPoints.scale.y = params.flipVertical ? -1 : 1;
-      grainPoints.rotation.z = (params.rotationAngle * Math.PI) / 180;
-
-      scene.add(grainPoints);
-      grainPointsRef.current = grainPoints;
+      rebuildGpuEngine(engineRefs, renderer, scene, nextCount, params);
     }, 150);
 
     return () => window.clearTimeout(timer);
@@ -463,25 +400,16 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     const engine = params.simulationEngine;
     if (engine === 'gpu') return;
 
-    const cpuCount = Math.min(params.grainCount, 35_000);
     let cancelled = false;
 
     const timer = window.setTimeout(() => {
       if (cancelled) return;
 
-      if (engine === 'wasm') {
-        if (!wasmSimRef.current || wasmSimRef.current.grainCount !== cpuCount) {
-          wasmSimRef.current?.dispose();
-          wasmSimRef.current = new ChladniWasmSimulation(cpuCount);
-        }
-        getChladniWasm().then((wasm) => {
+      const pendingWasm = ensureSelectedCpuEngine(engineRefs, engine, params.grainCount);
+      if (pendingWasm) {
+        pendingWasm.then((wasm) => {
           if (!cancelled) wasmExportsRef.current = wasm;
         });
-      } else if (
-        !jsCpuSimRef.current ||
-        jsCpuSimRef.current.grainCount !== cpuCount
-      ) {
-        jsCpuSimRef.current = new ChladniJsCpuSimulation(cpuCount);
       }
     }, 150);
 
