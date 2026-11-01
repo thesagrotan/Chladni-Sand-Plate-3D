@@ -8,6 +8,7 @@ import {
 import { ChladniWasmSimulation } from '../simulation/ChladniWasmSimulation.ts';
 import { ChladniJsCpuSimulation } from '../simulation/ChladniJsCpuSimulation.ts';
 import { TextMaskManager } from '../utils/TextMaskManager.ts';
+import { useCameraControls, VRANGE } from '../hooks/useCameraControls.ts';
 import {
   BACKGROUND_VERTEX_SHADER,
   BACKGROUND_FRAGMENT_SHADER,
@@ -25,9 +26,6 @@ import {
   evalChladniW,
   evalChladniGrad,
 } from '../simulation/chladniMath.ts';
-
-/** Vertical half-range of the orthographic camera at zoom=1 */
-const VRANGE = 1.05;
 
 interface ChladniCanvasProps {
   params: ChladniParams;
@@ -80,6 +78,21 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
   const frameTimestampsRef = useRef<number[]>([]);
   const textMaskManagerRef = useRef<TextMaskManager | null>(null);
   const camDataRef = useRef<THREE.Vector4>(new THREE.Vector4(0, 0, 1.05, 1.05));
+
+  useCameraControls({
+    container: mountRef,
+    camera: cameraRef,
+    camData: camDataRef,
+    bgMesh: bgMeshRef,
+    grainMaterial: grainMaterialRef,
+    zoom: zoomRef,
+    pan: panRef,
+    pointerSimPos: pointerSimPosRef,
+    pointerActive: pointerActiveRef,
+    params: paramsRef,
+    renderer: rendererRef,
+    textMask: textMaskManagerRef,
+  });
 
   useEffect(() => {
     const container = mountRef.current;
@@ -276,164 +289,6 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     }
     cpuParticlesRef.current = cpuGrains;
 
-    // -----------------------------------------------------------------------
-    // 2D Pan and Zoom interaction
-    // -----------------------------------------------------------------------
-    const updateCameraFrustum = () => {
-      const cam = cameraRef.current;
-      if (!cam) return;
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const asp = w / h;
-      const z = zoomRef.current;
-      const px = panRef.current.x;
-      const py = panRef.current.y;
-      const baseRange = VRANGE / z;
-      const halfW = asp >= 1.0 ? baseRange * asp : baseRange;
-      const halfH = asp >= 1.0 ? baseRange : baseRange / asp;
-      cam.left = -halfW + px;
-      cam.right = halfW + px;
-      cam.top = halfH + py;
-      cam.bottom = -halfH + py;
-      cam.updateProjectionMatrix();
-
-      camDataRef.current.set(px, py, halfW, halfH);
-
-      if (bgMeshRef.current) {
-        bgMeshRef.current.scale.set(halfW * 2.1, halfH * 2.1, 1);
-        bgMeshRef.current.position.set(px, py, 0);
-      }
-
-      if (grainMaterialRef.current) {
-        grainMaterialRef.current.uniforms.uZoom.value = z;
-      }
-    };
-
-    /** Convert a client-space pixel position to simulation XY space [-1,1] */
-    const clientToSimSpace = (clientX: number, clientY: number): { x: number; y: number } => {
-      const rect = container.getBoundingClientRect();
-      const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
-      const ndcY = -(((clientY - rect.top) / rect.height) * 2 - 1);
-      const cam = cameraRef.current;
-      if (!cam) return { x: ndcX, y: ndcY };
-      const halfW = (cam.right - cam.left) / 2;
-      const halfH = (cam.top - cam.bottom) / 2;
-      const cx = (cam.left + cam.right) / 2;
-      const cy = (cam.bottom + cam.top) / 2;
-      let sx = cx + ndcX * halfW;
-      let sy = cy + ndcY * halfH;
-
-      const cp = paramsRef.current;
-      if (cp.rotationAngle !== 0) {
-        const rad = -(cp.rotationAngle * Math.PI) / 180;
-        const cosA = Math.cos(rad);
-        const sinA = Math.sin(rad);
-        const rx = sx * cosA - sy * sinA;
-        const ry = sx * sinA + sy * cosA;
-        sx = rx;
-        sy = ry;
-      }
-      if (cp.flipHorizontal) sx = -sx;
-      if (cp.flipVertical) sy = -sy;
-
-      return { x: sx, y: sy };
-    };
-
-    // Keyboard navigation: + / - to zoom, arrow keys to change viewport position
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept when user is typing in form inputs
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
-        return;
-      }
-
-      const panStep = (e.shiftKey ? 0.16 : 0.06) * (VRANGE / zoomRef.current);
-
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        panRef.current.y += panStep;
-        updateCameraFrustum();
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        panRef.current.y -= panStep;
-        updateCameraFrustum();
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        panRef.current.x -= panStep;
-        updateCameraFrustum();
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        panRef.current.x += panStep;
-        updateCameraFrustum();
-      } else if (
-        e.key === '+' ||
-        e.key === '=' ||
-        e.code === 'Equal' ||
-        e.code === 'NumpadAdd'
-      ) {
-        e.preventDefault();
-        const factor = e.shiftKey ? 1.25 : 1.12;
-        zoomRef.current = Math.min(8.0, +(zoomRef.current * factor).toFixed(3));
-        updateCameraFrustum();
-      } else if (
-        e.key === '-' ||
-        e.key === '_' ||
-        e.code === 'Minus' ||
-        e.code === 'NumpadSubtract'
-      ) {
-        e.preventDefault();
-        const factor = e.shiftKey ? 1.25 : 1.12;
-        zoomRef.current = Math.max(0.4, +(zoomRef.current / factor).toFixed(3));
-        updateCameraFrustum();
-      }
-    };
-
-    // Canvas is fixed in the background: window-level pointer tracking pushes sand always on hover
-    const onWindowPointerMove = (e: PointerEvent) => {
-      const sp = clientToSimSpace(e.clientX, e.clientY);
-      pointerSimPosRef.current = sp;
-      pointerActiveRef.current = true;
-    };
-
-    const onWindowPointerDown = (e: PointerEvent) => {
-      pointerActiveRef.current = true;
-      const sp = clientToSimSpace(e.clientX, e.clientY);
-      pointerSimPosRef.current = sp;
-    };
-
-    const onWindowPointerUp = (e: PointerEvent) => {
-      // Touchscreen: lifting finger ends contact. Mouse: keeps affecting dots on hover.
-      if (e.pointerType === 'touch') {
-        pointerActiveRef.current = false;
-      }
-    };
-
-    const onWindowMouseLeave = () => {
-      pointerActiveRef.current = false;
-    };
-
-    const onWindowBlur = () => {
-      pointerActiveRef.current = false;
-    };
-
-    window.addEventListener('pointermove', onWindowPointerMove, { passive: true });
-    window.addEventListener('pointerdown', onWindowPointerDown, { passive: true });
-    window.addEventListener('pointerup', onWindowPointerUp, { passive: true });
-    document.addEventListener('mouseleave', onWindowMouseLeave);
-    window.addEventListener('blur', onWindowBlur);
-    window.addEventListener('keydown', handleKeyDown);
-
-    // -----------------------------------------------------------------------
-    // Resize handler
-    // -----------------------------------------------------------------------
-    const handleResize = () => {
-      if (!container || !renderer) return;
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      renderer.setSize(w, h);
-      updateCameraFrustum();
-      textMaskManagerRef.current?.setDirty();
-    };
-    window.addEventListener('resize', handleResize);
 
     // -----------------------------------------------------------------------
     // Animation loop
@@ -708,13 +563,6 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
 
     return () => {
       cancelAnimationFrame(frameIdRef.current);
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('pointermove', onWindowPointerMove);
-      window.removeEventListener('pointerdown', onWindowPointerDown);
-      window.removeEventListener('pointerup', onWindowPointerUp);
-      document.removeEventListener('mouseleave', onWindowMouseLeave);
-      window.removeEventListener('blur', onWindowBlur);
       textMaskManagerRef.current?.dispose();
       textMaskManagerRef.current = null;
       simRef.current?.dispose();
