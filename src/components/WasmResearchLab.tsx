@@ -36,6 +36,7 @@ interface BenchmarkResult {
   wasmOpsPerSec: number;
   jsOpsPerSec: number;
   verifiedMatch: boolean;
+  relativeDifference: number;
 }
 
 export const WasmResearchLab: React.FC<WasmResearchLabProps> = ({
@@ -113,6 +114,7 @@ export const WasmResearchLab: React.FC<WasmResearchLabProps> = ({
         wasmOpsPerSec,
         jsOpsPerSec,
         verifiedMatch,
+        relativeDifference: diff,
       });
       setBenchmarkProgress('');
     } catch (err) {
@@ -554,7 +556,19 @@ registerProcessor('chladni-audio-processor', ChladniAudioProcessor);`;
                       <span className="flex items-center gap-1">
                         <ShieldCheck size={13} className="text-emerald-400" /> Mathematical Parity:
                       </span>
-                      <span className="text-emerald-300 font-mono">100% Bit-Accurate</span>
+                      <span
+                        className={`font-mono ${
+                          benchmarkResult.verifiedMatch ? 'text-emerald-300' : 'text-amber-300'
+                        }`}
+                      >
+                        {benchmarkResult.verifiedMatch
+                          ? 'Within 0.5% tolerance'
+                          : 'Outside 0.5% tolerance'}
+                        <span className="text-neutral-500">
+                          {' '}
+                          (Δ {(benchmarkResult.relativeDifference * 100).toFixed(3)}%)
+                        </span>
+                      </span>
                     </div>
                   </div>
                 </div>
