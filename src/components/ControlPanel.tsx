@@ -933,6 +933,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       {showColorCustomizer ? 'Presets' : 'Custom Pickers'}
                     </button>
                   </div>
+                  <p className="text-[9px] text-neutral-500 leading-tight">
+                    Color changes are session-only; the Silica brand palette restores on reload.
+                  </p>
 
                   {!showColorCustomizer ? (
                     /* Compact Single-Row Swatches Strip */

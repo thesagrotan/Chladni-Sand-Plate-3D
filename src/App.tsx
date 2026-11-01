@@ -6,6 +6,7 @@ import {
   buildFontVariationSettings,
 } from './types/chladni.ts';
 import { randomizeGridParams } from './utils/grid.ts';
+import { applyBrandPalette } from './utils/settings.ts';
 import { ChladniCanvas } from './components/ChladniCanvas.tsx';
 import { HudStats } from './components/HudStats.tsx';
 import { ControlPanel } from './components/ControlPanel.tsx';
@@ -36,7 +37,7 @@ import {
 export default function App() {
   const [initialSettings] = useState(loadSavedSettings);
   const [params, setParams] = useState<ChladniParams>(() => {
-    return {
+    return applyBrandPalette({
       ...initialSettings.params,
       fontFamily: initialSettings.params.fontFamily || 'iAWriterQuattroV',
       fontWeight: initialSettings.params.fontWeight ?? 400,
@@ -44,14 +45,7 @@ export default function App() {
       fontSpacingAxis: initialSettings.params.fontSpacingAxis ?? 0,
       fontElshAxis: initialSettings.params.fontElshAxis ?? 0,
       fontLetterSpacing: initialSettings.params.fontLetterSpacing ?? 0,
-      // Minimalist aesthetic palette: silica grains on dark plate
-      sandColor: '#f7f5f0',
-      sandColorSecondary: '#e4dfd3',
-      plateColor: '#070709',
-      glowColor: '#ffffff',
-      centerVoidRadius: 0.0,
-      showVoidGuide: false,
-    };
+    });
   });
   const [hasSavedSettings, setHasSavedSettings] = useState<boolean>(initialSettings.hasSaved);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(initialSettings.autoSave);
