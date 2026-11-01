@@ -4,7 +4,6 @@ import { CHLADNI_GLSL_FUNCTIONS } from './chladniMath.ts';
 
 const POSITION_FRAGMENT_SHADER = /* glsl */ `
 uniform float uTime;
-uniform float uDelta;
 uniform float uModeM;
 uniform float uModeN;
 uniform float uWaveK;
@@ -233,7 +232,6 @@ export class ChladniGpuSimulation {
 
     const u = this.posVariable.material.uniforms;
     u.uTime = { value: 0 };
-    u.uDelta = { value: 0.016 };
     u.uModeM = { value: 4.0 };
     u.uModeN = { value: 8.0 };
     u.uWaveK = { value: 32.0 };
@@ -292,7 +290,7 @@ export class ChladniGpuSimulation {
 
   public update(
     time: number,
-    delta: number,
+    _delta: number,
     m: number,
     n: number,
     k: number,
@@ -319,7 +317,6 @@ export class ChladniGpuSimulation {
   ) {
     const u = this.posVariable.material.uniforms;
     u.uTime.value = time;
-    u.uDelta.value = Math.min(delta, 0.05);
     u.uModeM.value = m;
     u.uModeN.value = n;
     u.uWaveK.value = k;
