@@ -15,10 +15,6 @@ export interface ChladniWasmExports {
 let wasmInstancePromise: Promise<ChladniWasmExports> | null = null;
 let cachedInstance: ChladniWasmExports | null = null;
 
-export function getCachedChladniWasm(): ChladniWasmExports | null {
-  return cachedInstance;
-}
-
 export async function getChladniWasm(): Promise<ChladniWasmExports> {
   if (cachedInstance) return cachedInstance;
   if (wasmInstancePromise) return wasmInstancePromise;

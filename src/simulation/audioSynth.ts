@@ -178,10 +178,6 @@ class AcousticPlateAudioEngine {
     }
   }
 
-  public getIsEnabled(): boolean {
-    return this.isEnabled;
-  }
-
   /**
    * Update audio engine parameters based on Chladni simulation settings.
    */

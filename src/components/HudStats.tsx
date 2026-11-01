@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cpu, Zap, Activity } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { ChladniMetrics, ChladniParams, GRID_TYPE_LABELS } from '../types/chladni.ts';
 
 interface HudStatsProps {

@@ -105,7 +105,7 @@ export class ChladniWasmSimulation {
    * Transfers Wasm particle positions to Three.js BufferGeometry attribute.
    * 2D flat mapping: x→x, y→y, z=0.
    */
-  public syncToBufferAttribute(positionAttr: THREE.BufferAttribute, countScale = 1.0) {
+  public syncToBufferAttribute(positionAttr: THREE.BufferAttribute) {
     if (!this.wasm || !this.positionsBuffer) return;
     const wasmMem = this.positionsBuffer;
     const targetArr = positionAttr.array as Float32Array;

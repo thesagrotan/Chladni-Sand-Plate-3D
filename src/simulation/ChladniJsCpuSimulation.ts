@@ -26,7 +26,7 @@ export class ChladniJsCpuSimulation {
   }
 
   public update(
-    time: number,
+    _time: number,
     _delta: number,
     m: number,
     n: number,

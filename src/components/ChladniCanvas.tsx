@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { GPUComputationRenderer } from 'three/examples/jsm/misc/GPUComputationRenderer.js';
 import { ChladniParams, ChladniMetrics } from '../types/chladni.ts';
 import { ChladniGpuSimulation } from '../simulation/ChladniGpuSimulation.ts';
 import { ChladniWasmSimulation } from '../simulation/ChladniWasmSimulation.ts';
@@ -1018,8 +1017,6 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     params.fontSpacingAxis,
     params.fontElshAxis,
     params.fontLetterSpacing,
-    params.headerFontSize,
-    params.bodyFontSize,
   ]);
 
   return (

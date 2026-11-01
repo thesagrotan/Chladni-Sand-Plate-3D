@@ -152,5 +152,3 @@ export const CustomCursor: React.FC<CustomCursorProps> = ({
   );
 };
 
-// Backward-compatible alias
-export const CircleCursor = CustomCursor;

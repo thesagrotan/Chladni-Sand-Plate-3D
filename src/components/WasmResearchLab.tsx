@@ -11,7 +11,6 @@ import {
   Check,
   TrendingUp,
   Flame,
-  ArrowRight,
   ShieldCheck,
   Play,
   Gauge,

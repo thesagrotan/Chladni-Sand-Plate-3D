@@ -87,8 +87,6 @@ export interface ChladniParams {
   fontSpacingAxis: number; // SPCG axis 0 to 150 (for iA Writer Quattro V)
   fontElshAxis: number; // ELSH axis 0 to 100 (for Geist Serif VF)
   fontLetterSpacing: number; // CSS tracking in px (-2 to 10)
-  headerFontSize?: string; // Tailwind text size class e.g. '8xl' | '3xl'
-  bodyFontSize?: string;   // Tailwind text size class e.g. '4xl' | 'base'
 
   // Canvas Orientation & Flips
   flipHorizontal: boolean; // flip/mirror X
@@ -151,7 +149,6 @@ export interface ChladniMetrics {
   activeEngine: 'gpu' | 'wasm' | 'js_cpu';
   computeTimeMs: number;
   fps: number;
-  wasmSpeedup?: number;
   audio?: AudioMetrics;
 }
 
@@ -163,13 +160,13 @@ export interface Preset {
   description: string;
 }
 
-export const GRID_TYPE_LABELS: Record<GridType, { label: string; iconName: string; desc: string }> = {
-  annular: { label: 'Annular Halo', iconName: 'CircleDot', desc: 'Circuits around center with radial ribs' },
-  rectangular: { label: 'Courtyard Lattice', iconName: 'Grid', desc: 'Orthogonal grid with empty central zone' },
-  polar: { label: 'Polar Orbitals', iconName: 'Disc', desc: 'Concentric wave rings & rays around core' },
-  hexagonal: { label: 'Hex Honeycomb', iconName: 'Hexagon', desc: 'Triaxial 60° interference honeycomb' },
-  diamond: { label: 'Diamond Cage', iconName: 'Boxes', desc: '45° rotated diagonal rhombus mesh' },
-  web: { label: 'Spiderweb', iconName: 'Radar', desc: 'Concentric web looping around center' },
+export const GRID_TYPE_LABELS: Record<GridType, { label: string; desc: string }> = {
+  annular: { label: 'Annular Halo', desc: 'Circuits around center with radial ribs' },
+  rectangular: { label: 'Courtyard Lattice', desc: 'Orthogonal grid with empty central zone' },
+  polar: { label: 'Polar Orbitals', desc: 'Concentric wave rings & rays around core' },
+  hexagonal: { label: 'Hex Honeycomb', desc: 'Triaxial 60° interference honeycomb' },
+  diamond: { label: 'Diamond Cage', desc: '45° rotated diagonal rhombus mesh' },
+  web: { label: 'Spiderweb', desc: 'Concentric web looping around center' },
 };
 
 export const DEFAULT_PARAMS: ChladniParams = {
@@ -187,8 +184,6 @@ export const DEFAULT_PARAMS: ChladniParams = {
   fontSpacingAxis: 0,
   fontElshAxis: 0,
   fontLetterSpacing: 0,
-  headerFontSize: '8xl',
-  bodyFontSize: '4xl',
 
   // Flips & Orientation
   flipHorizontal: false,
@@ -781,28 +776,6 @@ export const AVAILABLE_FONTS: FontOption[] = [
     fileName: 'neue-montreal/NeueMontreal-*.otf',
     description: 'Geometric sans-serif by Pangram Pangram — Light 300, Regular 400, Medium 500, Bold 700 + Italics',
   },
-];
-
-export interface FontSizeOption {
-  value: string; // e.g. '3xl', '4xl', '8xl'
-  label: string; // Display name
-  fontSizeCss: string; // approximate px for preview
-}
-
-export const TAILWIND_FONT_SIZE_OPTIONS: FontSizeOption[] = [
-  { value: 'xs', label: 'xs (12px)', fontSizeCss: '12px' },
-  { value: 'sm', label: 'sm (14px)', fontSizeCss: '14px' },
-  { value: 'base', label: 'base (16px)', fontSizeCss: '16px' },
-  { value: 'lg', label: 'lg (18px)', fontSizeCss: '18px' },
-  { value: 'xl', label: 'xl (20px)', fontSizeCss: '20px' },
-  { value: '2xl', label: '2xl (24px)', fontSizeCss: '24px' },
-  { value: '3xl', label: '3xl (30px)', fontSizeCss: '30px' },
-  { value: '4xl', label: '4xl (36px)', fontSizeCss: '36px' },
-  { value: '5xl', label: '5xl (48px)', fontSizeCss: '48px' },
-  { value: '6xl', label: '6xl (60px)', fontSizeCss: '60px' },
-  { value: '7xl', label: '7xl (72px)', fontSizeCss: '72px' },
-  { value: '8xl', label: '8xl (96px)', fontSizeCss: '96px' },
-  { value: '9xl', label: '9xl (128px)', fontSizeCss: '128px' },
 ];
 
 export function buildFontVariationSettings(params: {

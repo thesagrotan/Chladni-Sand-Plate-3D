@@ -4,8 +4,6 @@ import {
   ChladniMetrics,
   DEFAULT_PARAMS,
   GridType,
-  VoidShape,
-  PRESETS,
   buildFontVariationSettings,
 } from './types/chladni.ts';
 import { ChladniCanvas } from './components/ChladniCanvas.tsx';
@@ -78,7 +76,6 @@ export default function App() {
     activeEngine: 'gpu',
     computeTimeMs: 0.8,
     fps: 60.0,
-    wasmSpeedup: 2.1,
   });
   const [scatterTrigger, setScatterTrigger] = useState<number>(0);
   const [resetTrigger, setResetTrigger] = useState<number>(0);

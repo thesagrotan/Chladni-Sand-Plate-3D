@@ -13,7 +13,7 @@ export interface SavedVersion {
   params: ChladniParams;
 }
 
-export interface StorageLoadResult {
+interface StorageLoadResult {
   params: ChladniParams;
   hasSaved: boolean;
   autoSave: boolean;

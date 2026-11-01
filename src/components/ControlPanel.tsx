@@ -26,7 +26,6 @@ import {
   Palette,
   Shuffle,
   Zap,
-  Microchip,
   Music,
   Radio,
   Activity,
@@ -41,7 +40,6 @@ import {
   Italic,
   SlidersHorizontal,
   Upload,
-  Layers,
 } from 'lucide-react';
 import {
   ChladniParams,
@@ -54,7 +52,6 @@ import {
   AVAILABLE_FONTS,
   FontOption,
   buildFontVariationSettings,
-  TAILWIND_FONT_SIZE_OPTIONS,
 } from '../types/chladni.ts';
 import { plateAudio } from '../simulation/audioSynth.ts';
 import { SavedVersion, MAX_VERSIONS } from '../utils/storage.ts';
@@ -79,9 +76,6 @@ interface ControlPanelProps {
   onSaveVersion?: (label: string) => void;
   onRestoreVersion?: (id: string) => void;
   onDeleteVersion?: (id: string) => void;
-  activeSection?: string;
-  autoSectionGrid?: boolean;
-  onToggleAutoSectionGrid?: () => void;
 }
 
 const formatTime = (sec: number) => {
@@ -287,9 +281,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onSaveVersion,
   onRestoreVersion,
   onDeleteVersion,
-  activeSection = 'hero',
-  autoSectionGrid = true,
-  onToggleAutoSectionGrid,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'grid' | 'typo' | 'resonance' | 'audio'>('all');
@@ -573,12 +564,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   title={hasSavedSettings ? 'Saved Session Active' : 'Default Configuration'}
                 />
                 <span className="text-neutral-300 truncate font-mono text-[9px]">
-                  {activeSection === 'hero' && 'Hero'}
-                  {activeSection === 'about' && 'About'}
-                  {activeSection === 'facility' && 'Facility'}
-                  {activeSection === 'contact' && 'Contact'}
-                  {!activeSection && 'Hero'}
-                  {' · '}
                   <span className="text-cyan-300">{GRID_TYPE_LABELS[params.gridType]?.label || params.gridType}</span>
                 </span>
               </div>
@@ -633,17 +618,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
             {/* Quick Auto Options Row (Micro toggles) */}
             <div className="mt-1 flex items-center justify-between text-[9px] text-neutral-400 px-1">
-              {onToggleAutoSectionGrid && (
-                <label className="flex items-center gap-1 cursor-pointer hover:text-neutral-200">
-                  <input
-                    type="checkbox"
-                    checked={autoSectionGrid}
-                    onChange={onToggleAutoSectionGrid}
-                    className="rounded border-neutral-700 bg-neutral-900 text-cyan-500 focus:ring-0 cursor-pointer w-2.5 h-2.5"
-                  />
-                  <span>Auto grid on scroll</span>
-                </label>
-              )}
               {onToggleAutoSave && (
                 <label className="flex items-center gap-1 cursor-pointer hover:text-neutral-200">
                   <input
@@ -1103,8 +1077,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                           fontSpacingAxis: 0,
                           fontElshAxis: 0,
                           fontLetterSpacing: 0,
-                          headerFontSize: '8xl',
-                          bodyFontSize: '4xl',
                         });
                       }}
                       className="text-[9px] text-neutral-500 hover:text-neutral-300 underline cursor-pointer"
@@ -1318,39 +1290,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                           formatFn={(val) => `${val > 0 ? '+' : ''}${val.toFixed(1)}px`}
                           onChange={(val) => updateParam('fontLetterSpacing', val)}
                         />
-                      </div>
-                    </div>
-
-                    {/* Font Size Selectors: Compact Side-by-Side Dropdowns */}
-                    <div className="pt-1 border-t border-neutral-900 grid grid-cols-2 gap-2 text-[10px]">
-                      <div>
-                        <span className="text-neutral-400 block mb-0.5">Header Size</span>
-                        <select
-                          value={params.headerFontSize || '8xl'}
-                          onChange={(e) => updateParam('headerFontSize', e.target.value)}
-                          className="w-full bg-neutral-900 border border-neutral-800 rounded px-1.5 py-0.5 text-[10px] font-mono text-neutral-200 focus:outline-none focus:border-cyan-500 cursor-pointer"
-                        >
-                          {TAILWIND_FONT_SIZE_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              text-{opt.value} ({opt.label})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <span className="text-neutral-400 block mb-0.5">Body Size</span>
-                        <select
-                          value={params.bodyFontSize || '4xl'}
-                          onChange={(e) => updateParam('bodyFontSize', e.target.value)}
-                          className="w-full bg-neutral-900 border border-neutral-800 rounded px-1.5 py-0.5 text-[10px] font-mono text-neutral-200 focus:outline-none focus:border-cyan-500 cursor-pointer"
-                        >
-                          {TAILWIND_FONT_SIZE_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              text-{opt.value} ({opt.label})
-                            </option>
-                          ))}
-                        </select>
                       </div>
                     </div>
 

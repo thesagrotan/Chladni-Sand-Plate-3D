@@ -152,7 +152,7 @@ export class TextMaskManager {
    */
   private collectLines(
     el: HTMLElement,
-    ctx: CanvasRenderingContext2D,
+    _ctx: CanvasRenderingContext2D,
     rangeHelper: Range,
     fontAscent: number,
     fontDescent: number,
