@@ -286,7 +286,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const [activeTab, setActiveTab] = useState<'all' | 'grid' | 'typo' | 'resonance' | 'audio'>('all');
   const [showPresets, setShowPresets] = useState(false);
   const [showColorCustomizer, setShowColorCustomizer] = useState(false);
-  const [presetFilter, setPresetFilter] = useState<'all' | 'empty-center' | 'classic'>('empty-center');
+  type PresetFilter = 'all' | (typeof PRESETS)[number]['tag'];
+  const [presetFilter, setPresetFilter] = useState<PresetFilter>('empty-center');
   const [justSaved, setJustSaved] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [versionLabel, setVersionLabel] = useState('');
@@ -444,8 +445,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
   const filteredPresets = PRESETS.filter((p) => {
     if (presetFilter === 'all') return true;
-    if (presetFilter === 'empty-center') return p.tag === 'empty-center';
-    return p.tag !== 'empty-center';
+    return p.tag === presetFilter;
   });
 
   const currentFont = allFonts.find(
@@ -1746,15 +1746,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   {showPresets && (
                     <div className="mt-1.5 p-2 rounded bg-neutral-900/50 border border-neutral-800/60 space-y-1.5">
                       <div className="flex gap-1">
-                        {[
+                        {([
                           { id: 'empty-center', label: 'Empty Center' },
                           { id: 'classic', label: 'Classic' },
+                          { id: 'geometric', label: 'Geometric' },
                           { id: 'all', label: 'All' },
-                        ].map((btn) => (
+                        ] as const).map((btn) => (
                           <button
                             key={btn.id}
                             type="button"
-                            onClick={() => setPresetFilter(btn.id as any)}
+                            onClick={() => setPresetFilter(btn.id)}
                             className={`flex-1 text-[9px] py-0.5 rounded transition-colors cursor-pointer font-medium ${
                               presetFilter === btn.id
                                 ? 'bg-cyan-950 text-cyan-200 border border-cyan-800'
