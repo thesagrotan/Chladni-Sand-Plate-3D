@@ -10,6 +10,7 @@ import { TextMaskManager } from '../utils/TextMaskManager.ts';
 const VRANGE = 1.05;
 import { getChladniWasm, ChladniWasmExports } from '../simulation/wasm/chladniWasmModule.ts';
 import { plateAudio } from '../simulation/audioSynth.ts';
+import { computeEffectiveWaveParams } from '../simulation/audioReactive.ts';
 import {
   CHLADNI_GLSL_FUNCTIONS,
   gridTypeToNumber,
@@ -636,21 +637,12 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
 
       // Audio reactivity
       const audioMetrics = plateAudio.sampleMetrics();
-      const isAudioActive = cp.audioEnabled && cp.audioReactiveDrive && audioMetrics.isPlaying;
-
-      let effectiveDrive = cp.driveStrength;
-      let effectiveM = cp.modeM;
-      let effectiveN = cp.modeN;
-      let effectiveK = cp.waveK;
-
-      if (isAudioActive) {
-        const intensity = cp.audioReactiveIntensity ?? 0.65;
-        effectiveM = +(cp.modeM + (audioMetrics.bass - 0.22) * 4.5 * intensity).toFixed(3);
-        effectiveN = +(cp.modeN + (audioMetrics.mid - 0.22) * 4.5 * intensity).toFixed(3);
-        effectiveK = +(cp.waveK + (audioMetrics.treble - 0.15) * 14.0 * intensity).toFixed(3);
-        const kickBoost = audioMetrics.transientKick * 6.5 * intensity;
-        effectiveDrive = +(cp.driveStrength * (1.0 + (audioMetrics.rms * 3.5 - 0.15) * intensity) + kickBoost).toFixed(3);
-      }
+      const {
+        m: effectiveM,
+        n: effectiveN,
+        k: effectiveK,
+        drive: effectiveDrive,
+      } = computeEffectiveWaveParams(cp, audioMetrics);
 
       if (!curPaused) {
         simTime += delta;
@@ -752,17 +744,17 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
             const g = grains[i];
             const px = g.x;
             const py = g.y;
-            const w = evalChladniW(px, py, cp.modeM, cp.modeN, cp.waveK, cp.symmetryBlend, gridTypeNum, cp.centerVoidRadius, voidShapeNum, cp.centerExpulsion);
-            const accel = cp.driveStrength * Math.abs(w);
+            const w = evalChladniW(px, py, effectiveM, effectiveN, effectiveK, cp.symmetryBlend, gridTypeNum, cp.centerVoidRadius, voidShapeNum, cp.centerExpulsion);
+            const accel = effectiveDrive * Math.abs(w);
             const rDist = voidShapeNum > 0.5 ? Math.max(Math.abs(px), Math.abs(py)) : Math.sqrt(px * px + py * py);
 
             if (accel > 1.0) {
               g.settled = false;
-              const [gradX, gradY] = evalChladniGrad(px, py, cp.modeM, cp.modeN, cp.waveK, cp.symmetryBlend, gridTypeNum, cp.centerVoidRadius, voidShapeNum, cp.centerExpulsion);
+              const [gradX, gradY] = evalChladniGrad(px, py, effectiveM, effectiveN, effectiveK, cp.symmetryBlend, gridTypeNum, cp.centerVoidRadius, voidShapeNum, cp.centerExpulsion);
               const signW = w >= 0 ? 1 : -1;
               const kick = Math.sqrt(accel - 1.0);
-              let dx = -signW * gradX * 0.00022 * cp.driveStrength + (Math.random() - 0.5) * 0.0042 * kick;
-              let dy = -signW * gradY * 0.00022 * cp.driveStrength + (Math.random() - 0.5) * 0.0042 * kick;
+              let dx = -signW * gradX * 0.00022 * effectiveDrive + (Math.random() - 0.5) * 0.0042 * kick;
+              let dy = -signW * gradY * 0.00022 * effectiveDrive + (Math.random() - 0.5) * 0.0042 * kick;
 
               if (cp.centerVoidRadius > 0.01 && rDist < cp.centerVoidRadius) {
                 const invR = rDist > 0.001 ? 1.0 / rDist : 0;
@@ -795,12 +787,12 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
           let activeFrac = 0.4;
           if (wasmExportsRef.current) {
             activeFrac = wasmExportsRef.current.computeActiveFractionWasm(
-              40, cp.modeM, cp.modeN, cp.waveK, cp.symmetryBlend, cp.driveStrength,
+              40, effectiveM, effectiveN, effectiveK, cp.symmetryBlend, effectiveDrive,
               gridTypeNum, cp.centerVoidRadius, voidShapeNum, cp.centerExpulsion
             );
           } else {
             activeFrac = computeActiveFraction(
-              cp.modeM, cp.modeN, cp.waveK, cp.symmetryBlend, cp.driveStrength,
+              effectiveM, effectiveN, effectiveK, cp.symmetryBlend, effectiveDrive,
               gridTypeNum, cp.centerVoidRadius, voidShapeNum, cp.centerExpulsion
             );
           }
