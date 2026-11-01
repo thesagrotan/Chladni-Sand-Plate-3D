@@ -9,7 +9,7 @@ interface HeroProps {
 
 export function Hero({ params, dotColor, onToggleAudio, onReleaseClick }: HeroProps) {
   return (
-    <section className="h-screen min-h-[680px] w-full flex flex-col justify-between px-2 sm:px-14 md:px-20 py-8 sm:py-12 select-none">
+    <section className="h-screen min-h-[680px] w-full flex flex-col justify-between px-2 sm:px-14 md:px-40 py-8 sm:py-12 select-none">
       {/* Main Title & Subtitle */}
       <div className="w-full my-auto flex flex-col items-start justify-center text-left">
         <p

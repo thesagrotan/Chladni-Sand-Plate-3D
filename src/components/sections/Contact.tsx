@@ -4,7 +4,7 @@ interface ContactProps {
 
 export function Contact({ dotColor }: ContactProps) {
   return (
-    <footer id="contact" className="px-8 sm:px-14 md:px-20 py-28 sm:py-36  mx-auto w-full">
+    <footer id="contact" className="px-8 sm:px-14 md:px-20 py-20 sm:py-24  mx-auto w-full">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
         <div>
           <div
