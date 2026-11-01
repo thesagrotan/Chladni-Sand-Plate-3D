@@ -6,6 +6,7 @@ import {
 } from '../src/simulation/chladniMath.ts';
 import { ChladniJsCpuSimulation } from '../src/simulation/ChladniJsCpuSimulation.ts';
 import { ChladniWasmSimulation } from '../src/simulation/ChladniWasmSimulation.ts';
+import { gpuTextureSizeForGrainCount } from '../src/simulation/ChladniGpuSimulation.ts';
 
 const STEP_ARGS = [
   DEFAULT_PARAMS.modeM,
@@ -24,6 +25,27 @@ function assertNoNaN(values: Float32Array) {
     expect(Number.isFinite(values[i])).toBe(true);
   }
 }
+
+describe('gpuTextureSizeForGrainCount', () => {
+  it('maps each grain-count bucket to its texture dimension', () => {
+    expect(gpuTextureSizeForGrainCount(1)).toBe(72);
+    expect(gpuTextureSizeForGrainCount(7_500)).toBe(72);
+    expect(gpuTextureSizeForGrainCount(7_501)).toBe(100);
+    expect(gpuTextureSizeForGrainCount(18_000)).toBe(100);
+    expect(gpuTextureSizeForGrainCount(18_001)).toBe(160);
+    expect(gpuTextureSizeForGrainCount(35_000)).toBe(160);
+    expect(gpuTextureSizeForGrainCount(35_001)).toBe(224);
+    expect(gpuTextureSizeForGrainCount(75_000)).toBe(224);
+    expect(gpuTextureSizeForGrainCount(75_001)).toBe(320);
+    expect(gpuTextureSizeForGrainCount(160_000)).toBe(320);
+    expect(gpuTextureSizeForGrainCount(160_001)).toBe(512);
+    expect(gpuTextureSizeForGrainCount(350_000)).toBe(512);
+    expect(gpuTextureSizeForGrainCount(350_001)).toBe(720);
+    expect(gpuTextureSizeForGrainCount(750_000)).toBe(720);
+    expect(gpuTextureSizeForGrainCount(750_001)).toBe(1024);
+    expect(gpuTextureSizeForGrainCount(1_000_000)).toBe(1024);
+  });
+});
 
 describe('ChladniWasmSimulation', () => {
   it('initializes, steps and produces finite particle positions', async () => {

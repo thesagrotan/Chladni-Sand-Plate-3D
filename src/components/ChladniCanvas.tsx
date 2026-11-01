@@ -1,7 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { ChladniParams, ChladniMetrics } from '../types/chladni.ts';
-import { ChladniGpuSimulation } from '../simulation/ChladniGpuSimulation.ts';
+import {
+  ChladniGpuSimulation,
+  gpuTextureSizeForGrainCount,
+} from '../simulation/ChladniGpuSimulation.ts';
 import { ChladniWasmSimulation } from '../simulation/ChladniWasmSimulation.ts';
 import { ChladniJsCpuSimulation } from '../simulation/ChladniJsCpuSimulation.ts';
 import { TextMaskManager } from '../utils/TextMaskManager.ts';
@@ -936,59 +939,87 @@ export const ChladniCanvas: React.FC<ChladniCanvasProps> = ({
     }
   }, [resetTrigger]);
 
-  // Grain count change — rebuild GPU sim and buffer geometry
+  // Grain count change — rebuild only when the GPU bucket or CPU counts change.
+  const pendingGrainCount = useRef(params.grainCount);
+
   useEffect(() => {
     if (!rendererRef.current || !sceneRef.current || !grainMaterialRef.current) return;
+
+    pendingGrainCount.current = params.grainCount;
+    const nextCount = params.grainCount;
+    const nextCpuCount = Math.min(nextCount, 35_000);
+    const nextGpuDim = gpuTextureSizeForGrainCount(nextCount);
+
     const currentSim = simRef.current;
-    if (currentSim && Math.abs(currentSim.grainCount - params.grainCount) < params.grainCount * 0.15) {
-      return;
-    }
+    const gpuNeedsRebuild = !currentSim || currentSim.textureWidth !== nextGpuDim;
+    const wasmSim = wasmSimRef.current;
+    const jsSim = jsCpuSimRef.current;
+    const cpuNeedsRebuild =
+      !wasmSim || wasmSim.grainCount !== nextCpuCount || !jsSim || jsSim.grainCount !== nextCpuCount;
 
-    const renderer = rendererRef.current;
-    const scene = sceneRef.current;
-    const grainMat = grainMaterialRef.current;
+    if (!gpuNeedsRebuild && !cpuNeedsRebuild) return;
 
-    if (grainPointsRef.current) {
-      scene.remove(grainPointsRef.current);
-      grainPointsRef.current.geometry.dispose();
-      grainPointsRef.current = null;
-    }
+    // Debounce slider drags; the last value in a 150 ms window wins.
+    const timer = window.setTimeout(() => {
+      if (pendingGrainCount.current !== nextCount) return;
 
-    simRef.current?.dispose();
+      const renderer = rendererRef.current;
+      const scene = sceneRef.current;
+      const grainMat = grainMaterialRef.current;
+      if (!renderer || !scene || !grainMat) return;
 
-    const cam = camDataRef.current;
-    const newSim = new ChladniGpuSimulation(renderer, params.grainCount, cam.z, cam.w);
-    simRef.current = newSim;
+      if (cpuNeedsRebuild) {
+        wasmSimRef.current?.dispose();
+        wasmSimRef.current = new ChladniWasmSimulation(nextCpuCount);
+        jsCpuSimRef.current = new ChladniJsCpuSimulation(nextCpuCount);
+      }
 
-    const count = newSim.grainCount;
-    const grainGeo = new THREE.BufferGeometry();
-    const positions = new Float32Array(count * 3);
-    const textureUvs = new Float32Array(count * 2);
+      if (!gpuNeedsRebuild) return;
 
-    for (let i = 0; i < count; i++) {
-      const u = ((i % newSim.textureWidth) + 0.5) / newSim.textureWidth;
-      const v = (Math.floor(i / newSim.textureWidth) + 0.5) / newSim.textureHeight;
-      textureUvs[i * 2 + 0] = u;
-      textureUvs[i * 2 + 1] = v;
-    }
+      if (grainPointsRef.current) {
+        scene.remove(grainPointsRef.current);
+        grainPointsRef.current.geometry.dispose();
+        grainPointsRef.current = null;
+      }
 
-    grainGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    grainGeo.setAttribute('aTextureUv', new THREE.BufferAttribute(textureUvs, 2));
+      simRef.current?.dispose();
 
-    grainMat.uniforms.uPosTex.value = newSim.getPositionTexture();
-    if (grainMat.uniforms.uGrainCount) {
-      grainMat.uniforms.uGrainCount.value = count;
-    }
+      const cam = camDataRef.current;
+      const newSim = new ChladniGpuSimulation(renderer, nextCount, cam.z, cam.w);
+      simRef.current = newSim;
 
-    const grainPoints = new THREE.Points(grainGeo, grainMat);
-    grainPoints.frustumCulled = false;
-    grainPoints.renderOrder = 1;
-    grainPoints.scale.x = params.flipHorizontal ? -1 : 1;
-    grainPoints.scale.y = params.flipVertical ? -1 : 1;
-    grainPoints.rotation.z = (params.rotationAngle * Math.PI) / 180;
+      const count = newSim.grainCount;
+      const grainGeo = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+      const textureUvs = new Float32Array(count * 2);
 
-    scene.add(grainPoints);
-    grainPointsRef.current = grainPoints;
+      for (let i = 0; i < count; i++) {
+        const u = ((i % newSim.textureWidth) + 0.5) / newSim.textureWidth;
+        const v = (Math.floor(i / newSim.textureWidth) + 0.5) / newSim.textureHeight;
+        textureUvs[i * 2 + 0] = u;
+        textureUvs[i * 2 + 1] = v;
+      }
+
+      grainGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      grainGeo.setAttribute('aTextureUv', new THREE.BufferAttribute(textureUvs, 2));
+
+      grainMat.uniforms.uPosTex.value = newSim.getPositionTexture();
+      if (grainMat.uniforms.uGrainCount) {
+        grainMat.uniforms.uGrainCount.value = count;
+      }
+
+      const grainPoints = new THREE.Points(grainGeo, grainMat);
+      grainPoints.frustumCulled = false;
+      grainPoints.renderOrder = 1;
+      grainPoints.scale.x = params.flipHorizontal ? -1 : 1;
+      grainPoints.scale.y = params.flipVertical ? -1 : 1;
+      grainPoints.rotation.z = (params.rotationAngle * Math.PI) / 180;
+
+      scene.add(grainPoints);
+      grainPointsRef.current = grainPoints;
+    }, 150);
+
+    return () => window.clearTimeout(timer);
   }, [params.grainCount]);
 
   // DOM elements rejection force & typography change — refresh text mask

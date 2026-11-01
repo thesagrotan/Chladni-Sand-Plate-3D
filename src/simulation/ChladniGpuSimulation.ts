@@ -195,6 +195,21 @@ void main() {
 }
 `;
 
+/**
+ * Maps a requested grain count to the simulation texture dimension. Changing
+ * within a bucket does not require rebuilding GPU textures.
+ */
+export function gpuTextureSizeForGrainCount(grainCount: number): number {
+  if (grainCount <= 7_500) return 72; // ~5,184 grains
+  if (grainCount <= 18_000) return 100; // 10,000 grains
+  if (grainCount <= 35_000) return 160; // 25,600 grains
+  if (grainCount <= 75_000) return 224; // 50,176 grains
+  if (grainCount <= 160_000) return 320; // 102,400 grains
+  if (grainCount <= 350_000) return 512; // 262,144 grains
+  if (grainCount <= 750_000) return 720; // 518,400 grains
+  return 1024; // 1,048,576 grains
+}
+
 export class ChladniGpuSimulation {
   public gpuCompute: GPUComputationRenderer;
   public posVariable: any;
@@ -208,15 +223,7 @@ export class ChladniGpuSimulation {
     initialHalfW = 2.0,
     initialHalfH = 1.05
   ) {
-    let dim = 1024;
-    if (grainCount <= 7_500) dim = 72; // ~5,184 grains
-    else if (grainCount <= 18_000) dim = 100; // 10,000 grains
-    else if (grainCount <= 35_000) dim = 160; // 25,600 grains
-    else if (grainCount <= 75_000) dim = 224; // 50,176 grains
-    else if (grainCount <= 160_000) dim = 320; // 102,400 grains
-    else if (grainCount <= 350_000) dim = 512; // 262,144 grains
-    else if (grainCount <= 750_000) dim = 720; // 518,400 grains
-    else dim = 1024; // 1,048,576 grains
+    const dim = gpuTextureSizeForGrainCount(grainCount);
 
     this.textureWidth = dim;
     this.textureHeight = dim;
