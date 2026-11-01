@@ -20,7 +20,7 @@ import {
   listVersions,
   saveVersion,
   deleteVersion,
-  restoreVersion,
+  restoreVersionEntry,
   SavedVersion,
 } from './utils/storage.ts';
 import { getPerceivedDotColor } from './utils/color.ts';
@@ -34,16 +34,16 @@ import {
 } from 'lucide-react';
 
 export default function App() {
+  const [initialSettings] = useState(loadSavedSettings);
   const [params, setParams] = useState<ChladniParams>(() => {
-    const { params: loadedParams } = loadSavedSettings();
     return {
-      ...loadedParams,
-      fontFamily: loadedParams.fontFamily || 'iAWriterQuattroV',
-      fontWeight: loadedParams.fontWeight ?? 400,
-      fontItalic: loadedParams.fontItalic ?? false,
-      fontSpacingAxis: loadedParams.fontSpacingAxis ?? 0,
-      fontElshAxis: loadedParams.fontElshAxis ?? 0,
-      fontLetterSpacing: loadedParams.fontLetterSpacing ?? 0,
+      ...initialSettings.params,
+      fontFamily: initialSettings.params.fontFamily || 'iAWriterQuattroV',
+      fontWeight: initialSettings.params.fontWeight ?? 400,
+      fontItalic: initialSettings.params.fontItalic ?? false,
+      fontSpacingAxis: initialSettings.params.fontSpacingAxis ?? 0,
+      fontElshAxis: initialSettings.params.fontElshAxis ?? 0,
+      fontLetterSpacing: initialSettings.params.fontLetterSpacing ?? 0,
       // Minimalist aesthetic palette: silica grains on dark plate
       sandColor: '#f7f5f0',
       sandColorSecondary: '#e4dfd3',
@@ -53,15 +53,9 @@ export default function App() {
       showVoidGuide: false,
     };
   });
-  const [hasSavedSettings, setHasSavedSettings] = useState<boolean>(() => {
-    return loadSavedSettings().hasSaved;
-  });
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(() => {
-    return loadSavedSettings().autoSave;
-  });
-  const [lastSavedTime, setLastSavedTime] = useState<string | null>(() => {
-    return loadSavedSettings().savedAt;
-  });
+  const [hasSavedSettings, setHasSavedSettings] = useState<boolean>(initialSettings.hasSaved);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(initialSettings.autoSave);
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(initialSettings.savedAt);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [savedVersions, setSavedVersions] = useState<SavedVersion[]>(() => listVersions());
 
@@ -120,10 +114,14 @@ export default function App() {
 
   // Handle explicit Save
   const handleSave = useCallback(() => {
-    const { timestamp } = saveSettings(params);
-    setHasSavedSettings(true);
-    setLastSavedTime(timestamp);
-    setToastMessage(`✓ Settings saved (${timestamp})`);
+    const { success, timestamp } = saveSettings(params);
+    if (success) {
+      setHasSavedSettings(true);
+      setLastSavedTime(timestamp);
+      setToastMessage(`✓ Settings saved (${timestamp})`);
+    } else {
+      setToastMessage('⚠ Could not save settings to storage');
+    }
   }, [params]);
 
   // Handle explicit Reset to defaults
@@ -157,11 +155,10 @@ export default function App() {
 
   // Handle Restore Version
   const handleRestoreVersion = useCallback((id: string) => {
-    const restored = restoreVersion(id);
+    const restored = restoreVersionEntry(id);
     if (!restored) return;
-    const version = listVersions().find((v) => v.id === id);
-    setParams(restored);
-    setToastMessage(`↩ Restored: "${version?.label ?? id}"`);
+    setParams(restored.params);
+    setToastMessage(`↩ Restored: "${restored.version.label}"`);
   }, []);
 
   // Handle Delete Version

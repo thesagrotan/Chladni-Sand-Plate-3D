@@ -79,6 +79,21 @@ function storageRemove(key: string): void {
   }
 }
 
+function sanitizeNumber(value: unknown, fallback: number, min: number, max: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, value));
+}
+
+function sanitizeString(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
+}
+
+const HEX_COLOR_PATTERN = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+
+function sanitizeColor(value: unknown, fallback: string): string {
+  return typeof value === 'string' && HEX_COLOR_PATTERN.test(value) ? value : fallback;
+}
+
 /**
  * Validates and sanitizes raw settings object against ChladniParams schema.
  */
@@ -94,23 +109,33 @@ export function sanitizeParams(raw: unknown): ChladniParams {
   } as ChladniParams;
 
   // Numeric bounds and fallback checks
-  if (typeof merged.modeM !== 'number' || isNaN(merged.modeM)) merged.modeM = DEFAULT_PARAMS.modeM;
-  if (typeof merged.modeN !== 'number' || isNaN(merged.modeN)) merged.modeN = DEFAULT_PARAMS.modeN;
-  if (typeof merged.waveK !== 'number' || isNaN(merged.waveK)) merged.waveK = DEFAULT_PARAMS.waveK;
-  if (typeof merged.symmetryBlend !== 'number' || isNaN(merged.symmetryBlend)) merged.symmetryBlend = DEFAULT_PARAMS.symmetryBlend;
-  if (typeof merged.driveStrength !== 'number' || isNaN(merged.driveStrength)) merged.driveStrength = DEFAULT_PARAMS.driveStrength;
-  if (typeof merged.grainCount !== 'number' || isNaN(merged.grainCount) || merged.grainCount <= 0) merged.grainCount = DEFAULT_PARAMS.grainCount;
-  if (typeof merged.grainSize !== 'number' || isNaN(merged.grainSize) || merged.grainSize <= 0) merged.grainSize = DEFAULT_PARAMS.grainSize;
-  if (typeof merged.centerVoidRadius !== 'number' || isNaN(merged.centerVoidRadius)) merged.centerVoidRadius = DEFAULT_PARAMS.centerVoidRadius;
-  if (typeof merged.centerExpulsion !== 'number' || isNaN(merged.centerExpulsion)) merged.centerExpulsion = DEFAULT_PARAMS.centerExpulsion;
-  if (typeof merged.domRepulsion !== 'number' || isNaN(merged.domRepulsion)) merged.domRepulsion = DEFAULT_PARAMS.domRepulsion;
-  if (typeof merged.rotationAngle !== 'number' || isNaN(merged.rotationAngle)) merged.rotationAngle = DEFAULT_PARAMS.rotationAngle;
-  if (typeof merged.fieldOverlay !== 'number' || isNaN(merged.fieldOverlay)) merged.fieldOverlay = DEFAULT_PARAMS.fieldOverlay;
-  if (typeof merged.nodalPronouncement !== 'number' || isNaN(merged.nodalPronouncement)) merged.nodalPronouncement = DEFAULT_PARAMS.nodalPronouncement;
+  merged.modeM = sanitizeNumber(merged.modeM, DEFAULT_PARAMS.modeM, 1, 14);
+  merged.modeN = sanitizeNumber(merged.modeN, DEFAULT_PARAMS.modeN, 1, 14);
+  merged.waveK = sanitizeNumber(merged.waveK, DEFAULT_PARAMS.waveK, 10, 50);
+  merged.symmetryBlend = sanitizeNumber(merged.symmetryBlend, DEFAULT_PARAMS.symmetryBlend, 0, 1);
+  merged.driveStrength = sanitizeNumber(merged.driveStrength, DEFAULT_PARAMS.driveStrength, 0.5, 8);
+  merged.grainCount = Math.round(sanitizeNumber(merged.grainCount, DEFAULT_PARAMS.grainCount, 5_000, 1_000_000));
+  merged.grainSize = sanitizeNumber(merged.grainSize, DEFAULT_PARAMS.grainSize, 0.2, 4);
+  merged.centerVoidRadius = sanitizeNumber(merged.centerVoidRadius, DEFAULT_PARAMS.centerVoidRadius, 0, 0.55);
+  merged.centerExpulsion = sanitizeNumber(merged.centerExpulsion, DEFAULT_PARAMS.centerExpulsion, 0, 5);
+  merged.domRepulsion = sanitizeNumber(merged.domRepulsion, DEFAULT_PARAMS.domRepulsion, 0, 10);
+  merged.rotationAngle = sanitizeNumber(merged.rotationAngle, DEFAULT_PARAMS.rotationAngle, 0, 360);
+  merged.fieldOverlay = sanitizeNumber(merged.fieldOverlay, DEFAULT_PARAMS.fieldOverlay, 0, 1);
+  merged.nodalPronouncement = sanitizeNumber(merged.nodalPronouncement, DEFAULT_PARAMS.nodalPronouncement, 0, 1);
 
-  if (typeof merged.audioVolume !== 'number' || isNaN(merged.audioVolume)) merged.audioVolume = DEFAULT_PARAMS.audioVolume;
-  if (typeof merged.audioPlaybackRate !== 'number' || isNaN(merged.audioPlaybackRate)) merged.audioPlaybackRate = DEFAULT_PARAMS.audioPlaybackRate;
-  if (typeof merged.audioReactiveIntensity !== 'number' || isNaN(merged.audioReactiveIntensity)) merged.audioReactiveIntensity = DEFAULT_PARAMS.audioReactiveIntensity;
+  merged.fontWeight = Math.round(sanitizeNumber(merged.fontWeight, DEFAULT_PARAMS.fontWeight, 100, 900));
+  merged.fontSpacingAxis = Math.round(sanitizeNumber(merged.fontSpacingAxis, DEFAULT_PARAMS.fontSpacingAxis, 0, 150));
+  merged.fontElshAxis = Math.round(sanitizeNumber(merged.fontElshAxis, DEFAULT_PARAMS.fontElshAxis, 0, 100));
+  merged.fontLetterSpacing = sanitizeNumber(merged.fontLetterSpacing, DEFAULT_PARAMS.fontLetterSpacing, -2, 10);
+
+  merged.audioVolume = sanitizeNumber(merged.audioVolume, DEFAULT_PARAMS.audioVolume, 0, 1);
+  merged.audioPlaybackRate = sanitizeNumber(merged.audioPlaybackRate, DEFAULT_PARAMS.audioPlaybackRate, 0.5, 2);
+  merged.audioReactiveIntensity = sanitizeNumber(
+    merged.audioReactiveIntensity,
+    DEFAULT_PARAMS.audioReactiveIntensity,
+    0,
+    1
+  );
 
   // Validate enumeration fields
   const validGrids: GridType[] = ['annular', 'rectangular', 'polar', 'hexagonal', 'diamond', 'web'];
@@ -125,6 +150,10 @@ export function sanitizeParams(raw: unknown): ChladniParams {
   const validAudioSources = ['umbrafono', 'synth', 'hybrid'];
   if (!validAudioSources.includes(merged.audioSource)) merged.audioSource = DEFAULT_PARAMS.audioSource;
 
+  // Typography
+  merged.fontFamily = sanitizeString(merged.fontFamily, DEFAULT_PARAMS.fontFamily);
+  merged.fontItalic = Boolean(merged.fontItalic);
+
   // Booleans
   merged.flipHorizontal = Boolean(merged.flipHorizontal);
   merged.flipVertical = Boolean(merged.flipVertical);
@@ -136,11 +165,11 @@ export function sanitizeParams(raw: unknown): ChladniParams {
   merged.audioPitchLinked = Boolean(merged.audioPitchLinked);
 
   // String color checks
-  if (typeof merged.sandColor !== 'string' || !merged.sandColor.startsWith('#')) merged.sandColor = DEFAULT_PARAMS.sandColor;
-  if (typeof merged.sandColorSecondary !== 'string' || !merged.sandColorSecondary.startsWith('#')) merged.sandColorSecondary = DEFAULT_PARAMS.sandColorSecondary;
-  if (typeof merged.plateColor !== 'string' || !merged.plateColor.startsWith('#')) merged.plateColor = DEFAULT_PARAMS.plateColor;
-  if (typeof merged.glowColor !== 'string' || !merged.glowColor.startsWith('#')) merged.glowColor = DEFAULT_PARAMS.glowColor;
-  if (typeof merged.paletteId !== 'string') merged.paletteId = DEFAULT_PARAMS.paletteId;
+  merged.sandColor = sanitizeColor(merged.sandColor, DEFAULT_PARAMS.sandColor);
+  merged.sandColorSecondary = sanitizeColor(merged.sandColorSecondary, DEFAULT_PARAMS.sandColorSecondary);
+  merged.plateColor = sanitizeColor(merged.plateColor, DEFAULT_PARAMS.plateColor);
+  merged.glowColor = sanitizeColor(merged.glowColor, DEFAULT_PARAMS.glowColor);
+  merged.paletteId = sanitizeString(merged.paletteId, DEFAULT_PARAMS.paletteId);
 
   return merged;
 }
@@ -263,10 +292,23 @@ export function deleteVersion(id: string): SavedVersion[] {
 }
 
 /**
+ * Finds a saved version by id without reading the history twice.
+ */
+export function getVersion(id: string): SavedVersion | null {
+  return listVersions().find((v) => v.id === id) ?? null;
+}
+
+/**
+ * Finds a saved version and its sanitized params in a single lookup.
+ */
+export function restoreVersionEntry(id: string): { version: SavedVersion; params: ChladniParams } | null {
+  const version = getVersion(id);
+  return version ? { version, params: sanitizeParams(version.params) } : null;
+}
+
+/**
  * Finds and returns the params of a saved version by id, or null if not found.
  */
 export function restoreVersion(id: string): ChladniParams | null {
-  const version = listVersions().find((v) => v.id === id);
-  if (!version) return null;
-  return sanitizeParams(version.params);
+  return restoreVersionEntry(id)?.params ?? null;
 }

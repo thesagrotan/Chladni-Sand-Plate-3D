@@ -49,13 +49,52 @@ describe('sanitizeParams', () => {
     });
 
     expect(result.modeM).toBe(DEFAULT_PARAMS.modeM);
-    expect(result.grainCount).toBe(DEFAULT_PARAMS.grainCount);
+    expect(result.grainCount).toBe(5_000);
     expect(result.gridType).toBe(DEFAULT_PARAMS.gridType);
     expect(result.centerVoidShape).toBe(DEFAULT_PARAMS.centerVoidShape);
     expect(result.simulationEngine).toBe(DEFAULT_PARAMS.simulationEngine);
     expect(result.audioSource).toBe(DEFAULT_PARAMS.audioSource);
     expect(result.sandColor).toBe(DEFAULT_PARAMS.sandColor);
     expect(result.paletteId).toBe(DEFAULT_PARAMS.paletteId);
+  });
+
+  it('clamps out-of-range numeric and typography fields', async () => {
+    const { sanitizeParams } = await loadStorageModule();
+
+    const result = sanitizeParams({
+      ...DEFAULT_PARAMS,
+      modeM: 99,
+      waveK: -100,
+      driveStrength: 100,
+      grainCount: 1,
+      grainSize: 99,
+      centerVoidRadius: 9,
+      audioVolume: 5,
+      audioPlaybackRate: 0.1,
+      fontWeight: 50,
+      fontSpacingAxis: 999,
+      fontElshAxis: -10,
+      fontLetterSpacing: 99,
+      fontFamily: '   ',
+      fontItalic: 1,
+      sandColor: 'not-a-color',
+    });
+
+    expect(result.modeM).toBe(14);
+    expect(result.waveK).toBe(10);
+    expect(result.driveStrength).toBe(8);
+    expect(result.grainCount).toBe(5_000);
+    expect(result.grainSize).toBe(4);
+    expect(result.centerVoidRadius).toBe(0.55);
+    expect(result.audioVolume).toBe(1);
+    expect(result.audioPlaybackRate).toBe(0.5);
+    expect(result.fontWeight).toBe(100);
+    expect(result.fontSpacingAxis).toBe(150);
+    expect(result.fontElshAxis).toBe(0);
+    expect(result.fontLetterSpacing).toBe(10);
+    expect(result.fontFamily).toBe(DEFAULT_PARAMS.fontFamily);
+    expect(result.fontItalic).toBe(true);
+    expect(result.sandColor).toBe(DEFAULT_PARAMS.sandColor);
   });
 
   it('coerces boolean fields and keeps valid persisted void settings', async () => {
@@ -163,7 +202,13 @@ describe('loadSavedSettings / saveSettings', () => {
 
 describe('version history', () => {
   it('saves, lists, restores and deletes versions', async () => {
-    const { saveVersion, listVersions, restoreVersion, deleteVersion } = await loadStorageModule();
+    const {
+      saveVersion,
+      listVersions,
+      restoreVersion,
+      restoreVersionEntry,
+      deleteVersion,
+    } = await loadStorageModule();
     const params = sampleParams({ modeM: 7.25 });
 
     const versions = saveVersion(params, '  My preset  ');
@@ -172,6 +217,8 @@ describe('version history', () => {
     expect(listVersions()).toHaveLength(1);
 
     expect(restoreVersion(versions[0].id)).toEqual(params);
+    expect(restoreVersionEntry(versions[0].id)?.version.label).toBe('My preset');
+    expect(restoreVersionEntry(versions[0].id)?.params).toEqual(params);
 
     const remaining = deleteVersion(versions[0].id);
     expect(remaining).toHaveLength(0);
