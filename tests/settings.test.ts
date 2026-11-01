@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_PARAMS } from '../src/types/chladni.ts';
-import { applyBrandPalette, BRAND_PALETTE } from '../src/utils/settings.ts';
+import { applyBrandPalette, BRAND_PALETTE, hydrateParams } from '../src/utils/settings.ts';
 
 describe('applyBrandPalette', () => {
   it('forces the brand colors and silica palette id', () => {
@@ -20,6 +20,23 @@ describe('applyBrandPalette', () => {
     expect(hydrated.sandColorSecondary).toBe(BRAND_PALETTE.sandColorSecondary);
     expect(hydrated.plateColor).toBe(BRAND_PALETTE.plateColor);
     expect(hydrated.glowColor).toBe(BRAND_PALETTE.glowColor);
+  });
+
+  it('hydrates typography and the brand palette while preserving voids', () => {
+    const saved = {
+      ...DEFAULT_PARAMS,
+      fontFamily: '',
+      centerVoidRadius: 0.31,
+      showVoidGuide: true,
+      paletteId: 'crimson_ruby',
+    };
+
+    const hydrated = hydrateParams(saved);
+
+    expect(hydrated.fontFamily).toBe(DEFAULT_PARAMS.fontFamily);
+    expect(hydrated.paletteId).toBe('silica');
+    expect(hydrated.centerVoidRadius).toBe(0.31);
+    expect(hydrated.showVoidGuide).toBe(true);
   });
 
   it('preserves saved void, preset, and simulation settings', () => {

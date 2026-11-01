@@ -1,29 +1,13 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import {
-  ChladniParams,
-  ChladniMetrics,
-  DEFAULT_PARAMS,
-  buildFontVariationSettings,
-} from './types/chladni.ts';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { ChladniMetrics, buildFontVariationSettings } from './types/chladni.ts';
 import { randomizeGridParams } from './utils/grid.ts';
-import { applyBrandPalette } from './utils/settings.ts';
+import { useChladniSettings } from './hooks/useChladniSettings.ts';
 import { ChladniCanvas } from './components/ChladniCanvas.tsx';
 import { HudStats } from './components/HudStats.tsx';
 import { ControlPanel } from './components/ControlPanel.tsx';
 import { WasmResearchLab } from './components/WasmResearchLab.tsx';
 import { CustomCursor } from './components/CircleCursor.tsx';
 import { plateSynth } from './simulation/audioSynth.ts';
-import {
-  loadSavedSettings,
-  saveSettings,
-  clearSavedSettings,
-  setAutoSavePreference,
-  listVersions,
-  saveVersion,
-  deleteVersion,
-  restoreVersionEntry,
-  SavedVersion,
-} from './utils/storage.ts';
 import { getPerceivedDotColor } from './utils/color.ts';
 import {
   Volume2,
@@ -35,26 +19,22 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  const [initialSettings] = useState(loadSavedSettings);
-  const [params, setParams] = useState<ChladniParams>(() => {
-    return applyBrandPalette({
-      ...initialSettings.params,
-      fontFamily: initialSettings.params.fontFamily || 'iAWriterQuattroV',
-      fontWeight: initialSettings.params.fontWeight ?? 400,
-      fontItalic: initialSettings.params.fontItalic ?? false,
-      fontSpacingAxis: initialSettings.params.fontSpacingAxis ?? 0,
-      fontElshAxis: initialSettings.params.fontElshAxis ?? 0,
-      fontLetterSpacing: initialSettings.params.fontLetterSpacing ?? 0,
-    });
-  });
-  const [hasSavedSettings, setHasSavedSettings] = useState<boolean>(initialSettings.hasSaved);
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(initialSettings.autoSave);
-  const [lastSavedTime, setLastSavedTime] = useState<string | null>(initialSettings.savedAt);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [savedVersions, setSavedVersions] = useState<SavedVersion[]>(() => listVersions());
+  const {
+    params,
+    setParams,
+    hasSavedSettings,
+    autoSaveEnabled,
+    lastSavedTime,
+    savedVersions,
+    save,
+    reset,
+    toggleAutoSave,
+    saveVersion,
+    restoreVersion,
+    deleteVersion,
+  } = useChladniSettings();
 
-  const isResettingRef = useRef<boolean>(false);
-  const isMountedRef = useRef<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [metrics, setMetrics] = useState<ChladniMetrics>({
     settledPercent: 37.9,
@@ -108,76 +88,55 @@ export default function App() {
 
   // Handle explicit Save
   const handleSave = useCallback(() => {
-    const { success, timestamp } = saveSettings(params);
+    const { success, timestamp } = save();
     if (success) {
-      setHasSavedSettings(true);
-      setLastSavedTime(timestamp);
       setToastMessage(`✓ Settings saved (${timestamp})`);
     } else {
       setToastMessage('⚠ Could not save settings to storage');
     }
-  }, [params]);
+  }, [save]);
 
   // Handle explicit Reset to defaults
   const handleReset = useCallback(() => {
-    isResettingRef.current = true;
-    clearSavedSettings();
-    setHasSavedSettings(false);
-    setLastSavedTime(null);
-    setParams(DEFAULT_PARAMS);
+    reset();
     setIsPaused(false);
     setResetTrigger((prev) => prev + 1);
     setToastMessage('↺ Settings reset to factory defaults');
-  }, []);
+  }, [reset]);
 
   // Handle Toggle Auto-Save
   const handleToggleAutoSave = useCallback(() => {
-    setAutoSaveEnabled((prev) => {
-      const next = !prev;
-      setAutoSavePreference(next);
-      setToastMessage(next ? '✓ Auto-save enabled' : 'Auto-save disabled');
-      return next;
-    });
-  }, []);
+    const next = toggleAutoSave();
+    setToastMessage(next ? '✓ Auto-save enabled' : 'Auto-save disabled');
+  }, [toggleAutoSave]);
 
   // Handle Save Version (named snapshot)
-  const handleSaveVersion = useCallback((label: string) => {
-    const updated = saveVersion(params, label);
-    setSavedVersions(updated);
-    setToastMessage(`📌 Version saved: "${label || updated[0].label}"`);
-  }, [params]);
+  const handleSaveVersion = useCallback(
+    (label: string) => {
+      const updated = saveVersion(label);
+      setToastMessage(`📌 Version saved: "${label || updated[0].label}"`);
+    },
+    [saveVersion]
+  );
 
   // Handle Restore Version
-  const handleRestoreVersion = useCallback((id: string) => {
-    const restored = restoreVersionEntry(id);
-    if (!restored) return;
-    setParams(restored.params);
-    setToastMessage(`↩ Restored: "${restored.version.label}"`);
-  }, []);
+  const handleRestoreVersion = useCallback(
+    (id: string) => {
+      const restored = restoreVersion(id);
+      if (!restored) return;
+      setToastMessage(`↩ Restored: "${restored.version.label}"`);
+    },
+    [restoreVersion]
+  );
 
   // Handle Delete Version
-  const handleDeleteVersion = useCallback((id: string) => {
-    const updated = deleteVersion(id);
-    setSavedVersions(updated);
-    setToastMessage('🗑 Version deleted');
-  }, []);
-
-  // Persist settings across sessions when autoSave is enabled
-  useEffect(() => {
-    if (!isMountedRef.current) {
-      isMountedRef.current = true;
-      return;
-    }
-    if (isResettingRef.current) {
-      isResettingRef.current = false;
-      return;
-    }
-    if (autoSaveEnabled) {
-      const { timestamp } = saveSettings(params);
-      setHasSavedSettings(true);
-      setLastSavedTime(timestamp);
-    }
-  }, [params, autoSaveEnabled]);
+  const handleDeleteVersion = useCallback(
+    (id: string) => {
+      deleteVersion(id);
+      setToastMessage('🗑 Version deleted');
+    },
+    [deleteVersion]
+  );
 
   // Audio Engine Synchronization with Chladni Settings
   useEffect(() => {
