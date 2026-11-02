@@ -19,8 +19,21 @@ export const AudioVisualizer: React.FC<{ isEnabled: boolean }> = ({ isEnabled })
       ctx.fillStyle = '#08090d';
       ctx.fillRect(0, 0, width, height);
 
+      // When audio is disabled, draw the idle line once and stop the loop —
+      // a second unconditional rAF loop would compete with the simulation's.
       const freqData = plateAudio.getFrequencyData();
       if (!isEnabled || !freqData) {
+        ctx.strokeStyle = '#22252d';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, height / 2);
+        ctx.lineTo(width, height / 2);
+        ctx.stroke();
+        return;
+      }
+
+      const isPlaying = plateAudio.getIsPlaying();
+      if (!isPlaying) {
         ctx.strokeStyle = '#22252d';
         ctx.lineWidth = 1;
         ctx.beginPath();

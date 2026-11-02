@@ -372,6 +372,11 @@ class AcousticPlateAudioEngine {
     return this.freqData;
   }
 
+  /** Lightweight accessor — lets visualizers stop their loop when nothing is playing. */
+  public getIsPlaying(): boolean {
+    return !!(this.audioEl && !this.audioEl.paused && this.isEnabled);
+  }
+
   /**
    * Seek audio track to specific time in seconds.
    */
