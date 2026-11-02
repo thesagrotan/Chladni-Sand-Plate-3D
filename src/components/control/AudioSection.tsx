@@ -32,7 +32,7 @@ export const AudioSection: React.FC<AudioSectionProps> = ({
         <button
           type="button"
           onClick={onToggleAudio}
-          className={`text-[9px] px-1.5 py-0.5 rounded font-medium border flex items-center gap-1 transition-all cursor-pointer ${
+          className={`text-[9px] px-1.5 py-0.5 rounded font-medium border flex items-center gap-1 transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
             isAudioEnabled
               ? 'bg-amber-950 text-amber-300 border-amber-600/70 shadow-xs'
               : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
@@ -87,7 +87,7 @@ export const AudioSection: React.FC<AudioSectionProps> = ({
             key={s.id}
             type="button"
             onClick={() => updateParam('audioSource', s.id as any)}
-            className={`py-1 rounded text-[10px] font-medium border text-center transition-all cursor-pointer ${
+            className={`py-1 rounded text-[10px] font-medium border text-center transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
               params.audioSource === s.id
                 ? 'bg-amber-400 text-neutral-950 border-amber-300 font-bold shadow-xs'
                 : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'

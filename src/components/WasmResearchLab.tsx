@@ -452,7 +452,7 @@ registerProcessor('chladni-audio-processor', ChladniAudioProcessor);`;
                     type="button"
                     onClick={() => runBenchmark(sampleSize)}
                     disabled={isBenchmarking}
-                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-medium text-xs shadow-lg shadow-cyan-500/20 transition-all disabled:opacity-50"
+                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-medium text-xs shadow-lg shadow-cyan-500/20 transition-[background-color,border-color,color,opacity,transform,box-shadow] disabled:opacity-50"
                   >
                     <Play size={13} className={isBenchmarking ? 'animate-spin' : ''} />
                     {isBenchmarking ? 'Benchmarking...' : 'Run Benchmark'}
@@ -583,7 +583,7 @@ registerProcessor('chladni-audio-processor', ChladniAudioProcessor);`;
                   <button
                     type="button"
                     onClick={() => onSelectEngine?.('gpu')}
-                    className={`p-3.5 rounded-xl text-left border transition-all ${
+                    className={`p-3.5 rounded-xl text-left border transition-[background-color,border-color,color,opacity,transform,box-shadow] ${
                       currentEngine === 'gpu'
                         ? 'bg-neutral-850 border-cyan-500 shadow-md shadow-cyan-500/10'
                         : 'bg-neutral-950/60 border-neutral-800 hover:border-neutral-700'
@@ -603,7 +603,7 @@ registerProcessor('chladni-audio-processor', ChladniAudioProcessor);`;
                   <button
                     type="button"
                     onClick={() => onSelectEngine?.('wasm')}
-                    className={`p-3.5 rounded-xl text-left border transition-all ${
+                    className={`p-3.5 rounded-xl text-left border transition-[background-color,border-color,color,opacity,transform,box-shadow] ${
                       currentEngine === 'wasm'
                         ? 'bg-neutral-850 border-cyan-500 shadow-md shadow-cyan-500/10'
                         : 'bg-neutral-950/60 border-neutral-800 hover:border-neutral-700'
@@ -623,7 +623,7 @@ registerProcessor('chladni-audio-processor', ChladniAudioProcessor);`;
                   <button
                     type="button"
                     onClick={() => onSelectEngine?.('js_cpu')}
-                    className={`p-3.5 rounded-xl text-left border transition-all ${
+                    className={`p-3.5 rounded-xl text-left border transition-[background-color,border-color,color,opacity,transform,box-shadow] ${
                       currentEngine === 'js_cpu'
                         ? 'bg-neutral-850 border-cyan-500 shadow-md shadow-cyan-500/10'
                         : 'bg-neutral-950/60 border-neutral-800 hover:border-neutral-700'

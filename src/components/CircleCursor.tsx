@@ -133,7 +133,7 @@ export const CustomCursor: React.FC<CustomCursorProps> = ({
       aria-hidden="true"
     >
       <div
-        className={`relative -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-all duration-150 ease-out ${
+        className={`relative -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-[width,height,background-color,border-color,color,opacity,transform,box-shadow] duration-150 ease-out ${
           isSquare ? 'rounded-none' : 'rounded-full'
         }`}
         style={{

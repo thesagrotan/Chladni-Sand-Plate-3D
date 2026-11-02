@@ -63,7 +63,7 @@ export const ColorThemesSection: React.FC<ColorThemesSectionProps> = ({
                 type="button"
                 onClick={() => handleApplyPalette(pal.id)}
                 title={`${pal.name} (Sand: ${pal.sandPrimary}, Plate: ${pal.plate})`}
-                className={`flex items-center gap-1 px-1.5 py-1 rounded-md border text-[10px] transition-all cursor-pointer ${
+                className={`flex items-center gap-1 px-1.5 py-1 rounded-md border text-[10px] transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
                   isSelected
                     ? 'bg-neutral-900 text-white border-cyan-400 shadow-xs ring-1 ring-cyan-400/40'
                     : 'bg-neutral-950/70 text-neutral-400 border-neutral-800 hover:text-neutral-200'

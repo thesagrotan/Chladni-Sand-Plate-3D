@@ -62,7 +62,7 @@ export const GridSection: React.FC<GridSectionProps> = ({ params, updateParam })
               type="button"
               onClick={() => updateParam('gridType', t.type)}
               title={t.desc}
-              className={`py-1.5 px-1.5 rounded-md border flex items-center gap-1.5 text-left transition-all cursor-pointer ${
+              className={`py-1.5 px-1.5 rounded-md border flex items-center gap-1.5 text-left transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
                 isActive
                   ? 'bg-neutral-200 text-neutral-950 font-semibold border-white shadow-xs'
                   : 'bg-neutral-900/80 text-neutral-300 border-neutral-800 hover:bg-neutral-800 hover:text-white'
@@ -82,7 +82,7 @@ export const GridSection: React.FC<GridSectionProps> = ({ params, updateParam })
         <button
           type="button"
           onClick={() => updateParam('flipHorizontal', !params.flipHorizontal)}
-          className={`flex-1 py-1 rounded border text-[10px] font-medium flex items-center justify-center gap-1 transition-all cursor-pointer ${
+          className={`flex-1 py-1 rounded border text-[10px] font-medium flex items-center justify-center gap-1 transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
             params.flipHorizontal
               ? 'bg-cyan-950 border-cyan-500 text-cyan-300'
               : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
@@ -96,7 +96,7 @@ export const GridSection: React.FC<GridSectionProps> = ({ params, updateParam })
         <button
           type="button"
           onClick={() => updateParam('flipVertical', !params.flipVertical)}
-          className={`flex-1 py-1 rounded border text-[10px] font-medium flex items-center justify-center gap-1 transition-all cursor-pointer ${
+          className={`flex-1 py-1 rounded border text-[10px] font-medium flex items-center justify-center gap-1 transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
             params.flipVertical
               ? 'bg-cyan-950 border-cyan-500 text-cyan-300'
               : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
@@ -110,7 +110,7 @@ export const GridSection: React.FC<GridSectionProps> = ({ params, updateParam })
         <button
           type="button"
           onClick={handleRotate90}
-          className="flex-1 py-1 rounded bg-neutral-900 text-neutral-300 border border-neutral-800 hover:text-white hover:bg-neutral-800 text-[10px] font-medium flex items-center justify-center gap-1 transition-all cursor-pointer"
+          className="flex-1 py-1 rounded bg-neutral-900 text-neutral-300 border border-neutral-800 hover:text-white hover:bg-neutral-800 text-[10px] font-medium flex items-center justify-center gap-1 transition-[background-color,border-color,color,opacity,transform] cursor-pointer"
           title="Rotate canvas 90 degrees clockwise"
         >
           <RotateCw size={11} />
@@ -253,7 +253,7 @@ export const GridSection: React.FC<GridSectionProps> = ({ params, updateParam })
                 key={preset.label}
                 type="button"
                 onClick={() => updateParam('domRepulsion', preset.value)}
-                className={`text-[9px] py-0.5 rounded border text-center transition-all cursor-pointer font-mono ${
+                className={`text-[9px] py-0.5 rounded border text-center transition-[background-color,border-color,color,opacity,transform] cursor-pointer font-mono ${
                   isActive
                     ? 'bg-neutral-200 text-neutral-950 font-semibold border-white shadow-xs'
                     : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'

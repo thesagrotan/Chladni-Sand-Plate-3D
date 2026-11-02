@@ -76,7 +76,7 @@ export const PresetsSection: React.FC<PresetsSectionProps> = ({
                   });
                   setShowPresets(false);
                 }}
-                className="text-left p-1.5 rounded bg-neutral-950 hover:bg-neutral-850 text-neutral-300 hover:text-white border border-neutral-800/80 transition-all flex flex-col cursor-pointer"
+                className="text-left p-1.5 rounded bg-neutral-950 hover:bg-neutral-850 text-neutral-300 hover:text-white border border-neutral-800/80 transition-[background-color,border-color,color,opacity,transform] flex flex-col cursor-pointer"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-semibold text-white">{preset.name}</span>

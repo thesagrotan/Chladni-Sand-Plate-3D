@@ -67,7 +67,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
         <button
           type="button"
           onClick={onOpenWasmLab}
-          className="h-8 px-2.5 rounded-lg flex items-center gap-1 text-xs font-semibold border shadow-xl bg-gradient-to-r from-cyan-950/90 to-indigo-950/90 border-cyan-500/60 text-cyan-300 hover:text-white hover:border-cyan-400 backdrop-blur transition-all cursor-pointer group"
+          className="h-8 px-2.5 rounded-lg flex items-center gap-1 text-xs font-semibold border shadow-xl bg-gradient-to-r from-cyan-950/90 to-indigo-950/90 border-cyan-500/60 text-cyan-300 hover:text-white hover:border-cyan-400 backdrop-blur transition-[background-color,border-color,color,opacity,transform] cursor-pointer group"
           title="Open WebAssembly Performance Research & Live Benchmarking Lab"
         >
           <Zap size={12} className="text-cyan-400 group-hover:scale-110 transition-transform" />
@@ -82,7 +82,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
           const updates = nextFontUpdates(allFonts, params);
           if (updates) updateParams(updates);
         }}
-        className="h-8 px-2.5 rounded-lg border border-cyan-800/60 bg-neutral-900/90 hover:bg-neutral-800 text-cyan-300 hover:text-white shadow-lg backdrop-blur transition-all flex items-center gap-1 text-xs font-medium cursor-pointer"
+        className="h-8 px-2.5 rounded-lg border border-cyan-800/60 bg-neutral-900/90 hover:bg-neutral-800 text-cyan-300 hover:text-white shadow-lg backdrop-blur transition-[background-color,border-color,color,opacity,transform] flex items-center gap-1 text-xs font-medium cursor-pointer"
         title={`Active Font: ${currentFont?.name || params.fontFamily} — Click to cycle fonts`}
       >
         <Type size={12} className="text-cyan-400" />
@@ -93,7 +93,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
       <button
         type="button"
         onClick={() => updateParam('flipHorizontal', !params.flipHorizontal)}
-        className={`h-8 px-2 rounded-lg flex items-center gap-1 text-xs font-medium border shadow-lg backdrop-blur transition-all cursor-pointer ${
+        className={`h-8 px-2 rounded-lg flex items-center gap-1 text-xs font-medium border shadow-lg backdrop-blur transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
           params.flipHorizontal
             ? 'bg-cyan-950/90 border-cyan-500 text-cyan-300'
             : 'bg-neutral-900/90 border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-800'
@@ -108,7 +108,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
       <button
         type="button"
         onClick={() => updateParam('flipVertical', !params.flipVertical)}
-        className={`h-8 px-2 rounded-lg flex items-center gap-1 text-xs font-medium border shadow-lg backdrop-blur transition-all cursor-pointer ${
+        className={`h-8 px-2 rounded-lg flex items-center gap-1 text-xs font-medium border shadow-lg backdrop-blur transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
           params.flipVertical
             ? 'bg-cyan-950/90 border-cyan-500 text-cyan-300'
             : 'bg-neutral-900/90 border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-800'
@@ -123,7 +123,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
       <button
         type="button"
         onClick={onToggleAudio}
-        className={`h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-medium border shadow-lg backdrop-blur transition-all cursor-pointer ${
+        className={`h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-medium border shadow-lg backdrop-blur transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
           isAudioEnabled
             ? 'bg-amber-950/80 border-amber-500/60 text-amber-200 hover:border-amber-400 shadow-amber-950/40'
             : 'bg-neutral-900/90 border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-800'
@@ -154,7 +154,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
       <button
         type="button"
         onClick={onTogglePause}
-        className="h-8 px-2.5 rounded-lg bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 hover:text-white shadow-lg backdrop-blur transition-all flex items-center gap-1 text-xs font-medium cursor-pointer"
+        className="h-8 px-2.5 rounded-lg bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 hover:text-white shadow-lg backdrop-blur transition-[background-color,border-color,color,opacity,transform] flex items-center gap-1 text-xs font-medium cursor-pointer"
       >
         {isPaused ? <Play size={12} /> : <Pause size={12} />}
         <span>{isPaused ? 'Play' : 'Pause'}</span>
@@ -164,7 +164,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
       <button
         type="button"
         onClick={onScatter}
-        className="h-8 px-2.5 rounded-lg bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 hover:text-white shadow-lg backdrop-blur transition-all flex items-center gap-1 text-xs font-medium cursor-pointer"
+        className="h-8 px-2.5 rounded-lg bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 hover:text-white shadow-lg backdrop-blur transition-[background-color,border-color,color,opacity,transform] flex items-center gap-1 text-xs font-medium cursor-pointer"
         title="Scatter grains randomly across plate (S)"
       >
         <Sparkles size={12} />
@@ -175,7 +175,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
       <button
         type="button"
         onClick={onSave}
-        className={`h-8 px-2.5 rounded-lg border shadow-lg backdrop-blur transition-all flex items-center gap-1 text-xs font-medium cursor-pointer ${
+        className={`h-8 px-2.5 rounded-lg border shadow-lg backdrop-blur transition-[background-color,border-color,color,opacity,transform] flex items-center gap-1 text-xs font-medium cursor-pointer ${
           justSaved
             ? 'bg-emerald-950/90 border-emerald-500 text-emerald-200'
             : 'bg-neutral-900/90 hover:bg-neutral-800 border-neutral-800 hover:border-neutral-700 text-neutral-200 hover:text-white'
@@ -190,7 +190,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
       <button
         type="button"
         onClick={onReset}
-        className={`h-8 px-2.5 rounded-lg border shadow-lg backdrop-blur transition-all flex items-center gap-1 text-xs font-medium cursor-pointer ${
+        className={`h-8 px-2.5 rounded-lg border shadow-lg backdrop-blur transition-[background-color,border-color,color,opacity,transform] flex items-center gap-1 text-xs font-medium cursor-pointer ${
           hasSavedSettings
             ? 'bg-neutral-900/90 hover:bg-neutral-800 border-amber-600/40 text-neutral-200 hover:text-white'
             : 'bg-neutral-900/90 hover:bg-neutral-800 border-neutral-800 text-neutral-200 hover:text-white'

@@ -257,7 +257,7 @@ export default function App() {
             <button
               type="button"
               onClick={handleToggleAudio}
-              className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all flex items-center gap-2 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+              className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-[background-color,border-color,color,opacity,transform,box-shadow] flex items-center gap-2 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
               style={{ color: dotColor, borderColor: `${dotColor}33` }}
               title="Toggle Umbráfono / Acoustic audio (M)"
             >
@@ -273,7 +273,7 @@ export default function App() {
             <button
               type="button"
               onClick={handleScatter}
-              className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+              className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-[background-color,border-color,color,opacity,transform,box-shadow] cursor-pointer shadow-lg opacity-70 hover:opacity-100"
               style={{ color: dotColor, borderColor: `${dotColor}33` }}
               title="Scatter sand (S)"
             >
@@ -285,7 +285,7 @@ export default function App() {
               type="button"
               onClick={() => setShowHud((prev) => !prev)}
               aria-pressed={showHud}
-              className={`p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all cursor-pointer shadow-lg hover:opacity-100 ${
+              className={`p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-[background-color,border-color,color,opacity,transform,box-shadow] cursor-pointer shadow-lg hover:opacity-100 ${
                 showHud ? 'opacity-100' : 'opacity-70'
               }`}
               style={{ color: dotColor, borderColor: showHud ? `${dotColor}66` : `${dotColor}33` }}
@@ -300,7 +300,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setShowControls((prev) => !prev)}
-              className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all flex items-center gap-1.5 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+              className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-[background-color,border-color,color,opacity,transform,box-shadow] flex items-center gap-1.5 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
               style={{ color: dotColor, borderColor: `${dotColor}33` }}
               title="Toggle Physics & Tuning Controls (D)"
             >
@@ -312,7 +312,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsWasmLabOpen(true)}
-              className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+              className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-[background-color,border-color,color,opacity,transform,box-shadow] cursor-pointer shadow-lg opacity-70 hover:opacity-100"
               style={{ color: dotColor, borderColor: `${dotColor}33` }}
               title="Open WebAssembly Benchmarks (W)"
             >
@@ -359,7 +359,7 @@ export default function App() {
 
       {/* 6. STATUS TOAST */}
       {toastMessage && (
-        <div className="fixed bottom-14 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+        <div className="fixed bottom-14 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-[background-color,border-color,color,opacity,transform,box-shadow] duration-300 animate-in fade-in slide-in-from-bottom-2">
           <div className="px-3.5 py-1.5 rounded-lg bg-neutral-900/95 border border-neutral-800 shadow-2xl backdrop-blur text-xs text-neutral-200 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
             <span className="font-mono">{toastMessage}</span>

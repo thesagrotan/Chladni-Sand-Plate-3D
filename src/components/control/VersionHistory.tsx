@@ -43,7 +43,7 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
             onSaveVersion(versionLabel);
             setVersionLabel('');
           }}
-          className="h-5 px-2 rounded border border-indigo-700/70 bg-indigo-950/80 text-indigo-300 hover:bg-indigo-900 text-[10px] flex items-center gap-1 transition-all cursor-pointer disabled:opacity-40"
+          className="h-5 px-2 rounded border border-indigo-700/70 bg-indigo-950/80 text-indigo-300 hover:bg-indigo-900 text-[10px] flex items-center gap-1 transition-[background-color,border-color,color,opacity,transform] cursor-pointer disabled:opacity-40"
         >
           <PlusCircle size={10} />
           <span>Save</span>

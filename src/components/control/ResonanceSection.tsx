@@ -134,7 +134,7 @@ export const ResonanceSection: React.FC<ResonanceSectionProps> = ({
                   key={opt.value}
                   type="button"
                   onClick={() => updateParam('grainCount', opt.value)}
-                  className={`text-[8px] py-0.5 rounded border text-center font-mono cursor-pointer transition-all ${
+                  className={`text-[8px] py-0.5 rounded border text-center font-mono cursor-pointer transition-[background-color,border-color,color,opacity,transform] ${
                     isMatch
                       ? 'bg-neutral-200 text-neutral-950 font-bold border-white shadow-xs'
                       : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
@@ -168,7 +168,7 @@ export const ResonanceSection: React.FC<ResonanceSectionProps> = ({
                   key={opt.label}
                   type="button"
                   onClick={() => updateParam('grainSize', opt.value)}
-                  className={`text-[9px] py-0.5 rounded border text-center cursor-pointer transition-all ${
+                  className={`text-[9px] py-0.5 rounded border text-center cursor-pointer transition-[background-color,border-color,color,opacity,transform] ${
                     isMatch
                       ? 'bg-neutral-200 text-neutral-950 font-bold border-white shadow-xs'
                       : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
@@ -222,7 +222,7 @@ export const ResonanceSection: React.FC<ResonanceSectionProps> = ({
             <button
               type="button"
               onClick={() => updateParam('simulationEngine', 'gpu')}
-              className={`py-1 px-1 rounded border text-center transition-all cursor-pointer ${
+              className={`py-1 px-1 rounded border text-center transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
                 params.simulationEngine === 'gpu'
                   ? 'bg-neutral-200 text-neutral-950 font-semibold border-white shadow-xs'
                   : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
@@ -235,7 +235,7 @@ export const ResonanceSection: React.FC<ResonanceSectionProps> = ({
             <button
               type="button"
               onClick={() => updateParam('simulationEngine', 'wasm')}
-              className={`py-1 px-1 rounded border text-center transition-all cursor-pointer ${
+              className={`py-1 px-1 rounded border text-center transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
                 params.simulationEngine === 'wasm'
                   ? 'bg-emerald-400 text-neutral-950 font-semibold border-emerald-300 shadow-xs'
                   : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
@@ -248,7 +248,7 @@ export const ResonanceSection: React.FC<ResonanceSectionProps> = ({
             <button
               type="button"
               onClick={() => updateParam('simulationEngine', 'js_cpu')}
-              className={`py-1 px-1 rounded border text-center transition-all cursor-pointer ${
+              className={`py-1 px-1 rounded border text-center transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
                 params.simulationEngine === 'js_cpu'
                   ? 'bg-amber-400 text-neutral-950 font-semibold border-amber-300 shadow-xs'
                   : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'

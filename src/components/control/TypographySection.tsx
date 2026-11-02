@@ -160,7 +160,7 @@ export const TypographySection: React.FC<TypographySectionProps> = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-1 px-2 rounded border border-neutral-700 bg-neutral-900 hover:bg-neutral-800 text-cyan-300 hover:text-white text-[10px] flex items-center gap-1 transition-all cursor-pointer shrink-0"
+            className="p-1 px-2 rounded border border-neutral-700 bg-neutral-900 hover:bg-neutral-800 text-cyan-300 hover:text-white text-[10px] flex items-center gap-1 transition-[background-color,border-color,color,opacity,transform] cursor-pointer shrink-0"
             title="Load local font file (.otf, .ttf, .woff2)"
           >
             <Upload size={11} />
@@ -249,7 +249,7 @@ export const TypographySection: React.FC<TypographySectionProps> = ({
                 key={btn.label}
                 type="button"
                 onClick={() => updateParam('fontWeight', btn.val)}
-                className={`flex-1 text-[9px] py-0.5 rounded border text-center font-mono cursor-pointer transition-all ${
+                className={`flex-1 text-[9px] py-0.5 rounded border text-center font-mono cursor-pointer transition-[background-color,border-color,color,opacity,transform] ${
                   params.fontWeight === btn.val
                     ? 'bg-neutral-200 text-neutral-950 font-semibold border-white shadow-xs'
                     : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
@@ -284,7 +284,7 @@ export const TypographySection: React.FC<TypographySectionProps> = ({
                     key={btn.label}
                     type="button"
                     onClick={() => updateParam('fontSpacingAxis', btn.val)}
-                    className={`text-[9px] py-0.5 rounded border text-center font-mono cursor-pointer transition-all ${
+                    className={`text-[9px] py-0.5 rounded border text-center font-mono cursor-pointer transition-[background-color,border-color,color,opacity,transform] ${
                       (params.fontSpacingAxis || 0) === btn.val
                         ? 'bg-cyan-950 text-cyan-200 border-cyan-500 font-semibold'
                         : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
@@ -318,7 +318,7 @@ export const TypographySection: React.FC<TypographySectionProps> = ({
             <button
               type="button"
               onClick={() => updateParam('fontItalic', !params.fontItalic)}
-              className={`px-2 py-1 rounded text-[10px] font-medium border flex items-center gap-1 transition-all cursor-pointer ${
+              className={`px-2 py-1 rounded text-[10px] font-medium border flex items-center gap-1 transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
                 params.fontItalic
                   ? 'bg-cyan-950 border-cyan-500 text-cyan-300'
                   : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
