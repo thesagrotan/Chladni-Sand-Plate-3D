@@ -41,6 +41,9 @@ export interface TextMaskDebugCounters {
   drawMsLast: number;
   /** Layout invalidations skipped because the content signature was unchanged. */
   signatureSkips: number;
+  /** Offscreen element bitmaps built and reused. */
+  bitmapBuilds: number;
+  bitmapCacheHits: number;
   /** Long tasks observed since attach (dev only). */
   longTasks: number;
   longTaskMs: number;
@@ -53,6 +56,8 @@ export interface TextMaskDebugSnapshot extends TextMaskDebugCounters {
   scrollY: number;
   active: boolean;
   strength: number;
+  bitmapEntries: number;
+  bitmapPixels: number;
 }
 
 export interface TextMaskDebugTarget {
@@ -64,6 +69,8 @@ export interface TextMaskDebugTarget {
   invalidateLayout(): void;
   /** Screen-space (what the shader samples) grayscale sample as base64. */
   sampleScreenMask(width: number, height: number): { width: number; height: number; data: string };
+  /** Offscreen bitmap cache size (entries and RGBA pixels). */
+  getBitmapStats?(): { entries: number; pixels: number };
 }
 
 export interface TextMaskDebugApi {
@@ -103,6 +110,8 @@ function freshCounters(): TextMaskDebugCounters {
     drawMsTotal: 0,
     drawMsLast: 0,
     signatureSkips: 0,
+    bitmapBuilds: 0,
+    bitmapCacheHits: 0,
     longTasks: 0,
     longTaskMs: 0,
   };
@@ -143,6 +152,7 @@ export function attachTextMaskDebug(target: TextMaskDebugTarget): TextMaskDebugA
       Object.assign(counters, freshCounters());
     },
     snapshot() {
+      const bitmap = target.getBitmapStats?.() ?? { entries: 0, pixels: 0 };
       return {
         ...counters,
         rasterizeMsAvg:
@@ -154,6 +164,8 @@ export function attachTextMaskDebug(target: TextMaskDebugTarget): TextMaskDebugA
         scrollY: window.scrollY,
         active: target.active,
         strength: target.strength,
+        bitmapEntries: bitmap.entries,
+        bitmapPixels: bitmap.pixels,
       };
     },
     rasterize() {

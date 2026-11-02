@@ -72,6 +72,28 @@ export class TextMaskManager {
   private lastDrawnScrollX: number = Number.NaN;
   private lastDrawnScrollY: number = Number.NaN;
 
+  // Per-element blurred text bitmaps. Built once per layout version and
+  // composited with drawImage on every rasterization (including scroll).
+  private bitmapCache: Map<
+    HTMLElement,
+    {
+      key: string;
+      canvas: HTMLCanvasElement;
+      originX: number; // device pixels
+      originY: number;
+      scale: number;
+      superSample: number;
+      width: number;
+      height: number;
+      outerBlur: number;
+      coreBlur: number;
+      pixels: number;
+    }
+  > = new Map();
+  private bitmapPixelTotal: number = 0;
+  private static readonly MAX_BITMAP_ENTRIES = 64;
+  private static readonly MAX_BITMAP_PIXELS = 8_000_000; // ~32 MB RGBA
+
   // Canvas dimensions are kept proportional to the viewport aspect ratio
   // so that scaleX === scaleY (uniform scale), avoiding text distortion.
   public canvasW: number;
@@ -396,11 +418,14 @@ export class TextMaskManager {
   private rebuildLayout(): void {
     this.layoutDirty = false;
     if (!this.layoutCache) this.layoutCache = new Map();
+    if (!this.bitmapCache) this.bitmapCache = new Map();
+    if (typeof this.bitmapPixelTotal !== 'number') this.bitmapPixelTotal = 0;
     this.layoutCache.clear();
 
     this.updateCanvasSize();
 
     const elements = this.getTrackedElements();
+    this.pruneBitmaps();
     const scrollX = window.scrollX || 0;
     const scrollY = window.scrollY || 0;
     const ctx = this.ctx;
@@ -443,6 +468,7 @@ export class TextMaskManager {
           fontVariationSettings: 'normal',
           docRect,
           lines: [],
+          bitmapKey: '',
           fontAscent: 0,
           fontDescent: 0,
           visible: false,
@@ -462,6 +488,7 @@ export class TextMaskManager {
           fontVariationSettings: 'normal',
           docRect,
           lines: [],
+          bitmapKey: '',
           fontAscent: 0,
           fontDescent: 0,
           visible: true,
@@ -503,6 +530,17 @@ export class TextMaskManager {
         y: line.y + scrollY,
       }));
 
+      const bitmapKey = [
+        window.innerWidth,
+        window.innerHeight,
+        this.canvasW,
+        this.canvasH,
+        fontKey,
+        docRect.w,
+        docRect.h,
+        lines.map((line) => `${line.x},${line.y},${line.text}`).join('|'),
+      ].join('~');
+
       this.layoutCache.set(el, {
         el,
         repulsorType: 'text',
@@ -514,6 +552,7 @@ export class TextMaskManager {
         fontVariationSettings: font.fontVariationSettings,
         docRect,
         lines,
+        bitmapKey,
         fontAscent,
         fontDescent,
         visible: true,
@@ -763,6 +802,187 @@ export class TextMaskManager {
     return lines;
   }
 
+  private pruneBitmaps(): void {
+    for (const el of Array.from(this.bitmapCache.keys())) {
+      if (!this.trackedSet.has(el)) {
+        const cached = this.bitmapCache.get(el);
+        if (cached) this.bitmapPixelTotal -= cached.pixels;
+        this.bitmapCache.delete(el);
+      }
+    }
+  }
+
+  private trimBitmapCache(): void {
+    const maxEntries = TextMaskManager.MAX_BITMAP_ENTRIES;
+    const maxPixels = TextMaskManager.MAX_BITMAP_PIXELS;
+    while (
+      this.bitmapCache.size > maxEntries ||
+      (this.bitmapPixelTotal > maxPixels && this.bitmapCache.size > 1)
+    ) {
+      const oldest = this.bitmapCache.keys().next().value as HTMLElement | undefined;
+      if (!oldest) break;
+      const cached = this.bitmapCache.get(oldest);
+      if (cached) this.bitmapPixelTotal -= cached.pixels;
+      this.bitmapCache.delete(oldest);
+    }
+  }
+
+  private getTextBitmap(
+    entry: TextMaskLayoutEntry
+  ): {
+    canvas: HTMLCanvasElement;
+    originX: number;
+    originY: number;
+    scale: number;
+    superSample: number;
+    width: number;
+    height: number;
+    outerBlur: number;
+    coreBlur: number;
+  } | null {
+    const key = entry.bitmapKey;
+    const cached = this.bitmapCache.get(entry.el);
+    if (cached && cached.key === key) {
+      // LRU: move to the end of insertion order.
+      this.bitmapCache.delete(entry.el);
+      this.bitmapCache.set(entry.el, cached);
+      if (this.debug) this.debug.counters.bitmapCacheHits++;
+      return cached;
+    }
+
+    if (cached) {
+      this.bitmapPixelTotal -= cached.pixels;
+      this.bitmapCache.delete(entry.el);
+    }
+
+    const built = this.buildTextBitmap(entry);
+    if (!built) return null;
+
+    this.bitmapCache.set(entry.el, { key, ...built });
+    this.bitmapPixelTotal += built.pixels;
+    if (this.debug) this.debug.counters.bitmapBuilds++;
+    this.trimBitmapCache();
+    return built;
+  }
+
+  /**
+   * Render the exact two blurred passes for one element into an offscreen
+   * transparent canvas. The bounds are the union of the element box and the
+   * measured ink boxes of its lines, expanded by >= 3× the outer blur so the
+   * halo is not clipped. Drawing this bitmap with source-over is equivalent
+   * to drawing the halo and core passes directly (source-over is associative).
+   */
+  private buildTextBitmap(entry: TextMaskLayoutEntry): {
+    canvas: HTMLCanvasElement;
+    originX: number;
+    originY: number;
+    scale: number;
+    superSample: number;
+    width: number;
+    height: number;
+    outerBlur: number;
+    coreBlur: number;
+    pixels: number;
+  } | null {
+    if (entry.lines.length === 0) return null;
+
+    const fontSize = entry.fontSize || 28;
+    const outerBlur = Math.min(8, Math.max(3, fontSize * 0.12));
+    const coreBlur = Math.min(2.5, Math.max(1, fontSize * 0.04));
+    const scale = this.canvasW / (window.innerWidth || 1);
+
+    // Measure ink bounds with the main context (measureText ignores transform).
+    const mctx = this.ctx;
+    this.applyCanvasTextSettings(mctx, entry.letterSpacing, entry.fontVariationSettings);
+    mctx.font = entry.font;
+
+    let minX = entry.docRect.x;
+    let minY = entry.docRect.y;
+    let maxX = entry.docRect.x + entry.docRect.w;
+    let maxY = entry.docRect.y + entry.docRect.h;
+
+    for (const line of entry.lines) {
+      const metrics = mctx.measureText(line.text) as TextMetrics & {
+        actualBoundingBoxLeft?: number;
+        actualBoundingBoxRight?: number;
+        actualBoundingBoxAscent?: number;
+        actualBoundingBoxDescent?: number;
+      };
+      const left = metrics.actualBoundingBoxLeft ?? 0;
+      const right = metrics.actualBoundingBoxRight ?? metrics.width;
+      const ascent = metrics.actualBoundingBoxAscent ?? entry.fontAscent;
+      const descent = metrics.actualBoundingBoxDescent ?? entry.fontDescent;
+      minX = Math.min(minX, line.x - left);
+      maxX = Math.max(maxX, line.x + right);
+      minY = Math.min(minY, line.y - ascent);
+      maxY = Math.max(maxY, line.y + descent);
+    }
+
+    // Pre-blur both passes into a 2× supersampled device-space bitmap.
+    // Downscaling an already-smooth bitmap at composite time keeps fractional
+    // scroll offsets close to direct subpixel rasterization, while scroll
+    // itself does no fillText.
+    const superSample = 1;
+    const pad = Math.min(24, Math.max(8, Math.ceil(outerBlur * 3)));
+    const padDev = Math.max(1, Math.ceil(pad * scale));
+    const originX = Math.floor(minX * scale) - padDev;
+    const originY = Math.floor(minY * scale) - padDev;
+    const width = Math.ceil(maxX * scale) + padDev - originX;
+    const height = Math.ceil(maxY * scale) + padDev - originY;
+    if (width <= 0 || height <= 0 || width > 2048 || height > 2048) return null;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width * superSample;
+    canvas.height = height * superSample;
+    const bctx = canvas.getContext('2d', { alpha: true });
+    if (!bctx) return null;
+
+    const hiScale = scale * superSample;
+    bctx.setTransform(
+      hiScale,
+      0,
+      0,
+      hiScale,
+      -originX * superSample,
+      -originY * superSample
+    );
+    bctx.textBaseline = 'alphabetic';
+    bctx.textAlign = 'left';
+    this.applyCanvasTextSettings(bctx, entry.letterSpacing, entry.fontVariationSettings);
+    bctx.font = entry.font;
+
+    const drawLines = () => {
+      for (const line of entry.lines) {
+        bctx.fillText(line.text, line.x, line.y);
+      }
+    };
+
+    // Pass 1: Outer smooth subtle halo
+    bctx.filter = `blur(${(outerBlur * superSample).toFixed(1)}px)`;
+    bctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+    drawLines();
+
+    // Pass 2: Tight core letter contour
+    bctx.filter = `blur(${(coreBlur * superSample).toFixed(1)}px)`;
+    bctx.fillStyle = '#ffffff';
+    drawLines();
+
+    bctx.filter = 'none';
+
+    return {
+      canvas,
+      originX,
+      originY,
+      scale,
+      superSample,
+      width,
+      height,
+      outerBlur,
+      coreBlur,
+      pixels: canvas.width * canvas.height,
+    };
+  }
+
   private drawLayout(): void {
     const ctx = this.ctx;
     const vw = window.innerWidth || 1;
@@ -834,6 +1054,26 @@ export class TextMaskManager {
       }
 
       if (entry.lines.length === 0) continue;
+
+      const bitmap = this.getTextBitmap(entry);
+      if (bitmap) {
+        // Composite in device pixels; the 2× source is downscaled to the
+        // exact blur radii baked into the bitmap.
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.filter = 'none';
+        ctx.drawImage(
+          bitmap.canvas,
+          bitmap.originX - scrollX * bitmap.scale,
+          bitmap.originY - scrollY * bitmap.scale,
+          bitmap.width,
+          bitmap.height
+        );
+        ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        continue;
+      }
+
+      // Fallback: draw the two passes directly if an offscreen bitmap could
+      // not be created (e.g. an element larger than the bitmap size cap).
 
       // Always draw left-aligned at the exact per-line X position from DOM Range.
       ctx.textBaseline = 'alphabetic';
@@ -957,6 +1197,13 @@ export class TextMaskManager {
     }
   }
 
+  public getBitmapStats(): { entries: number; pixels: number } {
+    return {
+      entries: this.bitmapCache ? this.bitmapCache.size : 0,
+      pixels: this.bitmapPixelTotal || 0,
+    };
+  }
+
   /**
    * Dev-only: downsample the mask into a canonical screen-space grayscale
    * image so the parity harness can diff "what the shader samples" across
@@ -1014,6 +1261,8 @@ export class TextMaskManager {
       this.mutationObserver = null;
     }
     this.observedElements.clear();
+    if (this.bitmapCache) this.bitmapCache.clear();
+    this.bitmapPixelTotal = 0;
     detachTextMaskDebug(this.debug);
     this.debug = null;
     this.texture.dispose();

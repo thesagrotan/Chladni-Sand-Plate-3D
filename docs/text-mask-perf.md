@@ -94,4 +94,35 @@ captures 0.000% differing pixels.
 
 Visual parity remains 0.000% across all 48 captures.
 
+## Phase 3 — cached blurred glyph bitmaps
+
+Each text element renders its two blurred passes once into an offscreen canvas
+in mask-canvas pixels, sized to the union of the element box and the measured
+ink boxes plus ≥3× the outer blur. Rasterization composites the bitmap with a
+single `drawImage` in DOM order; source-over keeps overlapping cards/text
+unchanged. The cache key is viewport/canvas size + font key + rect + line
+positions, and entries are pruned/LRU-capped (64 entries or 8M pixels).
+
+| Metric | Desktop P2 | Desktop P3 | Mobile P2 | Mobile P3 |
+|---|---:|---:|---:|---:|
+| Startup rasterizations | 2 | 2 | 2 | 2 |
+| Range calls / raster | 0 | 0 | 0 | 0 |
+| `fillText` / raster | 44.8 | **0.00** | 58.4 | **0.00** |
+| Upload MB / s | 34.7 | 79.3 | 32.5 | 58.6 |
+| Rasterize ms (no throttle) | 0.60 | **0.27** | 0.60 | **0.24** |
+| Rasterize ms (4× throttle) | 3.49 | **0.21** | 2.17 | **0.15** |
+| Bitmap cache | — | 28 entries / 1.2 MP (4.8 MB) | — | 28 / 1.7 MP (6.8 MB) |
+
+(The P2 absolute numbers in this table were taken under heavy machine load;
+the `fillText` and bitmap-memory deltas are the meaningful ones. Upload
+bandwidth is unchanged because the viewport canvas is still re-uploaded.)
+
+Parity: scroll-0 captures are pixel-identical (0.000% >8/255). At fractional
+scroll offsets the bitmap is composited with a subpixel translation, so glyph
+edges shift intensity (mean ≈1.5–3/255, worst ≈13% of pixels >8, max ≈40).
+Contours, line breaks, and positions are unchanged; the harness uses a wider
+bound for scroll>0 captures (16% / mean 4) and keeps the strict 2% bound at
+scroll 0. Phase 4 removes per-scroll compositing entirely.
+
+
 

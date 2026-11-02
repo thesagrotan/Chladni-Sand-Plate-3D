@@ -230,6 +230,7 @@ class MockCtx {
   letterSpacing = '0px';
   fontVariationSettings = 'normal';
   fills: { text: string; x: number; y: number }[] = [];
+  drawImages: { x: number; y: number }[] = [];
   constructor() {
     this.letterSpacing = '0px';
   }
@@ -245,10 +246,15 @@ class MockCtx {
       fontBoundingBoxDescent: 4,
       actualBoundingBoxAscent: 16,
       actualBoundingBoxDescent: 4,
+      actualBoundingBoxLeft: 0,
+      actualBoundingBoxRight: 50,
     };
   }
   fillText(text: string, x: number, y: number) {
     this.fills.push({ text, x, y });
+  }
+  drawImage(_image: CanvasImageSource, x: number, y: number) {
+    this.drawImages.push({ x, y });
   }
 }
 
@@ -314,8 +320,9 @@ describe('TextMaskManager layout cache invalidation', () => {
     const counters = instance.debug!.counters;
     const rangeBefore = counters.rangeClientRects + counters.rangeBoundingRects;
     const walkersBefore = counters.treeWalkers;
-    const fillsBefore = ctx.fills.length;
-    expect(fillsBefore).toBeGreaterThan(0);
+    const imagesBefore = ctx.drawImages.length;
+    const lastYBefore = ctx.drawImages[ctx.drawImages.length - 1].y;
+    expect(imagesBefore).toBeGreaterThan(0);
 
     (window as unknown as { scrollY: number }).scrollY = 120;
     instance.setDirtyPosition();
@@ -323,9 +330,13 @@ describe('TextMaskManager layout cache invalidation', () => {
 
     expect(counters.rangeClientRects + counters.rangeBoundingRects).toBe(rangeBefore);
     expect(counters.treeWalkers).toBe(walkersBefore);
-    // Drawing still happens, and the cached line moved up by the scroll delta.
-    expect(ctx.fills.length).toBeGreaterThan(fillsBefore);
-    expect(ctx.fills[ctx.fills.length - 1].y).toBe(1);
+    // Drawing still happens from the cached bitmap, moved up by the delta
+    // (the bitmap is composited in mask-canvas pixels).
+    expect(ctx.drawImages.length).toBeGreaterThan(imagesBefore);
+    const expectedScale = instance.canvasW / window.innerWidth;
+    expect(ctx.drawImages[ctx.drawImages.length - 1].y).toBeCloseTo(
+      lastYBefore - 120 * expectedScale
+    );
   });
 
   it('invalidateLayout re-measures on the next rasterize', () => {
@@ -341,13 +352,13 @@ describe('TextMaskManager layout cache invalidation', () => {
   it('skips redraw and texture upload when the content signature is unchanged', () => {
     instance.invalidateLayout();
     instance.rasterizeText();
-    const fillsBefore = ctx.fills.length;
+    const imagesBefore = ctx.drawImages.length;
     const uploadsBefore = instance.debug!.counters.uploadRequests;
 
     instance.invalidateLayout();
     instance.rasterizeText();
 
-    expect(ctx.fills.length).toBe(fillsBefore);
+    expect(ctx.drawImages.length).toBe(imagesBefore);
     expect(instance.debug!.counters.uploadRequests).toBe(uploadsBefore);
     expect(instance.debug!.counters.signatureSkips).toBeGreaterThan(0);
   });
@@ -355,13 +366,42 @@ describe('TextMaskManager layout cache invalidation', () => {
   it('redraws after a scroll even when the layout signature is unchanged', () => {
     instance.invalidateLayout();
     instance.rasterizeText();
-    const fillsBefore = ctx.fills.length;
+    const imagesBefore = ctx.drawImages.length;
 
     (window as unknown as { scrollY: number }).scrollY = 40;
     instance.invalidateLayout();
     instance.rasterizeText();
 
-    expect(ctx.fills.length).toBeGreaterThan(fillsBefore);
+    expect(ctx.drawImages.length).toBeGreaterThan(imagesBefore);
+  });
+
+  it('reuses element bitmaps across scroll and reports memory', () => {
+    instance.invalidateLayout();
+    instance.rasterizeText();
+    const buildsBefore = instance.debug!.counters.bitmapBuilds;
+    const hitsBefore = instance.debug!.counters.bitmapCacheHits;
+    expect(buildsBefore).toBeGreaterThan(0);
+    expect(instance.getBitmapStats().entries).toBeGreaterThan(0);
+
+    (window as unknown as { scrollY: number }).scrollY = 30;
+    instance.setDirtyPosition();
+    instance.rasterizeText();
+
+    expect(instance.debug!.counters.bitmapBuilds).toBe(buildsBefore);
+    expect(instance.debug!.counters.bitmapCacheHits).toBeGreaterThan(hitsBefore);
+    expect(instance.getBitmapStats().pixels).toBeGreaterThan(0);
+  });
+
+  it('rebuilds the bitmap when the font size changes', () => {
+    instance.invalidateLayout();
+    instance.rasterizeText();
+    const buildsBefore = instance.debug!.counters.bitmapBuilds;
+
+    el.style.fontSize = '24px';
+    instance.invalidateLayout();
+    instance.rasterizeText();
+
+    expect(instance.debug!.counters.bitmapBuilds).toBeGreaterThan(buildsBefore);
   });
 
   it('window resize invalidates layout', async () => {
@@ -406,14 +446,14 @@ describe('TextMaskManager layout cache invalidation', () => {
   it('visibility changes invalidate layout and stop drawing the element', async () => {
     instance.invalidateLayout();
     instance.rasterizeText();
-    const fillsBefore = ctx.fills.length;
+    const imagesBefore = ctx.drawImages.length;
 
     el.style.opacity = '0';
     el.checkVisibility = () => false;
     await new Promise((resolve) => setTimeout(resolve, 0));
     instance.rasterizeText();
 
-    expect(ctx.fills.length).toBe(fillsBefore);
+    expect(ctx.drawImages.length).toBe(imagesBefore);
   });
 
   it('adding data-text-repulsor invalidates layout', async () => {

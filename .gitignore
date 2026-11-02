@@ -9,6 +9,8 @@ playwright-report/
 .playwright/
 .env*
 !.env.example
+# Text-mask parity harness failure dumps
+docs/text-mask-parity/last-run.json
 .antigravity/
 .aistudio/
 

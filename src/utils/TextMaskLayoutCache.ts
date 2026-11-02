@@ -42,6 +42,8 @@ export interface TextMaskLayoutEntry {
   docRect: DocumentRect;
   /** Lines in document coordinates; empty for line/card/pill. */
   lines: TextMaskLineLayout[];
+  /** Identity of the cached offscreen bitmap (empty for non-text entries). */
+  bitmapKey: string;
   fontAscent: number;
   fontDescent: number;
   /** Style visibility (opacity/display/visibility), not viewport culling. */
