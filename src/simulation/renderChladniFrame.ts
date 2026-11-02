@@ -249,6 +249,8 @@ export function renderChladniFrame(deps: ChladniFrameDeps, state: ChladniFrameSt
       const camData = camDataRef.current;
       const bx = camData.z * 0.98;
       const by = camData.w * 0.98;
+      // Reused across every grain in the loop to avoid a fresh [x, y] tuple per eval.
+      const gradScratch: [number, number] = [0, 0];
 
       for (let i = 0; i < grains.length; i++) {
         const g = grains[i];
@@ -284,7 +286,8 @@ export function renderChladniFrame(deps: ChladniFrameDeps, state: ChladniFrameSt
             gridTypeNum,
             cp.centerVoidRadius,
             voidShapeNum,
-            cp.centerExpulsion
+            cp.centerExpulsion,
+            gradScratch
           );
           const signW = w >= 0 ? 1 : -1;
           const kick = Math.sqrt(accel - 1.0);

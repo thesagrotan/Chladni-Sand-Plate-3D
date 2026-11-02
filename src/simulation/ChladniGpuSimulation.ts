@@ -293,6 +293,11 @@ export class ChladniGpuSimulation {
 
     this.gpuCompute.renderTexture(dtPos, this.posVariable.renderTargets[0]);
     this.gpuCompute.renderTexture(dtPos, this.posVariable.renderTargets[1]);
+
+    // `createTexture()` allocates a DataTexture + GPU texture per scatter; it is
+    // only a staging buffer for the two render targets, so free it immediately
+    // instead of leaking one texture on every scatter/reset.
+    dtPos.dispose();
   }
 
   public update(

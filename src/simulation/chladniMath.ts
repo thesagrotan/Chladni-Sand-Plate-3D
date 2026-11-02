@@ -187,7 +187,8 @@ export function evalChladniGrad(
   gridType = 0,
   voidRadius = 0,
   voidShape = 0,
-  centerExpulsion = 0
+  centerExpulsion = 0,
+  out?: [number, number]
 ): [number, number] {
   const eps = 0.0015;
   const wX1 = evalChladniW(x + eps, y, m, n, k, blend, gridType, voidRadius, voidShape, centerExpulsion);
@@ -195,7 +196,17 @@ export function evalChladniGrad(
   const wY1 = evalChladniW(x, y + eps, m, n, k, blend, gridType, voidRadius, voidShape, centerExpulsion);
   const wY0 = evalChladniW(x, y - eps, m, n, k, blend, gridType, voidRadius, voidShape, centerExpulsion);
 
-  return [(wX1 - wX0) / (2.0 * eps), (wY1 - wY0) / (2.0 * eps)];
+  const gradX = (wX1 - wX0) / (2.0 * eps);
+  const gradY = (wY1 - wY0) / (2.0 * eps);
+
+  // Hot loops (telemetry, CPU engines) can pass a scratch array to avoid
+  // allocating a fresh 2-tuple on every grain, every frame.
+  if (out) {
+    out[0] = gradX;
+    out[1] = gradY;
+    return out;
+  }
+  return [gradX, gradY];
 }
 
 /**

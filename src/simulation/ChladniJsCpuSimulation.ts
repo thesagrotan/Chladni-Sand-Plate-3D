@@ -43,6 +43,8 @@ export class ChladniJsCpuSimulation {
     const t0 = performance.now();
     let settledCount = 0;
     const pos = this.positions;
+    // Reused across the loop to avoid a fresh [x, y] tuple per gradient eval.
+    const gradScratch: [number, number] = [0, 0];
 
     for (let i = 0; i < this.grainCount; i++) {
       const base = i * 4;
@@ -57,7 +59,7 @@ export class ChladniJsCpuSimulation {
         const excess = accel - 1.0;
         const kick = Math.sqrt(excess);
 
-        const [gradX, gradY] = evalChladniGrad(px, py, m, n, k, blend, gridType, voidRadius, voidShape, centerExpulsion);
+        const [gradX, gradY] = evalChladniGrad(px, py, m, n, k, blend, gridType, voidRadius, voidShape, centerExpulsion, gradScratch);
         const signW = w >= 0 ? 1 : -1;
 
         let dx = -signW * gradX * (0.00022 * driveStrength);
@@ -97,7 +99,7 @@ export class ChladniJsCpuSimulation {
           pos[base + 3] = 1.0;
         } else {
           if (accel > 0.85) {
-            const [gradX, gradY] = evalChladniGrad(px, py, m, n, k, blend, gridType, voidRadius, voidShape, centerExpulsion);
+            const [gradX, gradY] = evalChladniGrad(px, py, m, n, k, blend, gridType, voidRadius, voidShape, centerExpulsion, gradScratch);
             const signW = w >= 0 ? 1 : -1;
             px += -signW * gradX * 0.00008;
             py += -signW * gradY * 0.00008;
