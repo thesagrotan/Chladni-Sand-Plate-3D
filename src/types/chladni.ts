@@ -161,7 +161,7 @@ export interface Preset {
 }
 
 export const DEFAULT_PARAMS: ChladniParams = {
-  gridType: 'annular',
+  gridType: 'diamond',
   centerVoidRadius: 0.0,
   centerVoidShape: 'circle',
   centerExpulsion: 0.0,
@@ -169,7 +169,7 @@ export const DEFAULT_PARAMS: ChladniParams = {
   domRepulsion: 1.0,
 
   // Typography & Variable Font Defaults
-  fontFamily: 'iAWriterQuattroV',
+  fontFamily: 'Neue-Montreal',
   fontWeight: 400,
   fontItalic: false,
   fontSpacingAxis: 0,
@@ -193,7 +193,7 @@ export const DEFAULT_PARAMS: ChladniParams = {
   waveK: 32.0,
   symmetryBlend: 0.72,
   driveStrength: 3.2,
-  grainCount: 100_000,
+  grainCount: 50_000,
   grainSize: 1.0,
   fieldOverlay: 0.0,
   nodalPronouncement: 1.0,

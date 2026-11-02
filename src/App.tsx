@@ -240,7 +240,6 @@ export default function App() {
           params={params}
           dotColor={dotColor}
           onToggleAudio={handleToggleAudio}
-          onReleaseClick={setToastMessage}
         />
 
         <About dotColor={dotColor} />

@@ -76,6 +76,11 @@ describe('ChladniWasmSimulation', () => {
     const engine = new ChladniWasmSimulation(100_000);
     expect(engine.grainCount).toBe(50_000);
   });
+
+  it('defaults to 50k grains', () => {
+    const engine = new ChladniWasmSimulation();
+    expect(engine.grainCount).toBe(50_000);
+  });
 });
 
 describe('ChladniJsCpuSimulation', () => {
@@ -93,6 +98,11 @@ describe('ChladniJsCpuSimulation', () => {
 
   it('caps the grain count at 50k', () => {
     const engine = new ChladniJsCpuSimulation(100_000);
+    expect(engine.grainCount).toBe(50_000);
+  });
+
+  it('defaults to 50k grains', () => {
+    const engine = new ChladniJsCpuSimulation();
     expect(engine.grainCount).toBe(50_000);
   });
 });

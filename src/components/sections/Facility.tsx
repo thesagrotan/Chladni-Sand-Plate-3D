@@ -21,25 +21,16 @@ const FACILITY_COLUMNS = [
       'Pro Tools HDX + Neve 8078 console for hybrid sessions',
     ],
   },
-  {
-    title: 'Editions & Lacquer',
-    items: [
-      'Short-run polycarbonate & lacquer cutting for archival micro-editions',
-      'Hand-numbered vinyl pressings and cassette duplication',
-      'Silkscreened graphic scores on raw cartridge paper',
-      'Booklet offset printing for limited catalogue publications',
-    ],
-  },
 ];
 
 export function Facility({ dotColor }: FacilityProps) {
   return (
-    <section id="facility" className="px-2 sm:px-14 md:px-20 py-16 sm:py-20 w-full">
+    <section id="facility" className="px-2 sm:px-14 md:px-40 py-8 sm:py-8 w-full">
       <div data-text-repulsor className="text-3xl font-sans font-normal mb-10 tracking-wide">
         Facility
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
         {FACILITY_COLUMNS.map((column) => (
           <div key={column.title}>
             <div

@@ -219,7 +219,7 @@ export class ChladniGpuSimulation {
 
   constructor(
     renderer: THREE.WebGLRenderer,
-    grainCount = 100_000,
+    grainCount = 50_000,
     initialHalfW = 2.0,
     initialHalfH = 1.05
   ) {

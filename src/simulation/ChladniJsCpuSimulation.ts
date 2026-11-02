@@ -9,7 +9,7 @@ export class ChladniJsCpuSimulation {
   public grainCount: number;
   public positions: Float32Array; // [x, y, z, active]
 
-  constructor(grainCount = 25_000) {
+  constructor(grainCount = 50_000) {
     this.grainCount = Math.min(grainCount, 50_000);
     this.positions = new Float32Array(this.grainCount * 4);
     this.resetParticles();

@@ -152,6 +152,13 @@ export function sanitizeParams(raw: unknown): ChladniParams {
 
   // Typography
   merged.fontFamily = sanitizeString(merged.fontFamily, DEFAULT_PARAMS.fontFamily);
+  // Migrate the legacy default font (iA Writer Quattro V) to the current default
+  if (merged.fontFamily === 'iAWriterQuattroV-Italic') {
+    merged.fontFamily = DEFAULT_PARAMS.fontFamily;
+    merged.fontItalic = true;
+  } else if (merged.fontFamily === 'iAWriterQuattroV') {
+    merged.fontFamily = DEFAULT_PARAMS.fontFamily;
+  }
   merged.fontItalic = Boolean(merged.fontItalic);
 
   // Booleans

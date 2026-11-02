@@ -15,7 +15,7 @@ export class ChladniWasmSimulation {
   private positionsBuffer: Float32Array | null = null;
   private initPromise: Promise<void>;
 
-  constructor(grainCount = 25_000) {
+  constructor(grainCount = 50_000) {
     this.grainCount = Math.min(grainCount, 50_000); // capped at 50k for smooth 60fps CPU execution
 
     this.initPromise = (async () => {

@@ -97,6 +97,21 @@ describe('sanitizeParams', () => {
     expect(result.sandColor).toBe(DEFAULT_PARAMS.sandColor);
   });
 
+  it('migrates the legacy iA Writer default font to Neue Montreal', async () => {
+    const { sanitizeParams } = await loadStorageModule();
+
+    const regular = sanitizeParams({ ...DEFAULT_PARAMS, fontFamily: 'iAWriterQuattroV' });
+    expect(regular.fontFamily).toBe(DEFAULT_PARAMS.fontFamily);
+    expect(regular.fontItalic).toBe(false);
+
+    const italic = sanitizeParams({ ...DEFAULT_PARAMS, fontFamily: 'iAWriterQuattroV-Italic' });
+    expect(italic.fontFamily).toBe(DEFAULT_PARAMS.fontFamily);
+    expect(italic.fontItalic).toBe(true);
+
+    const untouched = sanitizeParams({ ...DEFAULT_PARAMS, fontFamily: 'Geist' });
+    expect(untouched.fontFamily).toBe('Geist');
+  });
+
   it('coerces boolean fields and keeps valid persisted void settings', async () => {
     const { sanitizeParams } = await loadStorageModule();
 

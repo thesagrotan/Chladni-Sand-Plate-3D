@@ -898,16 +898,17 @@
    ROOT TYPOGRAPHY & THEME VARIABLES
    ===================================================================== */
 :root {
-  --active-font-family: 'iAWriterQuattroV', 'iA Writer Quattro V', -apple-system, BlinkMacSystemFont, sans-serif;
+  --active-font-family: 'Neue-Montreal', -apple-system, BlinkMacSystemFont, sans-serif;
   --active-font-weight: 400;
   --active-font-style: normal;
   --active-font-variation: normal;
   --active-letter-spacing: normal;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 @theme {
-  --font-sans: var(--active-font-family, 'iAWriterQuattroV', system-ui, sans-serif);
-  --font-serif: var(--active-font-family, 'iAWriterQuattroV', system-ui, sans-serif);
+  --font-sans: var(--active-font-family, 'Neue-Montreal', system-ui, sans-serif);
+  --font-serif: var(--active-font-family, 'Neue-Montreal', system-ui, sans-serif);
   --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -1008,5 +1009,19 @@ div.font-serif,
   html.custom-cursor,
   html.custom-cursor * {
     cursor: none !important;
+  }
+}
+
+/* Releases accordion panel */
+.release-panel {
+  display: grid;
+  transition:
+    grid-template-rows 200ms var(--ease-out),
+    opacity 200ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .release-panel {
+    transition: opacity 200ms var(--ease-out);
   }
 }

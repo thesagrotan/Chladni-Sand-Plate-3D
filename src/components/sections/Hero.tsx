@@ -1,15 +1,58 @@
+import { useState } from 'react';
 import type { ChladniParams } from '../../types/chladni.ts';
+
+interface Release {
+  id: string;
+  catalog: string;
+  artist: string;
+  title: string;
+  year: string;
+  format: string;
+  discogsUrl: string;
+  description: string;
+  cover: string;
+  hasAudio?: boolean;
+}
+
+const RELEASES: Release[] = [
+  {
+    id: 'tz-01',
+    catalog: 'TZ-01',
+    artist: 'Enrique del Castillo',
+    title: 'Umbráfono (Sound Film Series)',
+    year: '2023',
+    format: '10″ / 35mm optical sound film',
+    discogsUrl: 'https://www.discogs.com/search/?q=Enrique%20del%20Castillo%20Umbr%C3%A1fono',
+    description:
+      "Two pieces for optical sound film, recorded through the studio's stroboscopic 35mm rig. The projected strip is read as a score — dust, exposure and cut become the sound surface.",
+    cover: '/assets/covers/tz-01.jpeg',
+    hasAudio: true,
+  },
+  {
+    id: 'tz-02',
+    catalog: 'TZ-02',
+    artist: 'Severine Beata',
+    title: 'That Great Album',
+    year: '2023',
+    format: '12″ vinyl LP',
+    discogsUrl: 'https://www.discogs.com/search/?q=Severine%20Beata%20That%20Great%20Album',
+    description:
+      'Recorded live to tape in the Kreuzberg studio. Eight pieces for prepared piano, tape loops and room resonance, mastered and cut for vinyl.',
+    cover: '/assets/covers/tz-02.svg',
+  },
+];
 
 interface HeroProps {
   params: ChladniParams;
   dotColor: string;
   onToggleAudio: () => void;
-  onReleaseClick: (message: string) => void;
 }
 
-export function Hero({ params, dotColor, onToggleAudio, onReleaseClick }: HeroProps) {
+export function Hero({ params, dotColor, onToggleAudio }: HeroProps) {
+  const [openId, setOpenId] = useState<string | null>(null);
+
   return (
-    <section className="h-screen min-h-[680px] w-full flex flex-col justify-between px-2 sm:px-14 md:px-40 py-8 sm:py-12 select-none">
+    <section className="min-h-screen w-full flex flex-col justify-between px-2 sm:px-14 md:px-40 py-8 sm:py-12 select-none">
       {/* Main Title & Subtitle */}
       <div className="w-full my-auto flex flex-col items-start justify-center text-left">
         <p
@@ -34,41 +77,76 @@ export function Hero({ params, dotColor, onToggleAudio, onReleaseClick }: HeroPr
         </div>
 
         <div className="flex flex-col gap-5 sm:gap-6 w-full text-3xl font-serif leading-tight font-normal">
-          {/* Row 1: Umbrafono Sound Film Series */}
-          <div
-            onClick={onToggleAudio}
-            className="flex items-start w-full group cursor-pointer text-3xl font-serif leading-tight"
-            title="Click to play / toggle Umbráfono sound"
-          >
-            <span data-text-repulsor className="text-3xl font-serif shrink-0 w-32 sm:w-44">TZ-01</span>
-            <div className="flex flex-col text-3xl font-serif leading-tight flex-1">
-              <div className="flex items-baseline justify-between w-full">
-                <span data-text-repulsor className="text-3xl font-serif">Enrique del Castillo</span>
-                <span
-                  data-text-repulsor
-                  className="text-3xl font-serif italic underline underline-offset-8 cursor-pointer shrink-0 ml-4"
+          {RELEASES.map((release) => {
+            const isOpen = openId === release.id;
+            return (
+              <div key={release.id}>
+                <div
+                  onClick={() => setOpenId(isOpen ? null : release.id)}
+                  className="flex items-baseline w-full group cursor-pointer text-3xl font-serif leading-tight"
+                  title={isOpen ? 'Close release details' : 'Open release details'}
                 >
-                  {params.audioEnabled ? '[Playing]' : '[Play]'}
-                </span>
-              </div>
-              <span data-text-repulsor className="text-3xl font-serif italic">Umbráfono (Sound Film Series)</span>
-              <span data-text-repulsor className="text-3xl font-serif">10″ / 35mm — 2023</span>
-            </div>
-          </div>
+                  <span data-text-repulsor className="text-3xl font-serif shrink-0 w-32 sm:w-44">
+                    {release.catalog}
+                  </span>
+                  <span data-text-repulsor className="text-3xl font-serif">
+                    {release.artist}
+                  </span>
+                  <span data-text-repulsor className="text-3xl font-serif italic ml-4">
+                    {release.title}
+                  </span>
+                  {release.hasAudio && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleAudio();
+                      }}
+                      data-text-repulsor
+                      className="text-3xl font-serif underline underline-offset-8 cursor-pointer shrink-0 ml-auto pl-4"
+                      title="Play / toggle Umbráfono sound"
+                    >
+                      {params.audioEnabled ? '❚❚' : '▶'}
+                    </button>
+                  )}
+                </div>
 
-          {/* Row 2: Severine Beata That Great Album */}
-          <div
-            onClick={() => onReleaseClick('TZ-02: Severine Beata — That Great Album (12″ Vinyl LP)')}
-            className="flex items-start w-full group cursor-pointer text-3xl font-serif leading-tight"
-            title="TZ-02: Severine Beata — That Great Album"
-          >
-            <span data-text-repulsor className="text-3xl font-serif shrink-0 w-32 sm:w-44">TZ-02</span>
-            <div className="flex flex-col text-3xl font-serif leading-tight">
-              <span data-text-repulsor className="text-3xl font-serif">Severine Beata</span>
-              <span data-text-repulsor className="text-3xl font-serif italic">That Great Album</span>
-              <span data-text-repulsor className="text-3xl font-serif">12″ LP — 2023</span>
-            </div>
-          </div>
+                <div
+                  className="release-panel"
+                  style={{
+                    gridTemplateRows: isOpen ? '1fr' : '0fr',
+                    opacity: isOpen ? 1 : 0,
+                  }}
+                >
+                  <div className="overflow-hidden min-h-0">
+                    <div className="flex gap-5 sm:gap-8 items-start pl-32 sm:pl-44 pt-5 sm:pt-6 pr-1">
+                      <img
+                        src={release.cover}
+                        alt={`${release.artist} — ${release.title} cover`}
+                        className="w-36 sm:w-44 aspect-square object-cover shrink-0"
+                      />
+                      <div className="flex flex-col text-base sm:text-lg leading-relaxed font-normal min-w-0">
+                        <p data-text-repulsor style={{ opacity: 0.88 }}>
+                          {release.description}
+                        </p>
+                        <p data-text-repulsor className="mt-3">
+                          {release.year} — {release.format}
+                        </p>
+                        <a
+                          href={release.discogsUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline underline-offset-4 mt-3 hover:opacity-70 transition-opacity duration-150"
+                        >
+                          View on Discogs ↗
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
