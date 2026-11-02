@@ -83,7 +83,7 @@ export const HudStats: React.FC<HudStatsProps> = ({
           <button
             type="button"
             onClick={onToggleAudio}
-            className="pointer-events-auto flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-950/80 border border-amber-500/50 text-amber-300 hover:text-white transition-all shadow-md backdrop-blur group cursor-pointer"
+            className="pointer-events-auto flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-950/80 border border-amber-500/50 text-amber-300 hover:text-white transition-[background-color,border-color,color,opacity,transform] shadow-md backdrop-blur group cursor-pointer"
             title={`Sound active: ${
               params.audioSource === 'umbrafono'
                 ? 'Umbráfono (Enrique del Castillo)'
@@ -123,7 +123,7 @@ export const HudStats: React.FC<HudStatsProps> = ({
           <button
             type="button"
             onClick={onOpenWasmLab}
-            className="pointer-events-auto flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-gradient-to-r from-cyan-950/90 to-indigo-950/90 border border-cyan-500/60 text-cyan-300 hover:text-white hover:border-cyan-400 transition-all shadow-md backdrop-blur group cursor-pointer"
+            className="pointer-events-auto flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-gradient-to-r from-cyan-950/90 to-indigo-950/90 border border-cyan-500/60 text-cyan-300 hover:text-white hover:border-cyan-400 transition-[background-color,border-color,color,opacity,transform] shadow-md backdrop-blur group cursor-pointer"
             title="Open WebAssembly Performance Research Lab & Live Benchmarks"
           >
             <Zap size={11} className="text-cyan-400 group-hover:scale-110 transition-transform" />
@@ -142,11 +142,14 @@ export const HudStats: React.FC<HudStatsProps> = ({
             </span>
           </div>
 
-          {/* Progress Bar */}
+          {/* Progress Bar — animates transform (composite-only), not width (layout) */}
           <div className="w-full h-[3px] bg-neutral-800/80 rounded-full mt-1.5 overflow-hidden">
             <div
-              className="h-full bg-neutral-200 transition-all duration-150 ease-out rounded-full"
-              style={{ width: `${settled}%` }}
+              className="h-full w-full bg-neutral-200 origin-left rounded-full"
+              style={{
+                transform: `scaleX(${settled / 100})`,
+                transition: 'transform 150ms ease-out',
+              }}
             />
           </div>
         </div>
@@ -169,10 +172,13 @@ export const HudStats: React.FC<HudStatsProps> = ({
             </div>
             <div className="w-full h-[3px] bg-neutral-800/80 rounded-full mt-1.5 overflow-hidden">
               <div
-                className={`h-full transition-all duration-150 ease-out rounded-full ${
+                className={`h-full w-full origin-left rounded-full ${
                   clearance > 85 ? 'bg-emerald-400' : 'bg-amber-400'
                 }`}
-                style={{ width: `${clearance}%` }}
+                style={{
+                  transform: `scaleX(${clearance / 100})`,
+                  transition: 'transform 150ms ease-out',
+                }}
               />
             </div>
           </div>
@@ -228,8 +234,11 @@ export const HudStats: React.FC<HudStatsProps> = ({
             </div>
             <div className="w-full h-[2px] bg-neutral-800 rounded-full mt-1 overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-amber-500 to-cyan-400 transition-all duration-75"
-                style={{ width: `${Math.min(100, metrics.audio.rms * 220)}%` }}
+                className="h-full w-full origin-left bg-gradient-to-r from-amber-500 to-cyan-400 rounded-full"
+                style={{
+                  transform: `scaleX(${Math.min(1, Math.max(0.001, metrics.audio.rms * 2.2))})`,
+                  transition: 'transform 75ms linear',
+                }}
               />
             </div>
           </div>
