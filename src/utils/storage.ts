@@ -40,7 +40,7 @@ function getStorage(): Storage | null {
 // In-memory fallback if localStorage is disabled or restricted
 const memoryStorage: Record<string, string> = {};
 
-function storageGet(key: string): string | null {
+export function storageGet(key: string): string | null {
   const store = getStorage();
   if (store) {
     try {
@@ -52,7 +52,7 @@ function storageGet(key: string): string | null {
   return memoryStorage[key] ?? null;
 }
 
-function storageSet(key: string, value: string): boolean {
+export function storageSet(key: string, value: string): boolean {
   memoryStorage[key] = value;
   const store = getStorage();
   if (store) {

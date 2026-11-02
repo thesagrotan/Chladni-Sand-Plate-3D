@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { ChladniParams, AudioMetrics, FontOption, AVAILABLE_FONTS, DEFAULT_PARAMS } from '../types/chladni.ts';
 import { SavedVersion } from '../utils/storage.ts';
+import type { ColorTheme } from '../utils/colorThemes.ts';
 import { GRID_CATALOG_BY_TYPE, randomizeGridParams } from '../utils/grid.ts';
 import { findFont } from '../utils/fonts.ts';
 import { GridSection } from './control/GridSection.tsx';
@@ -46,6 +47,8 @@ interface ControlPanelProps {
   onSaveVersion?: (label: string) => void;
   onRestoreVersion?: (id: string) => void;
   onDeleteVersion?: (id: string) => void;
+  colorThemes: ColorTheme[];
+  setColorThemes: React.Dispatch<React.SetStateAction<ColorTheme[]>>;
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -68,6 +71,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onSaveVersion,
   onRestoreVersion,
   onDeleteVersion,
+  colorThemes,
+  setColorThemes,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'grid' | 'typo' | 'resonance' | 'audio'>('all');
@@ -76,7 +81,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const [versionLabel, setVersionLabel] = useState('');
   const [customFonts, setCustomFonts] = useState<FontOption[]>([]);
   const [fontLoadError, setFontLoadError] = useState<string | null>(null);
-  const [showColorCustomizer, setShowColorCustomizer] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
   const [presetFilter, setPresetFilter] = useState<PresetFilter>('empty-center');
   const [copiedPrompt, setCopiedPrompt] = useState(false);
@@ -370,8 +374,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 setCustomFonts={setCustomFonts}
                 fontLoadError={fontLoadError}
                 setFontLoadError={setFontLoadError}
-                showColorCustomizer={showColorCustomizer}
-                setShowColorCustomizer={setShowColorCustomizer}
+                colorThemes={colorThemes}
+                setColorThemes={setColorThemes}
               />
             )}
 

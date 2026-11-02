@@ -182,11 +182,11 @@ export const DEFAULT_PARAMS: ChladniParams = {
   rotationAngle: 0,
 
   // Colors
-  paletteId: 'silica',
-  sandColor: '#f7f5f0',
-  sandColorSecondary: '#e4dfd3',
-  plateColor: '#111215',
-  glowColor: '#38bdf8',
+  paletteId: 'golden_sand',
+  sandColor: '#bababa',
+  sandColorSecondary: '#e5cf9f',
+  plateColor: '#0c0d10',
+  glowColor: '#ffffff',
 
   modeM: 4.0,
   modeN: 8.0,

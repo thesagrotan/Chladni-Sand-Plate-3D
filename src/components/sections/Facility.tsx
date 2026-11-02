@@ -26,7 +26,7 @@ const FACILITY_COLUMNS = [
 export function Facility({ dotColor }: FacilityProps) {
   return (
     <section id="facility" className="px-2 sm:px-14 md:px-40 py-4 sm:py-6 w-full">
-      <div data-text-repulsor className="text-3xl font-sans font-normal mb-10 tracking-wide">
+      <div data-text-repulsor className="page-text mb-10">
         Facility
       </div>
 
@@ -35,8 +35,8 @@ export function Facility({ dotColor }: FacilityProps) {
           <div key={column.title}>
             <div
               data-text-repulsor
-              className="font-mono text-xs uppercase tracking-widest mb-4"
-              style={{ color: dotColor, opacity: 0.5 }}
+              className="page-text mb-4"
+              style={{ color: dotColor }}
             >
               {column.title}
             </div>
@@ -45,8 +45,8 @@ export function Facility({ dotColor }: FacilityProps) {
                 <li
                   key={item}
                   data-text-repulsor
-                  className="font-serif text-2xl leading-tight"
-                  style={{ color: dotColor, opacity: 0.82 }}
+                  className="page-text"
+                  style={{ color: dotColor }}
                 >
                   {item}
                 </li>

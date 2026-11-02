@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { Type, Upload, Italic } from 'lucide-react';
 import { ChladniParams, FontOption, buildFontVariationSettings } from '../../types/chladni.ts';
 import { findFont, fontSelectionUpdates } from '../../utils/fonts.ts';
+import type { ColorTheme } from '../../utils/colorThemes.ts';
 import { SliderRow } from './SliderRow.tsx';
 import { ColorThemesSection } from './ColorThemesSection.tsx';
 import type { UpdateParam, UpdateParams } from './types.ts';
@@ -15,8 +16,8 @@ interface TypographySectionProps {
   setCustomFonts: React.Dispatch<React.SetStateAction<FontOption[]>>;
   fontLoadError: string | null;
   setFontLoadError: React.Dispatch<React.SetStateAction<string | null>>;
-  showColorCustomizer: boolean;
-  setShowColorCustomizer: React.Dispatch<React.SetStateAction<boolean>>;
+  colorThemes: ColorTheme[];
+  setColorThemes: React.Dispatch<React.SetStateAction<ColorTheme[]>>;
 }
 
 export const TypographySection: React.FC<TypographySectionProps> = ({
@@ -28,8 +29,8 @@ export const TypographySection: React.FC<TypographySectionProps> = ({
   setCustomFonts,
   fontLoadError,
   setFontLoadError,
-  showColorCustomizer,
-  setShowColorCustomizer,
+  colorThemes,
+  setColorThemes,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -132,8 +133,8 @@ export const TypographySection: React.FC<TypographySectionProps> = ({
       <ColorThemesSection
         params={params}
         updateParams={updateParams}
-        showColorCustomizer={showColorCustomizer}
-        setShowColorCustomizer={setShowColorCustomizer}
+        colorThemes={colorThemes}
+        setColorThemes={setColorThemes}
       />
 
       {/* Typography Controls */}
@@ -175,6 +176,7 @@ export const TypographySection: React.FC<TypographySectionProps> = ({
           <select
             value={params.fontFamily}
             onChange={(e) => handleSelectFont(e.target.value)}
+            data-testid="font-family-select"
             className="flex-1 bg-neutral-900 border border-neutral-700/80 rounded px-2 py-1 text-xs text-neutral-200 font-medium focus:outline-none focus:border-cyan-400 cursor-pointer truncate"
           >
             {allFonts.map((font) => (

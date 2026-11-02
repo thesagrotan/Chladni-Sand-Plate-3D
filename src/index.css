@@ -930,6 +930,7 @@ div.font-serif,
 }
 
 /* Global Italic trigger when toggled on */
+[data-font-italic="true"] .page-text,
 [data-font-italic="true"] .font-serif,
 [data-font-italic="true"] .font-sans {
   font-style: italic !important;
@@ -965,6 +966,25 @@ div.font-serif,
 .text-7xl { font-size: 4.5rem; line-height: 1; }
 .text-8xl { font-size: 6rem; line-height: 1; }
 .text-9xl { font-size: 8rem; line-height: 1; }
+
+/* ---------------------------------------------------------------------
+   Unified page typography.
+
+   Every piece of page copy that is NOT the hero headline uses this class,
+   so the whole page below the title shares one family, one size, one
+   weight and one color. Change the values here to restyle it in one place.
+   The hero headline keeps its own display scale (text-8xl).
+   --------------------------------------------------------------------- */
+.page-text {
+  font-family: var(--active-font-family, system-ui, sans-serif);
+  font-variation-settings: var(--active-font-variation, normal);
+  letter-spacing: var(--active-letter-spacing, normal);
+  font-weight: var(--active-font-weight, 400);
+  font-size: 2.25rem; /* 36px */
+  line-height: 1.2;
+  color: var(--sand-color, #c4bdb2);
+}
+
 ::-webkit-scrollbar {
   width: 8px;
 }

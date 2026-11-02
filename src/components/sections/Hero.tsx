@@ -1,54 +1,20 @@
 import { useState } from 'react';
-import type { ChladniParams } from '../../types/chladni.ts';
-
-interface Release {
-  id: string;
-  catalog: string;
-  artist: string;
-  title: string;
-  year: string;
-  format: string;
-  discogsUrl: string;
-  description: string;
-  cover: string;
-  hasAudio?: boolean;
-}
-
-const RELEASES: Release[] = [
-  {
-    id: 'tz-01',
-    catalog: 'TZ-01',
-    artist: 'Enrique del Castillo',
-    title: 'Umbráfono (Sound Film Series)',
-    year: '2023',
-    format: '10″ / 35mm optical sound film',
-    discogsUrl: 'https://www.discogs.com/search/?q=Enrique%20del%20Castillo%20Umbr%C3%A1fono',
-    description:
-      "Two pieces for optical sound film, recorded through the studio's stroboscopic 35mm rig. The projected strip is read as a score — dust, exposure and cut become the sound surface.",
-    cover: '/assets/covers/tz-01.svg',
-    hasAudio: true,
-  },
-  {
-    id: 'tz-02',
-    catalog: 'TZ-02',
-    artist: 'Severine Beata',
-    title: 'That Great Album',
-    year: '2023',
-    format: '12″ vinyl LP',
-    discogsUrl: 'https://www.discogs.com/search/?q=Severine%20Beata%20That%20Great%20Album',
-    description:
-      'Recorded live to tape in the Kreuzberg studio. Eight pieces for prepared piano, tape loops and room resonance, mastered and cut for vinyl.',
-    cover: '/assets/covers/tz-02.svg',
-  },
-];
+import type { ColorTheme } from '../../utils/colorThemes.ts';
+import { RELEASES } from '../../data/releases.ts';
 
 interface HeroProps {
-  params: ChladniParams;
   dotColor: string;
-  onToggleAudio: () => void;
+  activeReleaseId: string | null;
+  releaseThemes: Record<string, ColorTheme | undefined>;
+  onPlayRelease: (releaseId: string) => void;
 }
 
-export function Hero({ params, dotColor, onToggleAudio }: HeroProps) {
+export function Hero({
+  dotColor,
+  activeReleaseId,
+  releaseThemes,
+  onPlayRelease,
+}: HeroProps) {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const handleToggleRelease = (id: string) => {
@@ -79,48 +45,50 @@ export function Hero({ params, dotColor, onToggleAudio }: HeroProps) {
       </div>
 
       {/* Bottom: Releases Catalog */}
-      <div
-        className="w-full mx-auto flex flex-col pb-2 sm:pb-4 text-left font-serif text-3xl"
-        style={{ color: dotColor }}
-      >
-        <div
-          data-text-repulsor
-          className="text-3xl font-serif font-normal mb-6 sm:mb-7 tracking-wide text-left"
-        >
+      <div className="w-full mx-auto flex flex-col pb-2 sm:pb-4 text-left page-text">
+        <div data-text-repulsor className="page-text mb-6 sm:mb-7 text-left">
           Releases
         </div>
 
-        <div className="flex flex-col gap-5 sm:gap-6 w-full text-3xl font-serif leading-tight font-normal">
+        <div className="flex flex-col gap-5 sm:gap-6 w-full page-text">
           {RELEASES.map((release) => {
             const isOpen = openId === release.id;
+            const theme = releaseThemes[release.id];
+            const canPlay = release.hasAudio || Boolean(theme);
+            const isPlaying = activeReleaseId === release.id;
             return (
               <div key={release.id}>
                 <div
                   onClick={() => handleToggleRelease(release.id)}
-                  className="flex items-baseline w-full group cursor-pointer text-3xl font-serif leading-tight"
+                  className="flex items-baseline w-full group cursor-pointer page-text"
                   title={isOpen ? 'Close release details' : 'Open release details'}
                 >
-                  <span data-text-repulsor className="text-3xl font-serif shrink-0 w-32 sm:w-44">
+                  <span data-text-repulsor className="page-text shrink-0 w-32 sm:w-40">
                     {release.catalog}
                   </span>
-                  <span data-text-repulsor className="text-3xl font-serif">
+                  <span data-text-repulsor className="page-text">
                     {release.artist}
                   </span>
-                  <span data-text-repulsor className="text-3xl font-serif italic ml-4">
+                  <span data-text-repulsor className="page-text italic ml-4">
                     {release.title}
                   </span>
-                  {release.hasAudio && (
+                  {canPlay && (
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onToggleAudio();
+                        onPlayRelease(release.id);
                       }}
                       data-text-repulsor
-                      className="text-3xl font-serif underline underline-offset-8 cursor-pointer shrink-0 ml-auto pl-4"
-                      title="Play / toggle Umbráfono sound"
+                      data-testid={`play-release-${release.id}`}
+                      className="page-text underline underline-offset-8 cursor-pointer shrink-0 ml-auto pl-4"
+                      title={
+                        theme
+                          ? `Play release and apply the ${theme.name} theme`
+                          : 'Play / toggle Umbráfono sound'
+                      }
                     >
-                      {params.audioEnabled ? '❚❚' : '▶'}
+                      {isPlaying ? '❚❚' : '▶'}
                     </button>
                   )}
                 </div>
@@ -133,18 +101,15 @@ export function Hero({ params, dotColor, onToggleAudio }: HeroProps) {
                   }}
                 >
                   <div className="overflow-hidden min-h-0">
-                    <div className="flex gap-5 sm:gap-8 items-start pl-32 sm:pl-44 pt-5 sm:pt-6 pr-1">
+                    <div className="flex gap-5 sm:gap-8 items-start pl-32 sm:pl-40 pt-5 sm:pt-6 pr-1">
                       <img
                         src={release.cover}
                         alt={`${release.artist} — ${release.title} cover`}
                         {...(isOpen ? { 'data-text-repulsor': 'card' } : {})}
                         className="w-36 sm:w-44 aspect-square object-cover shrink-0"
                       />
-                      <div className="flex flex-col text-base sm:text-lg leading-relaxed font-normal min-w-0">
-                        <p
-                          {...(isOpen ? { 'data-text-repulsor': '' } : {})}
-                          style={{ opacity: 0.88 }}
-                        >
+                      <div className="flex flex-col page-text min-w-0">
+                        <p {...(isOpen ? { 'data-text-repulsor': '' } : {})}>
                           {release.description}
                         </p>
                         <p
@@ -153,6 +118,15 @@ export function Hero({ params, dotColor, onToggleAudio }: HeroProps) {
                         >
                           {release.year} — {release.format}
                         </p>
+                        {theme && (
+                          <p
+                            {...(isOpen ? { 'data-text-repulsor': '' } : {})}
+                            className="mt-3"
+                            data-testid={`release-theme-${release.id}`}
+                          >
+                            Plays with theme — {theme.name}
+                          </p>
+                        )}
                         <a
                           href={release.discogsUrl}
                           target="_blank"

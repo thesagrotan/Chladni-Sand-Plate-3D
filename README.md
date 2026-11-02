@@ -62,6 +62,7 @@ src/
     sections/             Hero, About, Facility, Contact
     HudStats.tsx          live performance HUD (H to toggle)
     WasmResearchLab.tsx   WASM/CPU benchmark lab (lazy-loaded)
+  data/releases.ts        label catalog; release ids bind to color themes
   hooks/                  camera controls, canvas setup, settings persistence
   simulation/             GPU / WASM / JS CPU engines, frame loop, audio synth
   utils/                  grid catalogue, font catalogue, storage, text masks
@@ -77,7 +78,9 @@ docs/                     handoff notes and performance baselines
   secondary/benchmark engines and are only constructed when selected.
 - **HUD.** Enabled by default; toggle with `H` or the corner button.
 - **Persistence.** Settings, presets and named versions are stored locally in
-  the browser; saved void/preset settings survive reload.
+  the browser; saved void/preset settings survive reload. Color themes are
+  stored separately, so edits and release assignments survive a params reset;
+  the plate itself still returns to the brand palette on reload.
 - **WASM.** The runtime artifact is the embedded base64 module in
   `src/simulation/wasm/chladniWasmModule.ts`; `chladni.as.ts` and `chladni.wat`
   are source/reference. Benchmark parity is stated as "within 0.5% tolerance".

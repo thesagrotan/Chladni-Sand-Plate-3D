@@ -1,7 +1,15 @@
-import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { ChladniMetrics, buildFontVariationSettings } from './types/chladni.ts';
 import { randomizeGridParams } from './utils/grid.ts';
 import { useChladniSettings } from './hooks/useChladniSettings.ts';
+import { useColorThemes } from './hooks/useColorThemes.ts';
+import {
+  isThemeActive,
+  paletteSnapshot,
+  themeToParams,
+  type ColorTheme,
+  type PaletteSnapshot,
+} from './utils/colorThemes.ts';
 import { ChladniCanvas } from './components/ChladniCanvas.tsx';
 import { HudStats } from './components/HudStats.tsx';
 import { Hero } from './components/sections/Hero.tsx';
@@ -57,6 +65,13 @@ export default function App() {
     deleteVersion,
   } = useChladniSettings();
 
+  const { colorThemes, setColorThemes } = useColorThemes();
+  const [activeReleaseId, setActiveReleaseId] = useState<string | null>(null);
+  // Palette that was live before the release theme took over, restored on stop.
+  const paletteBeforePlaybackRef = useRef<PaletteSnapshot | null>(null);
+  // Previous playback state, so themes apply only on start/release change.
+  const previousPlaybackActiveRef = useRef(false);
+  const previousReleaseIdRef = useRef<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [metrics, setMetrics] = useState<ChladniMetrics>({
@@ -81,6 +96,21 @@ export default function App() {
   const dotColor = useMemo(() => {
     return getPerceivedDotColor(params.sandColor, params.sandColorSecondary);
   }, [params.sandColor, params.sandColorSecondary]);
+
+  // Release → colour theme bindings edited from the Style panel.
+  const releaseThemes = useMemo(() => {
+    const map: Record<string, ColorTheme> = {};
+    for (const theme of colorThemes) {
+      if (theme.releaseId) map[theme.releaseId] = theme;
+    }
+    return map;
+  }, [colorThemes]);
+
+  // Audio only truly plays when enabled and the simulation is not paused.
+  const playbackActive = params.audioEnabled && !isPaused;
+  // The release whose theme is currently driving the plate. Passed to the hero
+  // so the button shows ▶ while playback is paused.
+  const playingReleaseId = playbackActive ? activeReleaseId : null;
 
   // Dynamic CSS variable font-variation-settings string
   const fontVariationCss = useMemo(() => {
@@ -124,6 +154,9 @@ export default function App() {
 
   // Handle explicit Reset to defaults
   const handleReset = useCallback(() => {
+    // Drop any playback palette snapshot so the reset is not overwritten.
+    paletteBeforePlaybackRef.current = null;
+    setActiveReleaseId(null);
     reset();
     setIsPaused(false);
     setResetTrigger((prev) => prev + 1);
@@ -173,6 +206,48 @@ export default function App() {
     plateSynth.updateParameters(params, isPaused);
   }, [params, isPaused]);
 
+  /**
+   * Binds the active release's theme to playback. The theme is applied when
+   * playback starts (or the release changes); when playback stops (mute or
+   * pause) the palette that was live before playback returns.
+   */
+  useEffect(() => {
+    const wasActive = previousPlaybackActiveRef.current;
+    const previousReleaseId = previousReleaseIdRef.current;
+    previousPlaybackActiveRef.current = playbackActive;
+    previousReleaseIdRef.current = activeReleaseId;
+
+    const releaseId = activeReleaseId;
+    if (!releaseId) return;
+    const theme = releaseThemes[releaseId];
+
+    if (playbackActive) {
+      // Only on the transition into playback or when the release changes, so
+      // manual palette edits during playback are not overwritten.
+      if (wasActive && previousReleaseId === releaseId) return;
+      if (!theme) return;
+      setParams((prev) => {
+        if (!paletteBeforePlaybackRef.current) {
+          paletteBeforePlaybackRef.current = paletteSnapshot(prev);
+        }
+        return { ...prev, ...themeToParams(theme) };
+      });
+      return;
+    }
+
+    if (!wasActive) return;
+
+    const snapshot = paletteBeforePlaybackRef.current;
+    paletteBeforePlaybackRef.current = null;
+    if (!snapshot) return;
+
+    setParams((prev) => {
+      // Leave a palette the user picked manually while the release was playing.
+      if (theme && !isThemeActive(theme, prev)) return prev;
+      return { ...prev, ...snapshot };
+    });
+  }, [playbackActive, activeReleaseId, releaseThemes, setParams]);
+
   const handleTogglePause = useCallback(() => {
     setIsPaused((prev) => !prev);
   }, []);
@@ -194,6 +269,32 @@ export default function App() {
       return { ...prev, audioEnabled: next };
     });
   }, []);
+
+  /**
+   * Plays a release from the catalog. If the release has a colour theme bound
+   * to it in the Style panel, that theme is applied at the same time.
+   */
+  const handlePlayRelease = useCallback(
+    (releaseId: string) => {
+      if (playbackActive && activeReleaseId === releaseId) {
+        setParams((prev) => ({ ...prev, audioEnabled: false }));
+        setToastMessage('Audio muted');
+        return;
+      }
+
+      // The playback effect applies the release theme and snapshots the
+      // palette that was live before playback started.
+      setIsPaused(false);
+      setActiveReleaseId(releaseId);
+      setParams((prev) => ({ ...prev, audioEnabled: true }));
+
+      const theme = releaseThemes[releaseId];
+      setToastMessage(
+        theme ? `▶ ${theme.name} theme applied · audio playing` : '▶ Release playing'
+      );
+    },
+    [playbackActive, activeReleaseId, releaseThemes, setParams]
+  );
 
   // Keyboard shortcut to generate next grid
   const handleExperimentNextGrid = useCallback(() => {
@@ -271,9 +372,10 @@ export default function App() {
       {/* 2. FOREGROUND DOM ELEMENTS (EXACT LAYOUT FROM REFERENCE IMAGE) */}
       <div className="relative z-10 w-full flex flex-col">
         <Hero
-          params={params}
           dotColor={dotColor}
-          onToggleAudio={handleToggleAudio}
+          activeReleaseId={playingReleaseId}
+          releaseThemes={releaseThemes}
+          onPlayRelease={handlePlayRelease}
         />
 
         <About dotColor={dotColor} />
@@ -391,6 +493,8 @@ export default function App() {
             onSaveVersion={handleSaveVersion}
             onRestoreVersion={handleRestoreVersion}
             onDeleteVersion={handleDeleteVersion}
+            colorThemes={colorThemes}
+            setColorThemes={setColorThemes}
           />
         </Suspense>
       )}
