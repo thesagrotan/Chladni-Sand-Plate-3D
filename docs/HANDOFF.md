@@ -165,7 +165,7 @@ the commit/PR. Results for the completed items are in
 
 ### T4 — Test gaps (plan §6) — ✅ complete
 
-Vitest now covers 10 files / 69 tests (`tests/*.test.ts`, `tests/parity/`).
+Vitest now covers 11 files / 71 tests (`tests/*.test.ts`, `tests/parity/`).
 Landed:
 
 - **GLSL vs JS parity** — `tests/parity/glslParity.test.ts` compiles
@@ -177,6 +177,9 @@ Landed:
   (15% of the 50k default) bucket boundary, the 35k CPU cap, lazy CPU/WASM
   construction, reuse within a bucket, and rebuilds when the capped count
   changes.
+- **Scatter/reset engines** — `tests/engineManager.test.ts` verifies the shared
+  scatter/reset path resets the GPU, WASM, JS CPU, and telemetry grains (and
+  tolerates a partially constructed engine set).
 - **Playwright e2e** — `playwright.config.ts` + `e2e/*.spec.ts`
   (`bun run test:e2e`): WebGL/UI/audio smoke, keyboard shortcuts
   (D/H/Space/S/R/W/M/G), presets, local font upload, named version
@@ -189,8 +192,6 @@ Landed:
   scroll long tasks against `dist/`. Software renderers (CI SwiftShader) use
   wider scroll budgets because those timings are not comparable with Metal.
   `.github/workflows/ci.yml` runs lint, Vitest, build, budgets, and e2e.
-
-`scripts/perf-baseline.mjs` already drives Playwright's bundled Chromium — reuse it for e2e.
 
 ### T5 — Housekeeping / leftover findings (not in a phase)
 
