@@ -122,6 +122,13 @@ export const CustomCursor: React.FC<CustomCursorProps> = ({
 
   const isSquare = shape === 'square';
 
+  // Render at the largest state and scale down. Animating width/height would
+  // trigger layout every hover; scale() is composite-only. Border and shadow
+  // are divided by the scale so their on-screen size stays constant.
+  const baseSize = shape === 'circle' ? 34 : 28;
+  const scale = Math.max(size / baseSize, 0.05);
+  const invScale = 1 / scale;
+
   return (
     <div
       ref={containerRef}
@@ -133,19 +140,20 @@ export const CustomCursor: React.FC<CustomCursorProps> = ({
       aria-hidden="true"
     >
       <div
-        className={`relative -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-[width,height,background-color,border-color,color,opacity,transform,box-shadow] duration-150 ease-out ${
+        className={`relative -translate-x-1/2 -translate-y-1/2 flex items-center justify-center ${
           isSquare ? 'rounded-none' : 'rounded-full'
         }`}
         style={{
-          width: `${size}px`,
-          height: `${size}px`,
+          width: `${baseSize}px`,
+          height: `${baseSize}px`,
           backgroundColor: filled ? cursorColor : 'transparent',
-          border: filled ? 'none' : `1.5px solid ${cursorColor}`,
+          border: filled ? 'none' : `${(1.5 * invScale).toFixed(2)}px solid ${cursorColor}`,
           mixBlendMode: 'difference',
           boxShadow: isHovered
-            ? '0 0 14px rgba(255, 255, 255, 0.2)'
-            : '0 0 6px rgba(0, 0, 0, 0.4)',
-          transform: isPressed ? 'scale(0.85)' : 'scale(1)',
+            ? `0 0 ${(14 * invScale).toFixed(1)}px rgba(255, 255, 255, 0.2)`
+            : `0 0 ${(6 * invScale).toFixed(1)}px rgba(0, 0, 0, 0.4)`,
+          transform: `scale(${isPressed ? scale * 0.85 : scale})`,
+          transition: 'transform 150ms ease-out',
         }}
       />
     </div>
