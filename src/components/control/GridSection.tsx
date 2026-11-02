@@ -195,7 +195,7 @@ export const GridSection: React.FC<GridSectionProps> = ({ params, updateParam })
               onChange={(e) => updateParam('showVoidGuide', e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-7 h-3.5 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-cyan-600"></div>
+            <div className="w-7 h-3.5 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-[transform,border-color] peer-checked:bg-cyan-600"></div>
           </label>
         </div>
       </div>
