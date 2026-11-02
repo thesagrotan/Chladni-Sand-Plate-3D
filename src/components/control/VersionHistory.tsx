@@ -20,7 +20,10 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
   setVersionLabel,
 }) => {
   return (
-    <div className="mt-2 p-2 rounded-lg bg-neutral-900/90 border border-neutral-800 flex flex-col gap-1.5 text-xs">
+    <div
+      data-testid="version-history"
+      className="mt-2 p-2 rounded-lg bg-neutral-900/90 border border-neutral-800 flex flex-col gap-1.5 text-xs"
+    >
       <div className="flex items-center gap-1">
         <input
           type="text"
@@ -67,6 +70,8 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
                 <button
                   type="button"
                   onClick={() => onRestoreVersion?.(v.id)}
+                  title={`Restore ${v.label}`}
+                  aria-label={`Restore ${v.label}`}
                   className="px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800 hover:text-white"
                 >
                   <CornerUpLeft size={9} />
@@ -74,6 +79,8 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
                 <button
                   type="button"
                   onClick={() => onDeleteVersion?.(v.id)}
+                  title={`Delete ${v.label}`}
+                  aria-label={`Delete ${v.label}`}
                   className="p-0.5 rounded bg-neutral-900 text-neutral-500 hover:text-red-400"
                 >
                   <Trash2 size={9} />

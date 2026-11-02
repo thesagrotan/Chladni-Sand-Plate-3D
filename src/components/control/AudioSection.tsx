@@ -23,7 +23,7 @@ export const AudioSection: React.FC<AudioSectionProps> = ({
   audioMetrics,
 }) => {
   return (
-    <div className="space-y-1.5">
+    <div data-testid="audio-section" className="space-y-1.5">
       <div className="flex items-center justify-between pb-1 border-b border-neutral-900">
         <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-400 flex items-center gap-1.5">
           <Music size={11} className="text-amber-400" />
@@ -31,6 +31,7 @@ export const AudioSection: React.FC<AudioSectionProps> = ({
         </span>
         <button
           type="button"
+          data-testid="audio-toggle"
           onClick={onToggleAudio}
           className={`text-[9px] px-1.5 py-0.5 rounded font-medium border flex items-center gap-1 transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
             isAudioEnabled

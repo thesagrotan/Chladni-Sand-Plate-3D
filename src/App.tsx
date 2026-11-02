@@ -241,6 +241,12 @@ export default function App() {
   return (
     <div
       className="relative min-h-screen w-full bg-[#050507] selection:bg-neutral-800"
+      data-paused={isPaused ? 'true' : 'false'}
+      data-grid-type={params.gridType}
+      data-audio-enabled={params.audioEnabled ? 'true' : 'false'}
+      data-simulation-engine={params.simulationEngine}
+      data-grain-count={params.grainCount}
+      data-font-family={params.fontFamily}
       style={{
         '--sand-color': dotColor,
         '--sand-color-sec': params.sandColorSecondary,

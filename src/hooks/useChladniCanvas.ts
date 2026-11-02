@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { ChladniParams, ChladniMetrics } from '../types/chladni.ts';
 import {
@@ -53,6 +53,7 @@ export function useChladniCanvas({
   resetTrigger,
 }: UseChladniCanvasOptions) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const [webglStatus, setWebglStatus] = useState<'pending' | 'available' | 'unavailable'>('pending');
   const simRef = useRef<ChladniGpuSimulation | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -121,19 +122,23 @@ export function useChladniCanvas({
     const container = mountRef.current;
     if (!container) return;
 
-    const isSoftwareGl = (() => {
+    const probe = (() => {
       try {
         const gl = document.createElement('canvas').getContext('webgl2');
-        if (!gl) return true;
+        if (!gl) return { available: false, software: false };
         const ext = gl.getExtension('WEBGL_debug_renderer_info');
         const param = ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER;
         const gpu = String(gl.getParameter(param));
         gl.getExtension('WEBGL_lose_context')?.loseContext();
-        return /SwiftShader|llvmpipe|softpipe|Software|Basic Render/i.test(gpu);
+        return {
+          available: true,
+          software: /SwiftShader|llvmpipe|softpipe|Software|Basic Render/i.test(gpu),
+        };
       } catch {
-        return false;
+        return { available: false, software: false };
       }
     })();
+    const isSoftwareGl = probe.software;
 
     const width = window.innerWidth;
     const height = window.innerHeight;
@@ -147,6 +152,15 @@ export function useChladniCanvas({
     });
     textMask.active = initialDomRepulsion > 0.001;
     textMaskManagerRef.current = textMask;
+
+    if (!probe.available) {
+      // No WebGL2 means the simulation cannot run. Keep the DOM site usable
+      // instead of letting the renderer constructor take down the app.
+      textMask.dispose();
+      textMaskManagerRef.current = null;
+      setWebglStatus('unavailable');
+      return;
+    }
 
     const scene = new THREE.Scene();
     // Transparent scene allows web page backdrop and DOM styling through
@@ -165,11 +179,20 @@ export function useChladniCanvas({
     camDataRef.current.set(0, 0, halfW, halfH);
 
     const pixelRatio = isSoftwareGl ? 1 : Math.min(window.devicePixelRatio, 2);
-    const renderer = new THREE.WebGLRenderer({
-      antialias: !isSoftwareGl,
-      powerPreference: 'high-performance',
-      alpha: true,
-    });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: !isSoftwareGl,
+        powerPreference: 'high-performance',
+        alpha: true,
+      });
+    } catch (error) {
+      console.warn('[ChladniCanvas] WebGL renderer unavailable; using the static fallback.', error);
+      textMask.dispose();
+      textMaskManagerRef.current = null;
+      setWebglStatus('unavailable');
+      return;
+    }
     renderer.setSize(width, height);
     renderer.setPixelRatio(pixelRatio);
     renderer.setClearColor(0x050507, 1);
@@ -184,6 +207,7 @@ export function useChladniCanvas({
     renderer.toneMappingExposure = 1.1;
     rendererRef.current = renderer;
     container.appendChild(renderer.domElement);
+    setWebglStatus('available');
 
     const cur = paramsRef.current;
     const plateCol = new THREE.Color(cur.plateColor);
@@ -454,5 +478,5 @@ export function useChladniCanvas({
     params.fontLetterSpacing,
   ]);
 
-  return { mountRef };
+  return { mountRef, webglStatus };
 }
