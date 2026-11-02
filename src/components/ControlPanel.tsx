@@ -12,8 +12,9 @@ import {
   Check,
   Type,
   History,
+  Copy,
 } from 'lucide-react';
-import { ChladniParams, AudioMetrics, FontOption, AVAILABLE_FONTS } from '../types/chladni.ts';
+import { ChladniParams, AudioMetrics, FontOption, AVAILABLE_FONTS, DEFAULT_PARAMS } from '../types/chladni.ts';
 import { SavedVersion } from '../utils/storage.ts';
 import { GRID_CATALOG_BY_TYPE, randomizeGridParams } from '../utils/grid.ts';
 import { findFont } from '../utils/fonts.ts';
@@ -78,6 +79,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const [showColorCustomizer, setShowColorCustomizer] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
   const [presetFilter, setPresetFilter] = useState<PresetFilter>('empty-center');
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
 
   const allFonts = useMemo(() => {
     return [...AVAILABLE_FONTS, ...customFonts];
@@ -105,6 +107,54 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     onSave?.();
     setJustSaved(true);
     setTimeout(() => setJustSaved(false), 2000);
+  };
+
+  /** Builds a prompt telling an agent which values to promote to defaults. */
+  const buildDefaultPrompt = (): string => {
+    const changes: string[] = [];
+    for (const key of Object.keys(DEFAULT_PARAMS) as (keyof ChladniParams)[]) {
+      if (params[key] !== DEFAULT_PARAMS[key]) {
+        changes.push(`  ${key}: ${JSON.stringify(params[key])}`);
+      }
+    }
+    const body =
+      changes.length > 0
+        ? [
+            'Change the following keys in DEFAULT_PARAMS (src/types/chladni.ts) from their current default to these new values:',
+            changes.join('\n'),
+          ].join('\n')
+        : 'The current parameters already match DEFAULT_PARAMS — no changes needed.';
+    return [
+      "Update the project's default parameters so the currently tweaked values become the new defaults.",
+      body,
+      '',
+      'Keep every other field as-is, preserve formatting, and do not alter PRESETS, COLOR_PALETTES, or any other constants.',
+    ].join('\n');
+  };
+
+  const handleCopyDefaultPrompt = async () => {
+    const prompt = buildDefaultPrompt();
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopiedPrompt(true);
+      setTimeout(() => setCopiedPrompt(false), 2500);
+    } catch {
+      // Clipboard may be unavailable (e.g. iframe / non-secure context). Fall back to a textarea + execCommand.
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = prompt;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        setCopiedPrompt(true);
+        setTimeout(() => setCopiedPrompt(false), 2500);
+      } catch {
+        setCopiedPrompt(false);
+      }
+    }
   };
 
   const currentFont = findFont(allFonts, params.fontFamily) || allFonts[0];
@@ -154,7 +204,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 <button
                   type="button"
                   onClick={handleExperimentNextGrid}
-                  className="px-2 py-0.5 rounded text-[10px] bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/60 font-medium flex items-center gap-1 transition-all cursor-pointer"
+                  className="px-2 py-0.5 rounded text-[10px] bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/60 font-medium flex items-center gap-1 transition-[background-color,border-color,color,opacity,transform] cursor-pointer"
                   title="Generate random harmonic grid with empty center"
                 >
                   <Dices size={11} className="text-cyan-400" />
@@ -192,7 +242,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 <button
                   type="button"
                   onClick={handleSaveClick}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 border transition-all cursor-pointer ${
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 border transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
                     justSaved
                       ? 'bg-emerald-950 border-emerald-500 text-emerald-300'
                       : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border-neutral-700'
@@ -206,18 +256,32 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 <button
                   type="button"
                   onClick={onReset}
-                  className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 flex items-center gap-1 transition-all cursor-pointer"
+                  className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 flex items-center gap-1 transition-[background-color,border-color,color,opacity,transform] cursor-pointer"
                   title="Reset to factory defaults"
                 >
                   <RotateCcw size={10} className={hasSavedSettings ? 'text-amber-400' : 'text-neutral-400'} />
                   <span>Reset</span>
                 </button>
 
+                <button
+                  type="button"
+                  onClick={handleCopyDefaultPrompt}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 border transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
+                    copiedPrompt
+                      ? 'bg-emerald-950 border-emerald-500 text-emerald-300'
+                      : 'bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white border-neutral-800'
+                  }`}
+                  title="Copy a prompt for an agent to set the currently changed values as defaults"
+                >
+                  {copiedPrompt ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} className="text-cyan-400" />}
+                  <span>{copiedPrompt ? 'Copied' : 'Prompts'}</span>
+                </button>
+
                 {onSaveVersion && (
                   <button
                     type="button"
                     onClick={() => setShowVersionHistory((prev) => !prev)}
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium border flex items-center gap-0.5 transition-all cursor-pointer ${
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium border flex items-center gap-0.5 transition-[background-color,border-color,color,opacity,transform] cursor-pointer ${
                       showVersionHistory
                         ? 'bg-indigo-950 border-indigo-500 text-indigo-300'
                         : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
@@ -276,7 +340,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`py-1 rounded flex items-center justify-center gap-1 transition-all cursor-pointer font-medium ${
+                    className={`py-1 rounded flex items-center justify-center gap-1 transition-[background-color,border-color,color,opacity,transform] cursor-pointer font-medium ${
                       isActive
                         ? 'bg-cyan-950 text-cyan-200 border border-cyan-700/80 shadow-xs'
                         : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
@@ -351,7 +415,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           type="button"
           data-ui-panel
           onClick={() => setCollapsed(false)}
-          className="fixed top-4 right-4 z-30 p-2 rounded-lg bg-neutral-950/90 text-neutral-300 hover:text-white border border-neutral-800 shadow-xl backdrop-blur transition-all flex items-center gap-1.5 text-xs cursor-pointer"
+          className="fixed top-4 right-4 z-30 p-2 rounded-lg bg-neutral-950/90 text-neutral-300 hover:text-white border border-neutral-800 shadow-xl backdrop-blur transition-[background-color,border-color,color,opacity,transform] flex items-center gap-1.5 text-xs cursor-pointer"
           style={{
             fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             letterSpacing: 'normal',
