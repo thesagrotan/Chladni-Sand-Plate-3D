@@ -180,7 +180,7 @@ Landed:
 - **Playwright e2e** — `playwright.config.ts` + `e2e/*.spec.ts`
   (`bun run test:e2e`): WebGL/UI/audio smoke, keyboard shortcuts
   (D/H/Space/S/R/W/M/G), presets, local font upload, named version
-  save/restore/delete, and a no-WebGL fallback.
+  save/restore/delete, a no-WebGL fallback, and the software-renderer path.
 - **No-WebGL fallback** — `useChladniCanvas` probes WebGL2 before constructing
   the renderer and catches renderer failures; `ChladniCanvas` exposes
   `data-webgl-status` and renders a notice while leaving the DOM site usable.
