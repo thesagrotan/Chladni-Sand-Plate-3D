@@ -1,4 +1,9 @@
 import * as THREE from 'three';
+import {
+  attachTextMaskDebug,
+  detachTextMaskDebug,
+  type TextMaskDebugApi,
+} from './textMaskDebug.ts';
 
 export interface TextMaskManagerOptions {
   resolution?: number; // default 1024
@@ -13,6 +18,8 @@ export class TextMaskManager {
   public strength: number;
   public active: boolean = true;
   public resolution: number;
+  /** Dev-only counters/global; `null` in production. */
+  public debug: TextMaskDebugApi | null = null;
 
   private trackedSelector: string;
   private dirty: boolean = true;
@@ -72,6 +79,10 @@ export class TextMaskManager {
     this.texture.colorSpace = THREE.NoColorSpace;
     this.texture.flipY = true; // matches WebGL orthographic screen coordinates
 
+    // Dev-only instrumentation: exposes counters and a screen-space sampler to
+    // the parity harness. Tree-shaken out of production builds.
+    this.debug = attachTextMaskDebug(this);
+
     this.boundOnScroll = () => {
       const sy = window.scrollY;
       if (Math.abs(sy - this.lastScrollY) >= 1) {
@@ -125,6 +136,14 @@ export class TextMaskManager {
   }
 
   public setDirty(): void {
+    this.scheduleRasterize();
+  }
+
+  /**
+   * Mark the cached DOM layout as stale. Phase 0 stub: behaves like setDirty.
+   * Later phases re-measure line boxes and font metrics only on this path.
+   */
+  public invalidateLayout(): void {
     this.scheduleRasterize();
   }
 
@@ -183,6 +202,7 @@ export class TextMaskManager {
     const baselineShift = (fontAscent - fontDescent) * 0.5; // centers glyphs in the line box
 
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    if (this.debug) this.debug.counters.treeWalkers++;
     let node: Node | null;
     while ((node = walker.nextNode())) {
       const textNode = node as Text;
@@ -190,6 +210,7 @@ export class TextMaskManager {
       if (!rawText.trim()) continue;
 
       rangeHelper.selectNode(textNode);
+      if (this.debug) this.debug.counters.rangeClientRects++;
       const lineRects = Array.from(rangeHelper.getClientRects());
 
       if (lineRects.length === 0) continue;
@@ -217,6 +238,7 @@ export class TextMaskManager {
       for (let c = 0; c < rawText.length; c++) {
         rangeHelper.setStart(textNode, c);
         rangeHelper.setEnd(textNode, c + 1);
+        if (this.debug) this.debug.counters.rangeBoundingRects++;
         const r = rangeHelper.getBoundingClientRect();
         if (r.width === 0 && r.height === 0) continue;
 
@@ -240,6 +262,20 @@ export class TextMaskManager {
   public rasterizeText(): void {
     if (this.isDestroyed) return;
 
+    const debugStart = this.debug ? performance.now() : 0;
+    try {
+      this.rasterizeInternal();
+    } finally {
+      if (this.debug) {
+        const duration = performance.now() - debugStart;
+        this.debug.counters.rasterizations++;
+        this.debug.counters.rasterizeMsLast = duration;
+        this.debug.counters.rasterizeMsTotal += duration;
+      }
+    }
+  }
+
+  private rasterizeInternal(): void {
     const ctx = this.ctx;
     const vw = window.innerWidth || 1;
     const vh = window.innerHeight || 1;
@@ -280,7 +316,7 @@ export class TextMaskManager {
 
     const elements = document.querySelectorAll(this.trackedSelector);
     if (!elements || elements.length === 0) {
-      this.texture.needsUpdate = true;
+      this.markTextureDirty();
       return;
     }
 
@@ -307,6 +343,7 @@ export class TextMaskManager {
           continue;
         }
       } else {
+        if (this.debug) this.debug.counters.computedStyles++;
         const style = window.getComputedStyle(el);
         if (
           style.display === 'none' ||
@@ -318,6 +355,7 @@ export class TextMaskManager {
         let parent = el.parentElement;
         let isHidden = false;
         while (parent && parent !== document.body) {
+          if (this.debug) this.debug.counters.computedStyles++;
           const pStyle = window.getComputedStyle(parent);
           if (
             pStyle.display === 'none' ||
@@ -377,6 +415,7 @@ export class TextMaskManager {
       if (!textToRender) continue;
 
       const style = window.getComputedStyle(el);
+      if (this.debug) this.debug.counters.computedStyles++;
       const fontSize = parseFloat(style.fontSize) || 28;
       const fontWeight = style.fontWeight || '700';
       const fontFamily = style.fontFamily || 'system-ui, -apple-system, sans-serif';
@@ -437,6 +476,7 @@ export class TextMaskManager {
       ctx.filter = `blur(${outerBlur.toFixed(1)}px)`;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
       for (const line of lines) {
+        if (this.debug) this.debug.counters.fillTextCalls++;
         ctx.fillText(line.text, line.x, line.y);
       }
 
@@ -444,12 +484,60 @@ export class TextMaskManager {
       ctx.filter = `blur(${coreBlur.toFixed(1)}px)`;
       ctx.fillStyle = '#ffffff';
       for (const line of lines) {
+        if (this.debug) this.debug.counters.fillTextCalls++;
         ctx.fillText(line.text, line.x, line.y);
       }
     }
 
     ctx.filter = 'none';
+    this.markTextureDirty();
+  }
+
+  private markTextureDirty(): void {
     this.texture.needsUpdate = true;
+    if (this.debug) {
+      this.debug.counters.uploadRequests++;
+      this.debug.counters.uploadBytes += this.canvasW * this.canvasH * 4;
+    }
+  }
+
+  /**
+   * Dev-only: downsample the mask into a canonical screen-space grayscale
+   * image so the parity harness can diff "what the shader samples" across
+   * implementations (viewport canvas now, document atlas later).
+   */
+  public sampleScreenMask(
+    width: number,
+    height: number
+  ): { width: number; height: number; data: string } {
+    const sample = document.createElement('canvas');
+    sample.width = Math.max(1, Math.round(width));
+    sample.height = Math.max(1, Math.round(height));
+    const sctx = sample.getContext('2d', { willReadFrequently: true, alpha: false });
+    if (!sctx) return { width: sample.width, height: sample.height, data: '' };
+
+    sctx.fillStyle = '#000000';
+    sctx.fillRect(0, 0, sample.width, sample.height);
+    sctx.imageSmoothingEnabled = true;
+    sctx.drawImage(this.canvas, 0, 0, sample.width, sample.height);
+
+    const pixels = sctx.getImageData(0, 0, sample.width, sample.height).data;
+    const gray = new Uint8Array(sample.width * sample.height);
+    for (let i = 0, p = 0; i < gray.length; i++, p += 4) {
+      gray[i] = pixels[p];
+    }
+
+    let binary = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < gray.length; i += chunk) {
+      binary += String.fromCharCode(...gray.subarray(i, i + chunk));
+    }
+
+    return {
+      width: sample.width,
+      height: sample.height,
+      data: btoa(binary),
+    };
   }
 
   public dispose(): void {
@@ -465,6 +553,8 @@ export class TextMaskManager {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
     }
+    detachTextMaskDebug(this.debug);
+    this.debug = null;
     this.texture.dispose();
   }
 }

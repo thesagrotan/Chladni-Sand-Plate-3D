@@ -17,6 +17,8 @@
     "test:e2e:headed": "playwright test --headed",
     "build:wasm": "node scripts/build-wasm.mjs",
     "baseline": "node scripts/perf-baseline.mjs",
+    "parity:text-mask": "node scripts/text-mask-parity.mjs",
+    "perf:text-mask": "node scripts/text-mask-parity.mjs --perf",
     "check:budgets": "node scripts/check-perf-budgets.mjs",
     "ci": "bun run lint && bun run test && bun run build && bun run check:budgets && bun run test:e2e",
     "deploy": "wrangler deploy"

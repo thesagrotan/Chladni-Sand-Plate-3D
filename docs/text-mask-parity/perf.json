@@ -1,0 +1,78 @@
+{
+  "generatedAt": "2026-11-02T22:12:38.424Z",
+  "browser": "156.0.8078.4",
+  "rows": [
+    {
+      "viewport": "1440x900@1",
+      "startupRasterizations": 9,
+      "normal": {
+        "cpuRate": 1,
+        "seconds": 4,
+        "rasterizations": 121,
+        "rasterizationsPerSecond": 30.25,
+        "rangeCallsPerRaster": 530.3388429752066,
+        "fillTextPerRaster": 48.59504132231405,
+        "uploadBytesPerSecond": 79298560,
+        "uploadCalls": 121,
+        "rasterizeMsAvg": 1.0752066109052374,
+        "rasterizeMsMedian": 1,
+        "rasterizeMsTotal": 130.09999991953373,
+        "longTaskCount": 0,
+        "longTaskMs": 0,
+        "startupRasterizations": null
+      },
+      "throttled4x": {
+        "cpuRate": 4,
+        "seconds": 4,
+        "rasterizations": 121,
+        "rasterizationsPerSecond": 30.25,
+        "rangeCallsPerRaster": 530.3388429752066,
+        "fillTextPerRaster": 48.59504132231405,
+        "uploadBytesPerSecond": 79298560,
+        "uploadCalls": 121,
+        "rasterizeMsAvg": 3.26198347097586,
+        "rasterizeMsMedian": 3.0999999940395355,
+        "rasterizeMsTotal": 394.69999998807907,
+        "longTaskCount": 0,
+        "longTaskMs": 0,
+        "startupRasterizations": null
+      }
+    },
+    {
+      "viewport": "390x844@3",
+      "startupRasterizations": 11,
+      "normal": {
+        "cpuRate": 1,
+        "seconds": 4,
+        "rasterizations": 121,
+        "rasterizationsPerSecond": 30.25,
+        "rangeCallsPerRaster": 446.44628099173553,
+        "fillTextPerRaster": 60.85950413223141,
+        "uploadBytesPerSecond": 58606592,
+        "uploadCalls": 121,
+        "rasterizeMsAvg": 0.7834710749712858,
+        "rasterizeMsMedian": 0.7999999970197678,
+        "rasterizeMsTotal": 94.80000007152557,
+        "longTaskCount": 0,
+        "longTaskMs": 0,
+        "startupRasterizations": null
+      },
+      "throttled4x": {
+        "cpuRate": 4,
+        "seconds": 4,
+        "rasterizations": 121,
+        "rasterizationsPerSecond": 30.25,
+        "rangeCallsPerRaster": 446.88429752066116,
+        "fillTextPerRaster": 60.90909090909091,
+        "uploadBytesPerSecond": 58606592,
+        "uploadCalls": 121,
+        "rasterizeMsAvg": 2.510743801135662,
+        "rasterizeMsMedian": 2.4000000059604645,
+        "rasterizeMsTotal": 303.7999999374151,
+        "longTaskCount": 0,
+        "longTaskMs": 0,
+        "startupRasterizations": null
+      }
+    }
+  ]
+}
