@@ -836,7 +836,7 @@
 }
 
 /* 6. Neue Montreal (Pangram Pangram — Geometric Sans WOFF2) */
-/* Weights: Thin 100, Light 300, Book/Regular 400, Medium 500, Semibold 600, Bold 700 + Italics */
+/* Weights: Thin 100, Light 300, Book 350, Regular 400, Medium 500, Semibold 600, Bold 700 + Italics */
 @font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Thin.woff2') format('woff2'); font-weight: 100; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-ThinItalic.woff2') format('woff2'); font-weight: 100; font-style: italic; font-display: swap; }
 @font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
