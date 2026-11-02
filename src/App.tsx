@@ -262,6 +262,20 @@ export default function App() {
     setToastMessage('⚡ Sand scattered');
   }, []);
 
+  // Re-scatter the sand when the user returns to the tab. Animation frames are
+  // suspended while the tab is hidden, so the plate would otherwise resume
+  // from a fully settled pattern instead of showing the sand re-forming.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleScatter();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [handleScatter]);
+
   const handleToggleAudio = useCallback(() => {
     setParams((prev) => {
       const next = !prev.audioEnabled;
