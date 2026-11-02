@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   computeActiveFraction,
   computeCenterClearance,
+  evalChladniGrad,
   gridTypeToNumber,
   voidShapeToNumber,
 } from '../src/simulation/chladniMath.ts';
@@ -84,5 +85,32 @@ describe('computeActiveFraction', () => {
 
     expect(fraction).toBeGreaterThanOrEqual(0);
     expect(fraction).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('evalChladniGrad scratch output', () => {
+  it('writes into the provided array and returns that same instance', () => {
+    const scratch: [number, number] = [NaN, NaN];
+    const result = evalChladniGrad(0.2, -0.1, 4, 8, 32, 0.72, 0, 0, 0, 0, scratch);
+
+    expect(result).toBe(scratch);
+    expect(Number.isFinite(scratch[0])).toBe(true);
+    expect(Number.isFinite(scratch[1])).toBe(true);
+  });
+
+  it('matches the allocating form', () => {
+    const expected = evalChladniGrad(0.35, 0.15, 5, 7, 28, 0.4, 2, 0.25, 1, 1.5);
+    const scratch: [number, number] = [0, 0];
+    evalChladniGrad(0.35, 0.15, 5, 7, 28, 0.4, 2, 0.25, 1, 1.5, scratch);
+
+    expect(scratch).toEqual(expected);
+  });
+
+  it('overwrites stale values from a previous call', () => {
+    const scratch: [number, number] = [123, 456];
+    evalChladniGrad(0, 0, 4, 8, 32, 0.72, 0, 0, 0, 0, scratch);
+
+    expect(scratch[0]).not.toBe(123);
+    expect(scratch[1]).not.toBe(456);
   });
 });
