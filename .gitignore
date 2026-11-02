@@ -9,3 +9,8 @@ coverage/
 .antigravity/
 .aistudio/
 
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
