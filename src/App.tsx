@@ -22,12 +22,24 @@ import {
 
 // The Studio drawer and the benchmark lab are heavy and only visible on
 // demand, so they are code-split and fetched the first time each is opened.
+// Exported prefetchers let the UI warm the chunk on hover/pointer intent so
+// the first open does not stall on the network.
+const loadControlPanel = () => import('./components/ControlPanel.tsx');
+const loadWasmResearchLab = () => import('./components/WasmResearchLab.tsx');
+
 const ControlPanel = React.lazy(() =>
-  import('./components/ControlPanel.tsx').then((m) => ({ default: m.ControlPanel }))
+  loadControlPanel().then((m) => ({ default: m.ControlPanel }))
 );
 const WasmResearchLab = React.lazy(() =>
-  import('./components/WasmResearchLab.tsx').then((m) => ({ default: m.WasmResearchLab }))
+  loadWasmResearchLab().then((m) => ({ default: m.WasmResearchLab }))
 );
+
+const prefetchControlPanel = () => {
+  loadControlPanel().catch(() => {});
+};
+const prefetchWasmResearchLab = () => {
+  loadWasmResearchLab().catch(() => {});
+};
 
 export default function App() {
   const {
@@ -316,6 +328,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setShowControls((prev) => !prev)}
+              onPointerEnter={prefetchControlPanel}
               className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-[background-color,border-color,color,opacity,transform,box-shadow] flex items-center gap-1.5 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
               style={{ color: dotColor, borderColor: `${dotColor}33` }}
               title="Toggle Physics & Tuning Controls (D)"
@@ -328,6 +341,7 @@ export default function App() {
             <button
               type="button"
               onClick={handleOpenWasmLab}
+              onPointerEnter={prefetchWasmResearchLab}
               className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-[background-color,border-color,color,opacity,transform,box-shadow] cursor-pointer shadow-lg opacity-70 hover:opacity-100"
               style={{ color: dotColor, borderColor: `${dotColor}33` }}
               title="Open WebAssembly Benchmarks (W)"
