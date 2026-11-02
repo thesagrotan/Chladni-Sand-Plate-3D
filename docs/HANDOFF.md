@@ -81,10 +81,12 @@ are not comparable. The harness in `scripts/perf-baseline.mjs` already does this
 
 | File | Lines | Status |
 |---|---|---|
-| `src/App.tsx` | 379 | ✅ under target |
-| `src/components/ChladniCanvas.tsx` | 528 | ❌ |
-| `src/components/ControlPanel.tsx` | 1,937 | ❌ |
-| `src/components/WasmResearchLab.tsx` | 864 | ❌ |
+| `src/App.tsx` | 418 | ⚠️ slightly over (lazy-load wiring + prefetch) |
+| `src/components/ChladniCanvas.tsx` | 29 | ✅ thin shell |
+| `src/components/ControlPanel.tsx` | 450 | ⚠️ shell + section components; ~50 over |
+| `src/components/WasmResearchLab.tsx` | 864 | ❌ unchanged (now lazy-loaded) |
+
+T1 and T2 have since landed (`08d1f3f`, `2dd0aea`, `1b60e40`).
 
 ## Pending tasks
 
@@ -131,28 +133,33 @@ audio visualizer; presets. Keep behavior byte-for-byte; commit per section.
 ### T3 — Phase 3 performance work
 
 Each item requires a before/after trace against `docs/perf-baseline.md`; attach numbers to
-the commit/PR. None of these are started.
+the commit/PR. Results for the completed items are in
+[`perf-phase3.md`](./perf-phase3.md).
 
-- **3.1 Text mask** (`src/utils/TextMaskManager.ts`): cache per-element line layout,
-  binary-search line boundaries, invalidate only on real layout change, reduce blur
-  passes, consider `OffscreenCanvas`/worker. Currently does per-character layout reads,
-  `getComputedStyle`, blurred draws at ~35 Hz during scroll. Largest scroll-jank win.
-- **3.2 Telemetry** (the CPU-sample loop in `renderChladniFrame.ts`): 256–512 samples at
-  8–10 Hz, reuse arrays, use WASM eval when loaded. Currently up to 5 wave evals per
-  active grain over 1,024 grains per frame.
-- **3.3 Metrics isolation**: `onMetricsUpdate` currently drives a `setState` in `App`
-  ~8×/s, re-rendering the whole app and any open panel. Move to
-  `useSyncExternalStore`/context + selector so only visible consumers update.
-- **3.4 Lazy-load** `ControlPanel` and `WasmResearchLab` (statically imported in `App`),
-  and defer WASM/JS engine construction. (Engine deferral partly done in `b2ff9d2`.)
-- **3.5 Font delivery**: subset/remove unused weights, OTF/TTF → WOFF2, preload only
-  first-paint fonts, self-host Geist Mono. `index.html` has 11 preloads (~0.96 MB) and
-  `public/fonts` is ~30 MB. **Do not delete font originals** — they are the rollback.
-- **3.6 Small fixes**: dispose the `DataTexture` created in `ChladniGpuSimulation.scatter()`;
-  pause the `AudioVisualizer` rAF when audio is disabled; remove the per-call tuple
-  allocation in `chladniMath.evalChladniGrad`.
-- **3.7 Vendor chunking** in `vite.config.ts` if lazy-loading isn't enough.
-- **3.8 Cache telemetry** when paused or params unchanged.
+- ✅ **3.4 Lazy-load** `ControlPanel` and `WasmResearchLab` — code-split behind
+  `React.lazy` + `Suspense`, prefetched on pointer intent. Main JS −9.3%.
+- ✅ **3.5 Font delivery** — Neue Montreal converted to WOFF2 (full weight range),
+  only the first-paint font is preloaded (11 → 1 preloads, ~960 kB removed).
+  Original OTFs remain in git history as rollback.
+- ✅ **3.6 Small fixes** — `scatter()` staging `DataTexture` disposed;
+  `AudioVisualizer` rAF stops when audio is idle; `evalChladniGrad` takes an
+  optional scratch array (no per-grain tuple); cursor + HUD progress animate via
+  `transform` instead of width/height; `transition-all` replaced with explicit
+  property lists.
+- ✅ **3.8 Cache telemetry** — active-fraction sample memoized on the wave/void
+  parameter key; paused frames already skip the block.
+- ⬜ **3.1 Text mask** — partial: hidden/collapsed elements skipped, dirty marking
+  coalesced to one rasterize per frame, per-element line layout still re-measured.
+  Remaining: cache per-element line layout, binary-search line boundaries,
+  `OffscreenCanvas`/worker.
+- ⬜ **3.2 Telemetry sample budget** — still up to 5 wave evals per active grain
+  over 1,024 grains; array reuse is done, sample-count reduction is not.
+- ⬜ **3.3 Metrics isolation** — `onMetricsUpdate` still drives a `setState` in
+  `App` ~8×/s (idle React commits unchanged at ~7.5/s). Needs
+  `useSyncExternalStore` + selectors.
+- ⬜ **3.7 Vendor chunking** — not needed yet; revisit if the 862 kB main chunk
+  still hurts.
+
 
 ### T4 — Test gaps (plan §6)
 
