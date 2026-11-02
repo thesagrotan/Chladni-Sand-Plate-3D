@@ -25,7 +25,7 @@ const FACILITY_COLUMNS = [
 
 export function Facility({ dotColor }: FacilityProps) {
   return (
-    <section id="facility" className="px-2 sm:px-14 md:px-40 py-8 sm:py-8 w-full">
+    <section id="facility" className="px-2 sm:px-14 md:px-40 py-6 sm:py-8 w-full">
       <div data-text-repulsor className="text-3xl font-sans font-normal mb-10 tracking-wide">
         Facility
       </div>

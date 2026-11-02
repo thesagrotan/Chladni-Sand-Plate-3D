@@ -6,7 +6,7 @@ export function Contact({ dotColor }: ContactProps) {
   return (
     <footer
       id="contact"
-      className="px-8 sm:px-14 md:px-40 py-20 sm:py-24  mx-auto w-full"
+      className="px-8 sm:px-14 md:px-40 py-12 sm:py-14  mx-auto w-full"
     >
       <div className="flex flex-col">
         <div
