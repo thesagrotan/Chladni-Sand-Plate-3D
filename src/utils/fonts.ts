@@ -12,7 +12,15 @@ export function fontSelectionUpdates(
   font: FontOption,
   currentWeight: number
 ): Partial<ChladniParams> {
-  const targetWeight = Math.min(font.maxWeight, Math.max(font.minWeight, currentWeight));
+  let targetWeight = Math.min(font.maxWeight, Math.max(font.minWeight, currentWeight));
+
+  // Snap to the nearest real cut for fonts that expose a discrete weight list.
+  if (font.weights && font.weights.length > 0) {
+    targetWeight = font.weights.reduce((best, candidate) =>
+      Math.abs(candidate - targetWeight) < Math.abs(best - targetWeight) ? candidate : best
+    );
+  }
+
   const updates: Partial<ChladniParams> = {
     fontFamily: font.fontFamily,
     fontWeight: targetWeight,

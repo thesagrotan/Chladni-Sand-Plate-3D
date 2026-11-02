@@ -9,6 +9,8 @@ export interface SliderRowProps {
   step: number;
   digits?: number;
   formatFn?: (val: number) => string;
+  /** When provided, the slider/steppers snap to these discrete values instead of `step`. */
+  snapValues?: number[];
   onChange: (val: number) => void;
 }
 
@@ -20,6 +22,7 @@ export const SliderRow: React.FC<SliderRowProps> = ({
   step,
   digits = 2,
   formatFn,
+  snapValues,
   onChange,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -33,7 +36,26 @@ export const SliderRow: React.FC<SliderRowProps> = ({
 
   const displayVal = formatFn ? formatFn(value) : value.toFixed(digits);
 
+  const snap = (raw: number): number => {
+    if (!snapValues || snapValues.length === 0) {
+      return Math.min(max, Math.max(min, +raw.toFixed(digits)));
+    }
+    return snapValues.reduce((best, candidate) =>
+      Math.abs(candidate - raw) < Math.abs(best - raw) ? candidate : best
+    );
+  };
+
   const handleStep = (direction: -1 | 1) => {
+    if (snapValues && snapValues.length > 0) {
+      const currentIndex = snapValues.reduce(
+        (best, candidate, index) =>
+          Math.abs(candidate - value) < Math.abs(snapValues[best] - value) ? index : best,
+        0
+      );
+      const nextIndex = Math.min(snapValues.length - 1, Math.max(0, currentIndex + direction));
+      onChange(snapValues[nextIndex]);
+      return;
+    }
     const nextVal = Math.min(max, Math.max(min, +(value + direction * step).toFixed(digits)));
     onChange(nextVal);
   };
@@ -42,8 +64,7 @@ export const SliderRow: React.FC<SliderRowProps> = ({
     setIsEditing(false);
     const parsed = parseFloat(inputVal);
     if (!isNaN(parsed)) {
-      const clamped = Math.min(max, Math.max(min, +parsed.toFixed(digits)));
-      onChange(clamped);
+      onChange(snap(parsed));
     } else {
       setInputVal(value.toFixed(digits));
     }
@@ -107,9 +128,9 @@ export const SliderRow: React.FC<SliderRowProps> = ({
         type="range"
         min={min}
         max={max}
-        step={step}
+        step={snapValues && snapValues.length > 0 ? 1 : step}
         value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
+        onChange={(e) => onChange(snap(parseFloat(e.target.value)))}
         className="w-full h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:accent-cyan-300 transition-[background-color,border-color,color,opacity,transform,box-shadow]"
       />
     </div>

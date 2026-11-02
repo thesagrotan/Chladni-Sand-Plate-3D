@@ -93,12 +93,39 @@ export const TypographySection: React.FC<TypographySectionProps> = ({
     updateParams(fontSelectionUpdates(font, params.fontWeight));
   };
 
+  const weightName = (val: number): string => {
+    if (val <= 200) return 'Thin';
+    if (val < 350) return 'Light';
+    if (val <= 375) return 'Book';
+    if (val <= 450) return 'Regular';
+    if (val <= 550) return 'Medium';
+    if (val <= 650) return 'Semibold';
+    if (val <= 750) return 'Bold';
+    return 'Black';
+  };
+
   const previewVariationCss = buildFontVariationSettings({
     fontFamily: params.fontFamily,
     fontWeight: params.fontWeight,
     fontSpacingAxis: params.fontSpacingAxis,
     fontElshAxis: params.fontElshAxis,
   });
+
+  // Quick-select weights: fonts with discrete cuts declare their own list,
+  // otherwise fall back to the per-family presets.
+  const weightButtons: number[] =
+    currentFont?.weights ??
+    (currentFont?.id === 'iAWriterQuattroV' || currentFont?.id === 'iAWriterQuattroV-Italic'
+      ? [400, 500, 600, 700]
+      : currentFont?.id?.startsWith('BB-Manual-Mono-Pro')
+      ? [100, 200, 300, 400, 500, 700, 900]
+      : currentFont?.id?.startsWith('Scatterplot')
+      ? [300, 400, 700, 900]
+      : currentFont?.id?.startsWith('Aeonik')
+      ? [100, 300, 400, 700, 900]
+      : currentFont?.category === 'static'
+      ? [400, 700]
+      : [100, 300, 400, 700, 900]);
 
   return (
     <div className="space-y-2">
@@ -183,79 +210,27 @@ export const TypographySection: React.FC<TypographySectionProps> = ({
             min={currentFont ? currentFont.minWeight : 100}
             max={currentFont ? currentFont.maxWeight : 900}
             step={currentFont?.id?.startsWith('BB-Manual-Mono-Pro') ? 50 : (currentFont?.id?.startsWith('Scatterplot') || currentFont?.id?.startsWith('Aeonik')) ? 100 : currentFont?.category === 'static' ? 300 : 10}
+            snapValues={currentFont?.weights}
             digits={0}
-            formatFn={(val) => {
-              let name = '';
-              if (val <= 200) name = 'Thin';
-              else if (val <= 350) name = 'Light';
-              else if (val <= 450) name = 'Reg';
-              else if (val <= 550) name = 'Med';
-              else if (val <= 650) name = 'Semi';
-              else if (val <= 750) name = 'Bold';
-              else name = 'Black';
-              return `${Math.round(val)} (${name})`;
-            }}
+            formatFn={(val) => `${Math.round(val)} (${weightName(val)})`}
             onChange={(val) => updateParam('fontWeight', Math.round(val))}
           />
 
           {/* Weight Quick Buttons */}
           <div className="flex gap-1">
-            {(currentFont?.id === 'iAWriterQuattroV' || currentFont?.id === 'iAWriterQuattroV-Italic'
-              ? [
-                  { label: '400', val: 400 },
-                  { label: '500', val: 500 },
-                  { label: '600', val: 600 },
-                  { label: '700', val: 700 },
-                ]
-              : currentFont?.id?.startsWith('BB-Manual-Mono-Pro')
-              ? [
-                  { label: '100', val: 100 },
-                  { label: '200', val: 200 },
-                  { label: '300', val: 300 },
-                  { label: '400', val: 400 },
-                  { label: '500', val: 500 },
-                  { label: '700', val: 700 },
-                  { label: '900', val: 900 },
-                ]
-              : currentFont?.id?.startsWith('Scatterplot')
-              ? [
-                  { label: '300', val: 300 },
-                  { label: '400', val: 400 },
-                  { label: '700', val: 700 },
-                  { label: '900', val: 900 },
-                ]
-              : currentFont?.id?.startsWith('Aeonik')
-              ? [
-                  { label: '100', val: 100 },
-                  { label: '300', val: 300 },
-                  { label: '400', val: 400 },
-                  { label: '700', val: 700 },
-                  { label: '900', val: 900 },
-                ]
-              : currentFont?.category === 'static'
-              ? [
-                  { label: '400', val: 400 },
-                  { label: '700', val: 700 },
-                ]
-              : [
-                  { label: '100', val: 100 },
-                  { label: '300', val: 300 },
-                  { label: '400', val: 400 },
-                  { label: '700', val: 700 },
-                  { label: '900', val: 900 },
-                ]
-            ).map((btn) => (
+            {weightButtons.map((val) => (
               <button
-                key={btn.label}
+                key={val}
                 type="button"
-                onClick={() => updateParam('fontWeight', btn.val)}
+                title={weightName(val)}
+                onClick={() => updateParam('fontWeight', val)}
                 className={`flex-1 text-[9px] py-0.5 rounded border text-center font-mono cursor-pointer transition-[background-color,border-color,color,opacity,transform] ${
-                  params.fontWeight === btn.val
+                  params.fontWeight === val
                     ? 'bg-neutral-200 text-neutral-950 font-semibold border-white shadow-xs'
                     : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
                 }`}
               >
-                {btn.label}
+                {val}
               </button>
             ))}
           </div>

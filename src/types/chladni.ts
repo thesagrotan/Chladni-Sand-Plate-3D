@@ -399,6 +399,7 @@ export interface FontOption {
   isItalicDefault?: boolean;
   hasSpacingAxis?: boolean; // SPCG variable axis (0 to 150)
   hasElshAxis?: boolean; // ELSH variable axis (0 to 100)
+  weights?: number[]; // Explicit selectable weights for fonts with discrete cuts
   badge: string;
   format: string;
   description: string;
@@ -762,6 +763,7 @@ export const AVAILABLE_FONTS: FontOption[] = [
     maxWeight: 700,
     defaultWeight: 400,
     hasItalic: true,
+    weights: [100, 300, 350, 400, 500, 600, 700],
     badge: 'Geometric Sans WOFF2',
     format: 'WOFF2',
     fileName: 'neue-montreal/PPNeueMontreal-*.woff2',

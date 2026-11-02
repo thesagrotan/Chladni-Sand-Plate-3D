@@ -110,4 +110,12 @@ describe('font selection', () => {
     );
     expect(nextFontUpdates([], { fontFamily: 'None', fontWeight: 400 })).toBeNull();
   });
+
+  it('snaps to the nearest declared cut for discrete-weight fonts', () => {
+    const discrete: FontOption = { ...FONTS[1], weights: [100, 300, 350, 400, 500, 600, 700] };
+
+    expect(fontSelectionUpdates(discrete, 480).fontWeight).toBe(500);
+    expect(fontSelectionUpdates(discrete, 340).fontWeight).toBe(350);
+    expect(fontSelectionUpdates(discrete, 999).fontWeight).toBe(700);
+  });
 });
