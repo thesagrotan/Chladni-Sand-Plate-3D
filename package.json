@@ -11,8 +11,12 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
     "build:wasm": "node scripts/build-wasm.mjs",
     "baseline": "node scripts/perf-baseline.mjs",
+    "check:budgets": "node scripts/check-perf-budgets.mjs",
+    "ci": "bun run lint && bun run test && bun run build && bun run check:budgets && bun run test:e2e",
     "deploy": "wrangler deploy"
   },
   "dependencies": {
