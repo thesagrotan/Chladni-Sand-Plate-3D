@@ -432,10 +432,16 @@ export function useChladniCanvas({
   useEffect(() => {
     if ((params.domRepulsion ?? 1.0) > 0.001) {
       textMaskManagerRef.current?.setDirty();
-      if (document.fonts && document.fonts.ready) {
-        document.fonts.ready.then(() => {
-          textMaskManagerRef.current?.setDirty();
-        });
+      if (document.fonts && document.fonts.load) {
+        // Request only the exact face currently in use, then re-rasterize once it
+        // arrives. Relying on document.fonts.ready can resolve before the new
+        // weight/style is queued and leave the mask on a fallback face.
+        const style = params.fontItalic ? 'italic ' : '';
+        const fontSpec = `${style}${params.fontWeight} 24px "${params.fontFamily}"`;
+        document.fonts
+          .load(fontSpec)
+          .then(() => textMaskManagerRef.current?.setDirty())
+          .catch(() => {});
       }
     }
   }, [
