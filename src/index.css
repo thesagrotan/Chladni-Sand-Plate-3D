@@ -704,7 +704,11 @@
   font-display: swap;
 }
 
-/* Replica Mono */
+/* Replica Mono
+   The shipped file keeps its original Lineto name (ReplicaPro-Regular2.otf),
+   but its name table reads "Replica-Mono" and post.isFixedPitch = 1, so it is
+   the mono cut rather than a duplicate of Replica Pro Regular. Do not rename
+   the file without updating the catalog entry in src/types/chladni.ts. */
 @font-face {
   font-family: 'Replica-Mono';
   src: url('/fonts/replica-pro/ReplicaPro-Regular2.otf') format('opentype');
