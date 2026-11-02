@@ -150,10 +150,14 @@ the commit/PR. Results for the completed items are in
   property lists.
 - ✅ **3.8 Cache telemetry** — active-fraction sample memoized on the wave/void
   parameter key; paused frames already skip the block.
-- ⬜ **3.1 Text mask** — partial: hidden/collapsed elements skipped, dirty marking
-  coalesced to one rasterize per frame, per-element line layout still re-measured.
-  Remaining: cache per-element line layout, binary-search line boundaries,
-  `OffscreenCanvas`/worker.
+- ✅ **3.1 Text mask** — dev-only instrumentation + a Playwright visual/perf
+  harness; per-element layout cached in document space with binary-search line
+  boundaries; redundant invalidations removed (startup 9–11 → 2 rasterizations,
+  slider drags and scroll → 0); per-element blurred glyph bitmaps; document-space
+  mask atlas with a precomputed shader transform (scroll → 0 rasterizations,
+  0 DOM reads, 0 uploads); R8 mask texture. Numbers and parity notes in
+  [`text-mask-perf.md`](./text-mask-perf.md). Remaining future option:
+  `OffscreenCanvas`/worker rasterization and SDF glyphs.
 - ⬜ **3.2 Telemetry sample budget** — still up to 5 wave evals per active grain
   over 1,024 grains; array reuse is done, sample-count reduction is not.
 - ⬜ **3.3 Metrics isolation** — `onMetricsUpdate` still drives a `setState` in
