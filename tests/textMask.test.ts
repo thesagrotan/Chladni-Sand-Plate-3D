@@ -224,4 +224,95 @@ describe('TextMaskManager.collectLines', () => {
     collapsedEl.remove();
     invisibleEl.remove();
   });
+
+  it('resets canvas letter-spacing for untracked text so tracking cannot leak', () => {
+    const spacingWrites: string[] = [];
+    const mockCtx: any = {
+      setTransform: () => {},
+      fillRect: () => {},
+      measureText: () => ({
+        fontBoundingBoxAscent: 10,
+        fontBoundingBoxDescent: 2,
+        actualBoundingBoxAscent: 10,
+        actualBoundingBoxDescent: 2,
+        width: 50,
+      }),
+      fillText: () => {},
+      roundRect: () => {},
+      beginPath: () => {},
+      fill: () => {},
+    };
+    // `letterSpacing` must exist on the context so the manager's feature check
+    // (`'letterSpacing' in ctx`) passes, mirroring a real CanvasRenderingContext2D.
+    let currentSpacing = '';
+    Object.defineProperty(mockCtx, 'letterSpacing', {
+      configurable: true,
+      get: () => currentSpacing,
+      set: (value: string) => {
+        currentSpacing = value;
+        spacingWrites.push(value);
+      },
+    });
+
+    const inst = Object.create(TextMaskManager.prototype) as any;
+    inst.isDestroyed = false;
+    inst.ctx = mockCtx;
+    inst.canvas = { width: 1024, height: 1024 };
+    inst.resolution = 1024;
+    inst.canvasW = 1024;
+    inst.canvasH = 1024;
+    inst.trackedSelector = '[data-text-repulsor]';
+    inst.texture = { needsUpdate: false };
+
+    const trackedEl = document.createElement('div');
+    trackedEl.setAttribute('data-text-repulsor', '');
+    trackedEl.textContent = 'TRACKED';
+    trackedEl.getBoundingClientRect = () => rect(100, 10, 100, 30) as DOMRect;
+    trackedEl.checkVisibility = () => true;
+
+    const plainEl = document.createElement('div');
+    plainEl.setAttribute('data-text-repulsor', '');
+    plainEl.textContent = 'PLAIN';
+    plainEl.getBoundingClientRect = () => rect(100, 10, 100, 30) as DOMRect;
+    plainEl.checkVisibility = () => true;
+
+    document.body.append(trackedEl, plainEl);
+
+    const origGetComputedStyle = window.getComputedStyle.bind(window);
+    window.getComputedStyle = ((el: Element) => {
+      const base = origGetComputedStyle(el);
+      return {
+        fontSize: '16px',
+        fontWeight: '400',
+        fontFamily: base.fontFamily || 'sans-serif',
+        fontStyle: 'normal',
+        letterSpacing: el === trackedEl ? '1.2px' : 'normal',
+        fontVariationSettings: 'normal',
+        getPropertyValue: (prop: string) =>
+          prop === 'font-variation-settings' ? 'normal' : '',
+      } as any;
+    }) as typeof window.getComputedStyle;
+
+    const origCreateRange = document.createRange.bind(document);
+    document.createRange = () => {
+      const r = origCreateRange();
+      r.getClientRects = () => [rect(100, 10, 100, 30)] as unknown as DOMRectList;
+      return r;
+    };
+
+    try {
+      inst.rasterizeText();
+    } finally {
+      window.getComputedStyle = origGetComputedStyle;
+      document.createRange = origCreateRange;
+      trackedEl.remove();
+      plainEl.remove();
+    }
+
+    // The tracked element sets its tracking, and the following untracked element
+    // must explicitly reset it to 0px rather than inheriting 1.2px.
+    expect(spacingWrites).toContain('1.2px');
+    expect(spacingWrites).toContain('0px');
+    expect(spacingWrites[spacingWrites.length - 1]).toBe('0px');
+  });
 });
