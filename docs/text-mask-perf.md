@@ -42,3 +42,33 @@ grayscale sample for 8 variants × 3 scroll positions × 2 viewports (48
 captures). Sampling in screen space keeps the baseline comparable when the
 mask later moves to document space. Comparison threshold: ≤2% of pixels may
 differ by >8/255 and mean absolute difference must stay ≤1.5/255.
+
+## Phase 1 — cached line layout
+
+Per-element layout (font, ascent/descent, document-space lines, visibility) is
+measured once per layout version. Scroll now calls `setDirtyPosition()`, which
+redraws the cached lines at `docY - scrollY` with no DOM reads. Resize, font
+events, the refresh event, `ResizeObserver`, and `MutationObserver`
+(characterData/childList/relevant attributes) call `invalidateLayout()`.
+Multi-line text nodes use a binary search over line boundaries instead of one
+Range query per character; bidi, zero-width, and pre-formatted text keep the
+exact per-character fallback.
+
+Back-to-back run, same page content (the machine was busy, so absolute times
+are higher than the earlier baseline; compare Phase 0 and Phase 1 columns):
+
+| Metric | Desktop P0 | Desktop P1 | Mobile P0 | Mobile P1 |
+|---|---:|---:|---:|---:|
+| Startup rasterizations | 9 | 5 | 9 | 6 |
+| Rasterizations / s | 23.5 | 23.3 | 27.0 | 19.3 |
+| Range calls / raster | 496 | **0** | 434 | **0** |
+| `fillText` / raster | 45.4 | 45.1 | 59.7 | 57.4 |
+| Upload MB / s | 61.6 | 60.9 | 52.3 | 37.3 |
+| Rasterize ms (no throttle) | 4.03 | **0.55** | 2.46 | **0.52** |
+| Rasterize ms (4× throttle) | 11.01 | **1.56** | 9.54 | **1.54** |
+
+Cache-hit rasterize time is −79% to −86% at 4× throttle; layout passes no
+longer happen during scroll (draw-only). The remaining cost is the clear +
+two filtered `fillText` passes, which Phase 3 targets. Visual parity: all 48
+captures 0.000% differing pixels.
+

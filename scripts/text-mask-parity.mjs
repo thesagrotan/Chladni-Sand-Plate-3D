@@ -408,6 +408,14 @@ async function measureScroll(page, seconds, cpuRate) {
     rasterizeMsAvg: rasterMs,
     rasterizeMsMedian: median(result.rasterDurations),
     rasterizeMsTotal: result.counters.rasterizeMsTotal,
+    layoutCount: result.counters.layoutCount,
+    layoutMsAvg: result.counters.layoutCount
+      ? result.counters.layoutMsTotal / result.counters.layoutCount
+      : 0,
+    drawCount: result.counters.drawCount,
+    drawMsAvg: result.counters.drawCount
+      ? result.counters.drawMsTotal / result.counters.drawCount
+      : 0,
     longTaskCount: result.longTasks.count,
     longTaskMs: result.longTasks.totalMs,
     startupRasterizations: null,

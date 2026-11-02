@@ -4,12 +4,35 @@ import {
   detachTextMaskDebug,
   type TextMaskDebugApi,
 } from './textMaskDebug.ts';
+import {
+  fontKeyFromStyle,
+  fontShorthand,
+  readFontStyle,
+  type TextMaskFontStyle,
+  type TextMaskLayoutEntry,
+  type TextMaskLineLayout,
+  type TextMaskRepulsorType,
+} from './TextMaskLayoutCache.ts';
 
 export interface TextMaskManagerOptions {
   resolution?: number; // default 1024
   trackedSelector?: string; // default '[data-text-repulsor]'
   strength?: number; // default 0.022
 }
+
+interface RectLike {
+  top: number;
+  left: number;
+  right: number;
+  width: number;
+  height: number;
+}
+
+/** Strong RTL, explicit line breaks, and zero-width formatting characters take
+ * the exact per-character path: binary line-boundary search assumes a simple
+ * left-to-right, uniformly styled text node. */
+const PER_CHARACTER_FALLBACK_RE =
+  /[\u0590-\u08ff\ufb1d-\ufdfd\ufe70-\ufefc\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff\n\r\t]/;
 
 export class TextMaskManager {
   public canvas: HTMLCanvasElement;
@@ -27,10 +50,21 @@ export class TextMaskManager {
   private lastScrollY: number = -999999;
   private lastUpdateTime: number = 0;
   private resizeObserver: ResizeObserver | null = null;
+  private mutationObserver: MutationObserver | null = null;
   private boundOnScroll: () => void;
   private boundOnResize: () => void;
   private boundOnCustomRefresh: () => void;
   private isDestroyed: boolean = false;
+
+  // Per-element layout cache (document coordinates). Rebuilt only when the
+  // layout version changes; scroll redraws from it without DOM reads.
+  private layoutCache: Map<HTMLElement, TextMaskLayoutEntry> | null = null;
+  private layoutDirty: boolean = true;
+  private trackedElements: HTMLElement[] | null = null;
+  private trackedElementsDirty: boolean = true;
+  private trackedSet: Set<Element> = new Set();
+  private trackedAncestors: Set<Element> = new Set();
+  private observedElements: Set<Element> = new Set();
 
   // Canvas dimensions are kept proportional to the viewport aspect ratio
   // so that scaleX === scaleY (uniform scale), avoiding text distortion.
@@ -86,17 +120,17 @@ export class TextMaskManager {
     this.boundOnScroll = () => {
       const sy = window.scrollY;
       if (Math.abs(sy - this.lastScrollY) >= 1) {
-        this.scheduleRasterize();
+        this.setDirtyPosition();
         this.lastScrollY = sy;
       }
     };
 
     this.boundOnResize = () => {
-      this.scheduleRasterize();
+      this.invalidateLayout();
     };
 
     this.boundOnCustomRefresh = () => {
-      this.scheduleRasterize();
+      this.invalidateLayout();
     };
 
     window.addEventListener('scroll', this.boundOnScroll, { passive: true });
@@ -107,44 +141,73 @@ export class TextMaskManager {
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => {
         if (!this.isDestroyed) {
-          this.scheduleRasterize();
+          this.invalidateLayout();
         }
       });
     }
 
-    // Catch post-mount layout shifts as styles and flexbox settle
-    [50, 150, 300, 600, 1000, 2000].forEach(delay => {
-      setTimeout(() => {
-        if (!this.isDestroyed) {
-          this.scheduleRasterize();
-        }
-      }, delay);
-    });
+    // One delayed fallback for late layout shifts (images, font swap). Earlier
+    // versions used six timeouts here; the ResizeObserver and MutationObserver
+    // now cover those cases, so a single late pass is enough.
+    setTimeout(() => {
+      if (!this.isDestroyed) {
+        this.invalidateLayout();
+      }
+    }, 600);
 
-    // Set up ResizeObserver to catch layout shifts
+    // Size changes on tracked elements (and the body) invalidate layout.
     try {
       this.resizeObserver = new ResizeObserver(() => {
-        this.scheduleRasterize();
+        this.invalidateLayout();
       });
       this.resizeObserver.observe(document.body);
     } catch {
       // Ignore if ResizeObserver is not supported
+      this.resizeObserver = null;
+    }
+
+    // Text/content/style changes under a tracked element invalidate layout.
+    try {
+      this.mutationObserver = new MutationObserver((records) => {
+        this.onMutations(records);
+      });
+      this.mutationObserver.observe(document.body, {
+        subtree: true,
+        childList: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-text-repulsor', 'data-repulsor-text'],
+      });
+    } catch {
+      this.mutationObserver = null;
     }
 
     // Initial render
     this.rasterizeText();
   }
 
-  public setDirty(): void {
+  /**
+   * Mark the mask as stale without re-measuring the DOM. Used by scroll: the
+   * cached document-space lines are simply redrawn at the new offset.
+   */
+  public setDirtyPosition(): void {
     this.scheduleRasterize();
   }
 
   /**
-   * Mark the cached DOM layout as stale. Phase 0 stub: behaves like setDirty.
-   * Later phases re-measure line boxes and font metrics only on this path.
+   * Mark the cached DOM layout as stale: resize, font change, text/content
+   * change, element size/visibility change, or accordion open/close.
    */
   public invalidateLayout(): void {
+    this.layoutDirty = true;
+    this.trackedElementsDirty = true;
     this.scheduleRasterize();
+  }
+
+  /** Backwards-compatible alias: callers that change typography need a
+   * full re-measure, not just a reposition. */
+  public setDirty(): void {
+    this.invalidateLayout();
   }
 
   /**
@@ -176,107 +239,126 @@ export class TextMaskManager {
     return true;
   }
 
-  /**
-   * Collect all text lines to draw for a given element, using DOM Range measurements
-   * to locate the exact screen position of each wrapped line.
-   *
-   * Strategy:
-   *   - Walk every text node inside the element via TreeWalker.
-   *   - For single-line text nodes (one clientRect) use that rect directly.
-   *   - For multi-line text nodes, scan character-by-character to find where
-   *     the browser wrapped, recording each line's actual bounding rect.
-   *   - Compute the canvas alphabetic baseline y so glyphs are centered inside
-   *     their DOM line box: y = lineRect.top + lineRect.height/2 + (ascent–descent)/2
-   *
-   * This is far more accurate than the old approach of rect.top + l*lineHeight
-   * because it uses the browser's own layout geometry instead of re-simulating it.
-   */
-  private collectLines(
-    el: HTMLElement,
-    _ctx: CanvasRenderingContext2D,
-    rangeHelper: Range,
-    fontAscent: number,
-    fontDescent: number,
-  ): { text: string; x: number; y: number }[] {
-    const lines: { text: string; x: number; y: number }[] = [];
-    const baselineShift = (fontAscent - fontDescent) * 0.5; // centers glyphs in the line box
+  private getTrackedElements(): HTMLElement[] {
+    if (!this.trackedElements || this.trackedElementsDirty) {
+      const list = Array.from(document.querySelectorAll(this.trackedSelector)) as HTMLElement[];
+      this.trackedElements = list;
+      this.trackedSet = new Set(list);
+      this.trackedAncestors = new Set();
+      for (const el of list) {
+        let parent = el.parentElement;
+        while (parent && parent !== document.body) {
+          this.trackedAncestors.add(parent);
+          parent = parent.parentElement;
+        }
+      }
+      this.trackedElementsDirty = false;
+    }
+    return this.trackedElements;
+  }
 
-    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-    if (this.debug) this.debug.counters.treeWalkers++;
-    let node: Node | null;
-    while ((node = walker.nextNode())) {
-      const textNode = node as Text;
-      const rawText = textNode.textContent ?? '';
-      if (!rawText.trim()) continue;
+  private onMutations(records: MutationRecord[]): void {
+    let layout = false;
+    let elements = false;
 
-      rangeHelper.selectNode(textNode);
-      if (this.debug) this.debug.counters.rangeClientRects++;
-      const lineRects = Array.from(rangeHelper.getClientRects());
+    for (const record of records) {
+      const target =
+        record.target.nodeType === Node.ELEMENT_NODE
+          ? (record.target as Element)
+          : record.target.parentElement;
+      if (!target) continue;
 
-      if (lineRects.length === 0) continue;
+      const touchesTracked = this.trackedSet.has(target) || this.trackedAncestors.has(target);
 
-      if (lineRects.length === 1) {
-        // Single-line node: use its rect directly.
-        const r = lineRects[0];
-        const y = r.top + r.height * 0.5 + baselineShift;
-        lines.push({ text: rawText.trim(), x: r.left, y });
+      if (!touchesTracked) {
+        if (record.type === 'attributes' && record.attributeName === 'data-text-repulsor') {
+          // The attribute may have just added (or removed) tracked status.
+          const el = record.target as Element;
+          if (el.matches?.(this.trackedSelector)) {
+            elements = true;
+            layout = true;
+          }
+        } else if (record.type === 'childList') {
+          for (const node of Array.from(record.addedNodes).concat(Array.from(record.removedNodes))) {
+            if (node.nodeType !== Node.ELEMENT_NODE) continue;
+            const el = node as Element;
+            if (
+              el.matches?.(this.trackedSelector) ||
+              el.querySelector?.(this.trackedSelector)
+            ) {
+              elements = true;
+              layout = true;
+              break;
+            }
+          }
+        }
         continue;
       }
 
-      // Multi-line node: walk characters to find line-break boundaries.
-      let currentLine = '';
-      let currentRect: { top: number; left: number; right: number; height: number } | null = null;
-      let lastTop: number | null = null;
-
-      const pushLine = () => {
-        if (currentLine.trim() && currentRect) {
-          const y = currentRect.top + currentRect.height * 0.5 + baselineShift;
-          lines.push({ text: currentLine.trim(), x: currentRect.left, y });
-        }
-      };
-
-      for (let c = 0; c < rawText.length; c++) {
-        rangeHelper.setStart(textNode, c);
-        rangeHelper.setEnd(textNode, c + 1);
-        if (this.debug) this.debug.counters.rangeBoundingRects++;
-        const r = rangeHelper.getBoundingClientRect();
-        if (r.width === 0 && r.height === 0) continue;
-
-        if (lastTop === null || Math.abs(r.top - lastTop) > 6) {
-          pushLine();
-          currentLine = rawText[c];
-          currentRect = { top: r.top, left: r.left, right: r.right, height: r.height };
-          lastTop = r.top;
-        } else {
-          currentLine += rawText[c];
-          currentRect!.right = r.right;
-          currentRect!.height = Math.max(currentRect!.height, r.height);
-        }
+      layout = true;
+      if (record.type === 'childList' || record.attributeName === 'data-text-repulsor') {
+        elements = true;
       }
-      pushLine();
     }
 
-    return lines;
+    if (layout) {
+      if (elements) this.trackedElementsDirty = true;
+      this.invalidateLayout();
+    }
   }
 
-  public rasterizeText(): void {
-    if (this.isDestroyed) return;
+  private syncObservers(elements: HTMLElement[]): void {
+    const ro = this.resizeObserver;
+    if (!ro) return;
 
-    const debugStart = this.debug ? performance.now() : 0;
-    try {
-      this.rasterizeInternal();
-    } finally {
-      if (this.debug) {
-        const duration = performance.now() - debugStart;
-        this.debug.counters.rasterizations++;
-        this.debug.counters.rasterizeMsLast = duration;
-        this.debug.counters.rasterizeMsTotal += duration;
+    const current = new Set<Element>(elements);
+    for (const observed of Array.from(this.observedElements)) {
+      if (!current.has(observed)) {
+        ro.unobserve(observed);
+        this.observedElements.delete(observed);
+      }
+    }
+    for (const el of elements) {
+      if (!this.observedElements.has(el)) {
+        ro.observe(el);
+        this.observedElements.add(el);
       }
     }
   }
 
-  private rasterizeInternal(): void {
-    const ctx = this.ctx;
+  private isElementVisible(el: HTMLElement): boolean {
+    if (typeof el.checkVisibility === 'function') {
+      return el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
+    }
+
+    if (this.debug) this.debug.counters.computedStyles++;
+    const style = window.getComputedStyle(el);
+    if (
+      style.display === 'none' ||
+      style.visibility === 'hidden' ||
+      parseFloat(style.opacity || '1') <= 0.01
+    ) {
+      return false;
+    }
+
+    let parent = el.parentElement;
+    while (parent && parent !== document.body) {
+      if (this.debug) this.debug.counters.computedStyles++;
+      const pStyle = window.getComputedStyle(parent);
+      if (
+        pStyle.display === 'none' ||
+        pStyle.visibility === 'hidden' ||
+        parseFloat(pStyle.opacity || '1') <= 0.01 ||
+        (parent.clientHeight === 0 && pStyle.overflow === 'hidden')
+      ) {
+        return false;
+      }
+      parent = parent.parentElement;
+    }
+    return true;
+  }
+
+  private updateCanvasSize(): void {
     const vw = window.innerWidth || 1;
     const vh = window.innerHeight || 1;
 
@@ -299,89 +381,424 @@ export class TextMaskManager {
       this.canvas.width = this.canvasW;
       this.canvas.height = this.canvasH;
     }
+  }
 
-    const W = this.canvasW;
-    const H = this.canvasH;
+  /**
+   * Re-measure every tracked element once and store its lines in document
+   * coordinates. This is the only path that reads layout/style/text.
+   */
+  private rebuildLayout(): void {
+    this.layoutDirty = false;
+    if (!this.layoutCache) this.layoutCache = new Map();
+    this.layoutCache.clear();
 
-    // Reset transform to paint full black background
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.filter = 'none';
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, W, H);
+    this.updateCanvasSize();
 
-    // Uniform scale: both axes use the same factor so text is not distorted.
-    // W/vw == H/vh because we sized the canvas to match the viewport aspect ratio.
-    const scale = W / vw; // == H / vh
-    ctx.setTransform(scale, 0, 0, scale, 0, 0);
-
-    const elements = document.querySelectorAll(this.trackedSelector);
-    if (!elements || elements.length === 0) {
-      this.markTextureDirty();
-      return;
-    }
+    const elements = this.getTrackedElements();
+    const scrollX = window.scrollX || 0;
+    const scrollY = window.scrollY || 0;
+    const ctx = this.ctx;
 
     // Reuse a single Range object for all measurements to avoid GC pressure.
     const rangeHelper = document.createRange();
 
     for (let i = 0; i < elements.length; i++) {
-      const el = elements[i] as HTMLElement;
+      const el = elements[i];
       const rect = el.getBoundingClientRect();
 
-      // Skip elements that are completely outside the visible screen viewport
-      if (rect.bottom < -40 || rect.top > vh + 40 || rect.right < -40 || rect.left > vw + 40) {
+      // Skip collapsed or zero-dimension elements entirely.
+      if (rect.width <= 0 || rect.height <= 0) continue;
+
+      const visible = this.isElementVisible(el);
+      const repulsorType = (el.getAttribute('data-text-repulsor') || 'text') as TextMaskRepulsorType;
+
+      // If this element has child repulsors, let the children render
+      // individually with their specific styles.
+      if (this.trackedAncestors.has(el)) continue;
+
+      const docRect = {
+        x: rect.left + scrollX,
+        y: rect.top + scrollY,
+        w: rect.width,
+        h: rect.height,
+      };
+
+      if (!visible) {
+        // Keep a lightweight entry so the content signature can notice a
+        // visibility transition, but do not measure text for hidden elements.
+        this.layoutCache.set(el, {
+          el,
+          repulsorType,
+          textToRender: '',
+          fontKey: '',
+          fontSize: 0,
+          font: '',
+          letterSpacing: 0,
+          fontVariationSettings: 'normal',
+          docRect,
+          lines: [],
+          fontAscent: 0,
+          fontDescent: 0,
+          visible: false,
+        });
         continue;
       }
 
-      // Skip collapsed or zero-dimension elements
-      if (rect.width <= 0 || rect.height <= 0) {
+      if (repulsorType === 'line' || repulsorType === 'card' || repulsorType === 'pill') {
+        this.layoutCache.set(el, {
+          el,
+          repulsorType,
+          textToRender: '',
+          fontKey: '',
+          fontSize: 0,
+          font: '',
+          letterSpacing: 0,
+          fontVariationSettings: 'normal',
+          docRect,
+          lines: [],
+          fontAscent: 0,
+          fontDescent: 0,
+          visible: true,
+        });
         continue;
       }
 
-      // Skip elements hidden via opacity, display, visibility, or collapsed parent containers
-      if (typeof el.checkVisibility === 'function') {
-        if (!el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) {
-          continue;
-        }
+      const explicitText = el.getAttribute('data-repulsor-text');
+      const textToRender = (
+        explicitText !== null ? explicitText : el.innerText || el.textContent || ''
+      ).trim();
+      if (!textToRender) continue;
+
+      if (this.debug) this.debug.counters.computedStyles++;
+      const font = readFontStyle(window.getComputedStyle(el));
+      const fontKey = fontKeyFromStyle(font);
+      const fontSpec = fontShorthand(font);
+
+      this.applyCanvasFont(ctx, font);
+
+      // Measure font ascent/descent for alphabetic → centered-in-line-box
+      // baseline shift. fontBoundingBoxAscent/Descent are the full em-box
+      // metrics (preferred); actualBoundingBox* are the ink bounds (fallback).
+      const probe = ctx.measureText('Mg|');
+      const fontAscent =
+        (probe as unknown as { fontBoundingBoxAscent?: number }).fontBoundingBoxAscent ??
+        (probe as unknown as { actualBoundingBoxAscent?: number }).actualBoundingBoxAscent ??
+        0;
+      const fontDescent =
+        (probe as unknown as { fontBoundingBoxDescent?: number }).fontBoundingBoxDescent ??
+        (probe as unknown as { actualBoundingBoxDescent?: number }).actualBoundingBoxDescent ??
+        0;
+
+      // Collect exact per-line text + positions via DOM Range measurements.
+      const viewportLines = this.collectLines(el, ctx, rangeHelper, fontAscent, fontDescent);
+      const lines: TextMaskLineLayout[] = viewportLines.map((line) => ({
+        text: line.text,
+        x: line.x + scrollX,
+        y: line.y + scrollY,
+      }));
+
+      this.layoutCache.set(el, {
+        el,
+        repulsorType: 'text',
+        textToRender,
+        fontKey,
+        fontSize: font.fontSize,
+        font: fontSpec,
+        letterSpacing: font.letterSpacing,
+        fontVariationSettings: font.fontVariationSettings,
+        docRect,
+        lines,
+        fontAscent,
+        fontDescent,
+        visible: true,
+      });
+    }
+
+    this.syncObservers(elements);
+  }
+
+  private applyCanvasFont(ctx: CanvasRenderingContext2D, font: TextMaskFontStyle): void {
+    this.applyCanvasTextSettings(ctx, font.letterSpacing, font.fontVariationSettings);
+    ctx.font = fontShorthand(font);
+  }
+
+  private applyCanvasTextSettings(
+    ctx: CanvasRenderingContext2D,
+    letterSpacing: number,
+    fontVariationSettings: string
+  ): void {
+    // Handle letter-spacing if supported on canvas. Always assign (including
+    // '0px') because the 2D context is reused across elements and across
+    // rasterize passes. Setting it only when non-zero would leak a previous
+    // element's tracking into later, untracked text.
+    try {
+      if ('letterSpacing' in ctx) {
+        (ctx as unknown as { letterSpacing: string }).letterSpacing = `${letterSpacing}px`;
+      }
+    } catch {
+      // Fallback gracefully
+    }
+
+    // Handle variable font axes if supported on canvas 2D context.
+    try {
+      if ('fontVariationSettings' in ctx) {
+        (ctx as unknown as { fontVariationSettings: string }).fontVariationSettings =
+          fontVariationSettings && fontVariationSettings !== 'normal'
+            ? fontVariationSettings
+            : 'normal';
+      }
+    } catch {
+      // Fallback gracefully
+    }
+  }
+
+  /**
+   * Collect all text lines to draw for a given element, using DOM Range measurements
+   * to locate the exact screen position of each wrapped line.
+   *
+   * Strategy:
+   *   - Walk every text node inside the element via TreeWalker.
+   *   - For single-line text nodes (one clientRect) use that rect directly.
+   *   - For multi-line text nodes, binary-search the character offset where
+   *     each line starts using the node's line rects, then reconstruct the
+   *     line text. The old per-character scan remains as a fallback for
+   *     bidi/zero-width/pre-formatted text where the search is ambiguous.
+   *   - Compute the canvas alphabetic baseline y so glyphs are centered inside
+   *     their DOM line box: y = lineRect.top + lineRect.height/2 + (ascent–descent)/2
+   *
+   * This is far more accurate than the old approach of rect.top + l*lineHeight
+   * because it uses the browser's own layout geometry instead of re-simulating it.
+   */
+  private collectLines(
+    el: HTMLElement,
+    _ctx: CanvasRenderingContext2D,
+    rangeHelper: Range,
+    fontAscent: number,
+    fontDescent: number
+  ): { text: string; x: number; y: number }[] {
+    const lines: { text: string; x: number; y: number }[] = [];
+    const baselineShift = (fontAscent - fontDescent) * 0.5; // centers glyphs in the line box
+
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    if (this.debug) this.debug.counters.treeWalkers++;
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const textNode = node as Text;
+      const rawText = textNode.textContent ?? '';
+      if (!rawText.trim()) continue;
+
+      rangeHelper.selectNode(textNode);
+      if (this.debug) this.debug.counters.rangeClientRects++;
+      const lineRects = Array.from(rangeHelper.getClientRects()) as unknown as RectLike[];
+
+      if (lineRects.length === 0) continue;
+
+      if (lineRects.length === 1) {
+        // Single-line node: use its rect directly.
+        const r = lineRects[0];
+        const y = r.top + r.height * 0.5 + baselineShift;
+        lines.push({ text: rawText.trim(), x: r.left, y });
+        continue;
+      }
+
+      const fast = PER_CHARACTER_FALLBACK_RE.test(rawText)
+        ? null
+        : this.collectLinesBinary(textNode, rawText, lineRects, rangeHelper, baselineShift);
+
+      if (fast) {
+        lines.push(...fast);
       } else {
-        if (this.debug) this.debug.counters.computedStyles++;
-        const style = window.getComputedStyle(el);
-        if (
-          style.display === 'none' ||
-          style.visibility === 'hidden' ||
-          parseFloat(style.opacity || '1') <= 0.01
-        ) {
-          continue;
+        lines.push(
+          ...this.collectLinesPerCharacter(
+            textNode,
+            rawText,
+            rangeHelper,
+            baselineShift
+          )
+        );
+      }
+    }
+
+    return lines;
+  }
+
+  /**
+   * Binary-search line boundaries using the node's line rects. Returns `null`
+   * when the geometry is ambiguous so the caller can use the exact
+   * per-character scan.
+   */
+  private collectLinesBinary(
+    textNode: Text,
+    rawText: string,
+    lineRects: RectLike[],
+    rangeHelper: Range,
+    baselineShift: number
+  ): { text: string; x: number; y: number }[] | null {
+    const measure = (index: number): RectLike => {
+      rangeHelper.setStart(textNode, index);
+      rangeHelper.setEnd(textNode, Math.min(index + 1, rawText.length));
+      if (this.debug) this.debug.counters.rangeBoundingRects++;
+      return rangeHelper.getBoundingClientRect() as unknown as RectLike;
+    };
+
+    const isMeasured = (r: RectLike) => r.width !== 0 || r.height !== 0;
+
+    const firstMeasured = (from: number): { index: number; rect: RectLike } | null => {
+      for (let c = from; c < rawText.length; c++) {
+        const r = measure(c);
+        if (isMeasured(r)) return { index: c, rect: r };
+      }
+      return null;
+    };
+
+    const lines: { text: string; x: number; y: number }[] = [];
+    let cursor = 0;
+
+    for (let li = 0; li < lineRects.length; li++) {
+      const lineTop = lineRects[li].top;
+      const first = firstMeasured(cursor);
+      if (!first) break;
+      // The first measurable character must sit on this line box.
+      if (Math.abs(first.rect.top - lineTop) > 6) return null;
+
+      let end = rawText.length;
+      if (li < lineRects.length - 1) {
+        const nextTop = lineRects[li + 1].top;
+
+        // First offset whose character belongs to the next line box.
+        let lo = first.index + 1;
+        let hi = rawText.length;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          const r = measure(mid);
+          const after = isMeasured(r) && r.top >= nextTop - 6;
+          if (after) hi = mid;
+          else lo = mid + 1;
         }
-        let parent = el.parentElement;
-        let isHidden = false;
-        while (parent && parent !== document.body) {
-          if (this.debug) this.debug.counters.computedStyles++;
-          const pStyle = window.getComputedStyle(parent);
-          if (
-            pStyle.display === 'none' ||
-            pStyle.visibility === 'hidden' ||
-            parseFloat(pStyle.opacity || '1') <= 0.01 ||
-            (parent.clientHeight === 0 && pStyle.overflow === 'hidden')
-          ) {
-            isHidden = true;
-            break;
-          }
-          parent = parent.parentElement;
+        if (lo >= rawText.length) return null;
+
+        // A zero-size character (trailing space) can break monotonicity;
+        // walk back over measurable characters that belong to the next line.
+        let boundary = lo;
+        while (boundary > first.index + 1) {
+          const prev = measure(boundary - 1);
+          if (!isMeasured(prev) || Math.abs(prev.top - nextTop) > 6) break;
+          boundary--;
         }
-        if (isHidden) {
-          continue;
+
+        const boundaryRect = measure(boundary);
+        if (!isMeasured(boundaryRect) || Math.abs(boundaryRect.top - nextTop) > 6) {
+          return null;
         }
+        end = boundary;
       }
 
-      // If this element has child repulsors, let the children render individually with their specific styles
-      if (el.querySelector(this.trackedSelector)) {
+      let height = first.rect.height;
+      if (end > first.index + 1) {
+        const last = measure(end - 1);
+        if (isMeasured(last) && last.height > height) height = last.height;
+      }
+
+      const text = rawText.slice(first.index, end).trim();
+      if (text) {
+        lines.push({
+          text,
+          x: first.rect.left,
+          y: first.rect.top + height * 0.5 + baselineShift,
+        });
+      }
+
+      cursor = end;
+      if (cursor >= rawText.length) break;
+    }
+
+    return lines.length > 0 ? lines : null;
+  }
+
+  /** Exact legacy scan: one `getBoundingClientRect` per character. */
+  private collectLinesPerCharacter(
+    textNode: Text,
+    rawText: string,
+    rangeHelper: Range,
+    baselineShift: number
+  ): { text: string; x: number; y: number }[] {
+    const lines: { text: string; x: number; y: number }[] = [];
+    let currentLine = '';
+    let currentRect: { top: number; left: number; right: number; height: number } | null = null;
+    let lastTop: number | null = null;
+
+    const pushLine = () => {
+      if (currentLine.trim() && currentRect) {
+        const y = currentRect.top + currentRect.height * 0.5 + baselineShift;
+        lines.push({ text: currentLine.trim(), x: currentRect.left, y });
+      }
+    };
+
+    for (let c = 0; c < rawText.length; c++) {
+      rangeHelper.setStart(textNode, c);
+      rangeHelper.setEnd(textNode, c + 1);
+      if (this.debug) this.debug.counters.rangeBoundingRects++;
+      const r = rangeHelper.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) continue;
+
+      if (lastTop === null || Math.abs(r.top - lastTop) > 6) {
+        pushLine();
+        currentLine = rawText[c];
+        currentRect = { top: r.top, left: r.left, right: r.right, height: r.height };
+        lastTop = r.top;
+      } else {
+        currentLine += rawText[c];
+        currentRect!.right = r.right;
+        currentRect!.height = Math.max(currentRect!.height, r.height);
+      }
+    }
+    pushLine();
+
+    return lines;
+  }
+
+  private drawLayout(): void {
+    const ctx = this.ctx;
+    const vw = window.innerWidth || 1;
+    const vh = window.innerHeight || 1;
+    const scrollX = window.scrollX || 0;
+    const scrollY = window.scrollY || 0;
+
+    // Reset transform to paint full black background
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.filter = 'none';
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, this.canvasW, this.canvasH);
+
+    // Uniform scale: both axes use the same factor so text is not distorted.
+    // W/vw == H/vh because we sized the canvas to match the viewport aspect ratio.
+    const scale = this.canvasW / vw; // == H / vh
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+
+    const entries = this.layoutCache ? Array.from(this.layoutCache.values()) : [];
+
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      if (!entry.visible) continue;
+
+      const rect = {
+        left: entry.docRect.x - scrollX,
+        top: entry.docRect.y - scrollY,
+        width: entry.docRect.w,
+        height: entry.docRect.h,
+      };
+
+      // Skip elements that are completely outside the visible screen viewport
+      if (
+        rect.top + rect.height < -40 ||
+        rect.top > vh + 40 ||
+        rect.left + rect.width < -40 ||
+        rect.left > vw + 40
+      ) {
         continue;
       }
 
-      // Check if element specifies a card/pill shape or line or exact text
-      const repulsorType = el.getAttribute('data-text-repulsor');
-
-      if (repulsorType === 'line') {
+      if (entry.repulsorType === 'line') {
         const height = Math.max(rect.height, 2);
         ctx.filter = 'blur(6px)';
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
@@ -393,8 +810,8 @@ export class TextMaskManager {
         continue;
       }
 
-      if (repulsorType === 'card' || repulsorType === 'pill') {
-        const radius = repulsorType === 'pill' ? rect.height * 0.5 : 12;
+      if (entry.repulsorType === 'card' || entry.repulsorType === 'pill') {
+        const radius = entry.repulsorType === 'pill' ? rect.height * 0.5 : 12;
         // Draw blurred card silhouette
         ctx.filter = 'blur(16px)';
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
@@ -410,87 +827,72 @@ export class TextMaskManager {
         continue;
       }
 
-      const explicitText = el.getAttribute('data-repulsor-text');
-      const textToRender = (explicitText !== null ? explicitText : el.innerText || el.textContent || '').trim();
-      if (!textToRender) continue;
-
-      const style = window.getComputedStyle(el);
-      if (this.debug) this.debug.counters.computedStyles++;
-      const fontSize = parseFloat(style.fontSize) || 28;
-      const fontWeight = style.fontWeight || '700';
-      const fontFamily = style.fontFamily || 'system-ui, -apple-system, sans-serif';
-      const fontStyle = style.fontStyle || 'normal';
-      const letterSpacing = parseFloat(style.letterSpacing) || 0;
+      if (entry.lines.length === 0) continue;
 
       // Always draw left-aligned at the exact per-line X position from DOM Range.
       ctx.textBaseline = 'alphabetic';
       ctx.textAlign = 'left';
 
-      // Handle letter-spacing if supported on canvas.
-      // Always assign (including '0px') because the 2D context is reused across
-      // elements and across rasterize passes. Setting it only when non-zero would
-      // leak a previous element's tracking into later, untracked text — stretching
-      // those lines to the right and leaving a gap at their right edge.
-      try {
-        if ('letterSpacing' in ctx) {
-          (ctx as any).letterSpacing = `${letterSpacing}px`;
-        }
-      } catch {
-        // Fallback gracefully
-      }
-
-      // Handle variable font axes if supported on canvas 2D context
-      try {
-        const fvs = (style as any).fontVariationSettings || style.getPropertyValue('font-variation-settings');
-        if ('fontVariationSettings' in ctx) {
-          if (fvs && fvs !== 'normal') {
-            (ctx as any).fontVariationSettings = fvs;
-          } else {
-            (ctx as any).fontVariationSettings = 'normal';
-          }
-        }
-      } catch {
-        // Fallback gracefully
-      }
-
-      ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
-
-      // Measure font ascent/descent for alphabetic → centered-in-line-box baseline shift.
-      // fontBoundingBoxAscent/Descent are the full em-box metrics (preferred).
-      // actualBoundingBoxAscent/Descent are the tightest ink-bounds (fallback).
-      const probe = ctx.measureText('Mg|');
-      const fontAscent =
-        (probe as any).fontBoundingBoxAscent ?? probe.actualBoundingBoxAscent;
-      const fontDescent =
-        (probe as any).fontBoundingBoxDescent ?? probe.actualBoundingBoxDescent;
-
-      // Collect exact per-line text + positions via DOM Range measurements.
-      const lines = this.collectLines(el, ctx, rangeHelper, fontAscent, fontDescent);
-      if (lines.length === 0) continue;
+      this.applyCanvasTextSettings(ctx, entry.letterSpacing, entry.fontVariationSettings);
+      ctx.font = entry.font;
 
       // Subtle, tight blur sizes right around the letters (no giant black blobs)
+      const fontSize = entry.fontSize || 28;
       const outerBlur = Math.min(8, Math.max(3, fontSize * 0.12));
       const coreBlur = Math.min(2.5, Math.max(1, fontSize * 0.04));
 
       // Pass 1: Outer smooth subtle halo
       ctx.filter = `blur(${outerBlur.toFixed(1)}px)`;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
-      for (const line of lines) {
+      for (const line of entry.lines) {
         if (this.debug) this.debug.counters.fillTextCalls++;
-        ctx.fillText(line.text, line.x, line.y);
+        ctx.fillText(line.text, line.x - scrollX, line.y - scrollY);
       }
 
       // Pass 2: Tight core letter contour
       ctx.filter = `blur(${coreBlur.toFixed(1)}px)`;
       ctx.fillStyle = '#ffffff';
-      for (const line of lines) {
+      for (const line of entry.lines) {
         if (this.debug) this.debug.counters.fillTextCalls++;
-        ctx.fillText(line.text, line.x, line.y);
+        ctx.fillText(line.text, line.x - scrollX, line.y - scrollY);
       }
     }
 
     ctx.filter = 'none';
     this.markTextureDirty();
+  }
+
+  public rasterizeText(): void {
+    if (this.isDestroyed) return;
+
+    const debugStart = this.debug ? performance.now() : 0;
+    try {
+      if (this.layoutDirty || !this.layoutCache) {
+        const layoutStart = this.debug ? performance.now() : 0;
+        this.rebuildLayout();
+        if (this.debug) {
+          const layoutDuration = performance.now() - layoutStart;
+          this.debug.counters.layoutCount++;
+          this.debug.counters.layoutMsLast = layoutDuration;
+          this.debug.counters.layoutMsTotal += layoutDuration;
+        }
+      }
+      const drawStart = this.debug ? performance.now() : 0;
+      this.drawLayout();
+      if (this.debug) {
+        const drawDuration = performance.now() - drawStart;
+        this.debug.counters.drawCount++;
+        this.debug.counters.drawMsLast = drawDuration;
+        this.debug.counters.drawMsTotal += drawDuration;
+      }
+    } finally {
+      if (this.debug) {
+        const duration = performance.now() - debugStart;
+        this.debug.counters.rasterizations++;
+        this.debug.counters.rasterizeMsLast = duration;
+        this.debug.counters.rasterizeMsTotal += duration;
+      }
+    }
   }
 
   private markTextureDirty(): void {
@@ -553,6 +955,11 @@ export class TextMaskManager {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
     }
+    if (this.mutationObserver) {
+      this.mutationObserver.disconnect();
+      this.mutationObserver = null;
+    }
+    this.observedElements.clear();
     detachTextMaskDebug(this.debug);
     this.debug = null;
     this.texture.dispose();

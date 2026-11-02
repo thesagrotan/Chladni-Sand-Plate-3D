@@ -31,6 +31,14 @@ export interface TextMaskDebugCounters {
   rasterizeMsTotal: number;
   /** Duration of the most recent `rasterizeText()` in ms. */
   rasterizeMsLast: number;
+  /** Layout re-measure passes and their total time. */
+  layoutCount: number;
+  layoutMsTotal: number;
+  layoutMsLast: number;
+  /** Draw-only passes (cache hits) and their total time. */
+  drawCount: number;
+  drawMsTotal: number;
+  drawMsLast: number;
   /** Long tasks observed since attach (dev only). */
   longTasks: number;
   longTaskMs: number;
@@ -86,6 +94,12 @@ function freshCounters(): TextMaskDebugCounters {
     uploadBytes: 0,
     rasterizeMsTotal: 0,
     rasterizeMsLast: 0,
+    layoutCount: 0,
+    layoutMsTotal: 0,
+    layoutMsLast: 0,
+    drawCount: 0,
+    drawMsTotal: 0,
+    drawMsLast: 0,
     longTasks: 0,
     longTaskMs: 0,
   };
