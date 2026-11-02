@@ -841,29 +841,29 @@
 @font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-ThinItalic.woff2') format('woff2'); font-weight: 100; font-style: italic; font-display: swap; }
 @font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-LightItalic.woff2') format('woff2'); font-weight: 300; font-style: italic; font-display: swap; }
-@font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Book.woff2') format('woff2'); font-weight: 350 400; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-BookItalic.woff2') format('woff2'); font-weight: 350 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Book.woff2') format('woff2'); font-weight: 350; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-BookItalic.woff2') format('woff2'); font-weight: 350; font-style: italic; font-display: swap; }
 @font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Italic.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
 @font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-MediumItalic.woff2') format('woff2'); font-weight: 500; font-style: italic; font-display: swap; }
 @font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Semibold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Bold.woff2') format('woff2'); font-weight: 700 900; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-BoldItalic.woff2') format('woff2'); font-weight: 700 900; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Neue-Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-BoldItalic.woff2') format('woff2'); font-weight: 700; font-style: italic; font-display: swap; }
 
 @font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Thin.woff2') format('woff2'); font-weight: 100; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-ThinItalic.woff2') format('woff2'); font-weight: 100; font-style: italic; font-display: swap; }
 @font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-LightItalic.woff2') format('woff2'); font-weight: 300; font-style: italic; font-display: swap; }
-@font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Book.woff2') format('woff2'); font-weight: 350 400; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-BookItalic.woff2') format('woff2'); font-weight: 350 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Book.woff2') format('woff2'); font-weight: 350; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-BookItalic.woff2') format('woff2'); font-weight: 350; font-style: italic; font-display: swap; }
 @font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Italic.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
 @font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-MediumItalic.woff2') format('woff2'); font-weight: 500; font-style: italic; font-display: swap; }
 @font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Semibold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Bold.woff2') format('woff2'); font-weight: 700 900; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-BoldItalic.woff2') format('woff2'); font-weight: 700 900; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Neue Montreal'; src: url('/fonts/neue-montreal/PPNeueMontreal-BoldItalic.woff2') format('woff2'); font-weight: 700; font-style: italic; font-display: swap; }
 
 /* =====================================================================
    ROOT TYPOGRAPHY & THEME VARIABLES
