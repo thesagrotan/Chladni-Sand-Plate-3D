@@ -66,12 +66,12 @@ export function Hero({ params, dotColor, onToggleAudio }: HeroProps) {
   };
 
   return (
-    <section className="min-h-screen w-full flex flex-col justify-between px-2 sm:px-14 md:px-40 py-8 sm:py-12 select-none">
+    <section className="min-h-screen w-full flex flex-col justify-between px-2 sm:px-14 md:px-40 pb-8 sm:pb-12 select-none">
       {/* Main Title & Subtitle */}
-      <div className="w-full my-auto flex flex-col items-start justify-center text-left">
+      <div className="w-full mt-[20vh] flex flex-col items-start justify-center text-left">
         <p
           data-text-repulsor
-          className="w-full max-w-none text-8xl font-serif mx mt-4 sm:mt-5 leading-none tracking-tight font-normal text-left"
+          className="w-full max-w-none text-8xl font-serif mx leading-none tracking-tight font-normal text-left"
           style={{ color: dotColor }}
         >
           TEZETT PLATTE is a Berlin label and recording studio
