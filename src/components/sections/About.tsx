@@ -4,7 +4,7 @@ interface AboutProps {
 
 export function About({ dotColor }: AboutProps) {
   return (
-    <section className="min-h-[70vh] px-2 sm:px-14 md:px-40 py-0 mx-auto flex flex-col justify-center text-left">
+    <section className="px-2 sm:px-14 md:px-40 pt-8 sm:pt-12 pb-6 sm:pb-8 mx-auto text-left">
       <div
         data-text-repulsor
         className="text-3xl font-sans font-normal mb-4 tracking-wide text-left"
