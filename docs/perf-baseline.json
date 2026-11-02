@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-11-01T03:05:52.796Z",
-  "baseUrl": "http://127.0.0.1:4173",
+  "generatedAt": "2026-11-02T14:11:34.035Z",
+  "baseUrl": "http://localhost:4173",
   "browser": "156.0.8078.4",
   "viewport": {
     "width": 1440,
@@ -8,106 +8,25 @@
   },
   "bundle": [
     {
-      "name": "index-D2dmQ7p6.js",
-      "bytes": 951177
+      "name": "index-C4B9fR7o.js",
+      "bytes": 951207
     },
     {
-      "name": "index-q2AOT5pI.css",
-      "bytes": 95234
+      "name": "index-EFn5paa0.css",
+      "bytes": 96199
     }
   ],
   "scenarios": [
     {
       "scenario": "load-idle-scroll",
-      "navigationMs": 1042,
+      "navigationMs": 107,
       "load": {
-        "fcp": 1176,
-        "lcp": 1176,
-        "cls": 0.000004209667566872429,
-        "domContentLoaded": 1035.8000000044703,
+        "fcp": 204,
+        "lcp": 204,
+        "cls": 0.000004496005336934156,
+        "domContentLoaded": 103.10000000149012,
         "load": 0,
-        "transferSize": 1080,
-        "longTasks": {
-          "count": 1,
-          "totalMs": 63,
-          "tbtMs": 13,
-          "maxMs": 63
-        }
-      },
-      "webgl": {
-        "available": true,
-        "vendor": "Google Inc. (Apple)",
-        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)"
-      },
-      "scrollHeight": 3042,
-      "canvasCount": 1,
-      "heapBefore": {
-        "usedJSHeapSize": 11900000,
-        "totalJSHeapSize": 16100000
-      },
-      "idle": {
-        "frames": 601,
-        "durationMs": 10013.99999999851,
-        "fps": 60.015977631325086,
-        "p50": 16.69999999999891,
-        "p95": 16.700000000000728,
-        "p99": 16.800000000000182,
-        "max": 16.80000000000109,
-        "droppedFrames": 0,
-        "longFrames": 0,
-        "scrollEvents": 0,
-        "scrollYBefore": 0,
-        "scrollYAfter": 0,
-        "maxScroll": 2142
-      },
-      "scroll": {
-        "frames": 450,
-        "durationMs": 10022.099999999999,
-        "fps": 44.90076929984734,
-        "p50": 16.700000000000728,
-        "p95": 50,
-        "p99": 66.70000000000073,
-        "max": 83.5,
-        "droppedFrames": 52,
-        "longFrames": 16,
-        "scrollEvents": 449,
-        "scrollYBefore": 0,
-        "scrollYAfter": 2140,
-        "maxScroll": 2142
-      },
-      "engine": null,
-      "consoleErrors": [],
-      "loadCounters": {
-        "commits": 24,
-        "textDraws": 234,
-        "texturesCreated": 8,
-        "texturesDeleted": 0
-      },
-      "idleCounters": {
-        "reactCommits": 75,
-        "textDraws": 0,
-        "texturesCreated": 0,
-        "texturesDeleted": 0,
-        "texturesLive": 8
-      },
-      "scrollCounters": {
-        "reactCommits": 73,
-        "textDraws": 13054,
-        "texturesCreated": 0,
-        "texturesDeleted": 0,
-        "texturesLive": 8
-      }
-    },
-    {
-      "scenario": "engine-gpu",
-      "navigationMs": 1049,
-      "load": {
-        "fcp": 1100,
-        "lcp": 1100,
-        "cls": 0.000004249855324074075,
-        "domContentLoaded": 1042.1000000014901,
-        "load": 0,
-        "transferSize": 1080,
+        "transferSize": 1067,
         "longTasks": {
           "count": 0,
           "totalMs": 0,
@@ -120,18 +39,99 @@
         "vendor": "Google Inc. (Apple)",
         "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)"
       },
-      "scrollHeight": 3042,
+      "scrollHeight": 2546,
       "canvasCount": 1,
       "heapBefore": {
-        "usedJSHeapSize": 10600000,
-        "totalJSHeapSize": 16100000
+        "usedJSHeapSize": 10000000,
+        "totalJSHeapSize": 13400000
+      },
+      "idle": {
+        "frames": 602,
+        "durationMs": 10015.50000000149,
+        "fps": 60.106834406660724,
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "max": 16.80000000000109,
+        "droppedFrames": 0,
+        "longFrames": 0,
+        "scrollEvents": 0,
+        "scrollYBefore": 0,
+        "scrollYAfter": 0,
+        "maxScroll": 1646
+      },
+      "scroll": {
+        "frames": 601,
+        "durationMs": 10011.099999999999,
+        "fps": 60.03336296710652,
+        "p50": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "p99": 16.80000000000109,
+        "max": 16.80000000000291,
+        "droppedFrames": 0,
+        "longFrames": 0,
+        "scrollEvents": 600,
+        "scrollYBefore": 0,
+        "scrollYAfter": 1645,
+        "maxScroll": 1646
+      },
+      "engine": null,
+      "consoleErrors": [],
+      "loadCounters": {
+        "commits": 24,
+        "textDraws": 336,
+        "texturesCreated": 8,
+        "texturesDeleted": 0
+      },
+      "idleCounters": {
+        "reactCommits": 75,
+        "textDraws": 0,
+        "texturesCreated": 0,
+        "texturesDeleted": 0,
+        "texturesLive": 8
+      },
+      "scrollCounters": {
+        "reactCommits": 75,
+        "textDraws": 14966,
+        "texturesCreated": 0,
+        "texturesDeleted": 0,
+        "texturesLive": 8
+      }
+    },
+    {
+      "scenario": "engine-gpu",
+      "navigationMs": 104,
+      "load": {
+        "fcp": 136,
+        "lcp": 136,
+        "cls": 0.00000874586066100823,
+        "domContentLoaded": 100.40000000596046,
+        "load": 0,
+        "transferSize": 1067,
+        "longTasks": {
+          "count": 1,
+          "totalMs": 57,
+          "tbtMs": 7,
+          "maxMs": 57
+        }
+      },
+      "webgl": {
+        "available": true,
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)"
+      },
+      "scrollHeight": 2546,
+      "canvasCount": 1,
+      "heapBefore": {
+        "usedJSHeapSize": 10000000,
+        "totalJSHeapSize": 13400000
       },
       "idle": null,
       "scroll": null,
       "engine": {
         "frames": 3601,
-        "durationMs": 60007.50000000149,
-        "fps": 60.00916552097505,
+        "durationMs": 60003.19999999702,
+        "fps": 60.01346594848573,
         "p50": 16.69999999999709,
         "p95": 16.700000000004366,
         "p99": 16.80000000000291,
@@ -141,141 +141,13 @@
         "scrollEvents": 0,
         "scrollYBefore": 0,
         "scrollYAfter": 0,
-        "maxScroll": 2142
-      },
-      "consoleErrors": [],
-      "loadCounters": {
-        "commits": 23,
-        "textDraws": 234,
-        "texturesCreated": 8,
-        "texturesDeleted": 0
-      },
-      "engineCounters": {
-        "reactCommits": 450,
-        "textDraws": 0,
-        "texturesCreated": 0,
-        "texturesDeleted": 0,
-        "texturesLive": 8
-      },
-      "heapAfter": {
-        "usedJSHeapSize": 10600000,
-        "totalJSHeapSize": 16100000
-      }
-    },
-    {
-      "scenario": "engine-wasm",
-      "navigationMs": 1100,
-      "load": {
-        "fcp": 1152,
-        "lcp": 1152,
-        "cls": 0.00000874586066100823,
-        "domContentLoaded": 1093.4000000059605,
-        "load": 0,
-        "transferSize": 1080,
-        "longTasks": {
-          "count": 1,
-          "totalMs": 62,
-          "tbtMs": 12,
-          "maxMs": 62
-        }
-      },
-      "webgl": {
-        "available": true,
-        "vendor": "Google Inc. (Apple)",
-        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)"
-      },
-      "scrollHeight": 3042,
-      "canvasCount": 1,
-      "heapBefore": {
-        "usedJSHeapSize": 10600000,
-        "totalJSHeapSize": 15200000
-      },
-      "idle": null,
-      "scroll": null,
-      "engine": {
-        "frames": 1805,
-        "durationMs": 60013.89999999702,
-        "fps": 30.076365641961107,
-        "p50": 33.30000000000291,
-        "p95": 33.400000000001455,
-        "p99": 50,
-        "max": 50.10000000000582,
-        "droppedFrames": 433,
-        "longFrames": 15,
-        "scrollEvents": 0,
-        "scrollYBefore": 0,
-        "scrollYAfter": 0,
-        "maxScroll": 2142
-      },
-      "consoleErrors": [],
-      "loadCounters": {
-        "commits": 23,
-        "textDraws": 52,
-        "texturesCreated": 8,
-        "texturesDeleted": 0
-      },
-      "engineCounters": {
-        "reactCommits": 452,
-        "textDraws": 0,
-        "texturesCreated": 0,
-        "texturesDeleted": 0,
-        "texturesLive": 8
-      },
-      "heapAfter": {
-        "usedJSHeapSize": 10600000,
-        "totalJSHeapSize": 15200000
-      }
-    },
-    {
-      "scenario": "engine-js_cpu",
-      "navigationMs": 2261,
-      "load": {
-        "fcp": 2424,
-        "lcp": 2424,
-        "cls": 0.000008705672903806585,
-        "domContentLoaded": 2253.7000000029802,
-        "load": 0,
-        "transferSize": 1080,
-        "longTasks": {
-          "count": 1,
-          "totalMs": 63,
-          "tbtMs": 13,
-          "maxMs": 63
-        }
-      },
-      "webgl": {
-        "available": true,
-        "vendor": "Google Inc. (Apple)",
-        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)"
-      },
-      "scrollHeight": 3042,
-      "canvasCount": 1,
-      "heapBefore": {
-        "usedJSHeapSize": 11900000,
-        "totalJSHeapSize": 16100000
-      },
-      "idle": null,
-      "scroll": null,
-      "engine": {
-        "frames": 1798,
-        "durationMs": 60005,
-        "fps": 29.964169652528955,
-        "p50": 33.30000000000291,
-        "p95": 33.400000000001455,
-        "p99": 50,
-        "max": 50.10000000000582,
-        "droppedFrames": 466,
-        "longFrames": 13,
-        "scrollEvents": 0,
-        "scrollYBefore": 0,
-        "scrollYAfter": 0,
-        "maxScroll": 2142
+        "maxScroll": 1646
       },
       "consoleErrors": [],
       "loadCounters": {
         "commits": 24,
-        "textDraws": 26,
-        "texturesCreated": 7,
+        "textDraws": 378,
+        "texturesCreated": 8,
         "texturesDeleted": 0
       },
       "engineCounters": {
@@ -283,11 +155,139 @@
         "textDraws": 0,
         "texturesCreated": 0,
         "texturesDeleted": 0,
-        "texturesLive": 7
+        "texturesLive": 8
       },
       "heapAfter": {
-        "usedJSHeapSize": 11900000,
-        "totalJSHeapSize": 16100000
+        "usedJSHeapSize": 10000000,
+        "totalJSHeapSize": 13400000
+      }
+    },
+    {
+      "scenario": "engine-wasm",
+      "navigationMs": 158,
+      "load": {
+        "fcp": 252,
+        "lcp": 252,
+        "cls": 0.000004496005336934156,
+        "domContentLoaded": 154.29999999701977,
+        "load": 0,
+        "transferSize": 1067,
+        "longTasks": {
+          "count": 0,
+          "totalMs": 0,
+          "tbtMs": 0,
+          "maxMs": 0
+        }
+      },
+      "webgl": {
+        "available": true,
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)"
+      },
+      "scrollHeight": 2546,
+      "canvasCount": 1,
+      "heapBefore": {
+        "usedJSHeapSize": 10000000,
+        "totalJSHeapSize": 12700000
+      },
+      "idle": null,
+      "scroll": null,
+      "engine": {
+        "frames": 3601,
+        "durationMs": 60001.70000000149,
+        "fps": 60.01496624262163,
+        "p50": 16.69999999999709,
+        "p95": 16.700000000004366,
+        "p99": 16.80000000000291,
+        "max": 16.80000000000291,
+        "droppedFrames": 0,
+        "longFrames": 0,
+        "scrollEvents": 0,
+        "scrollYBefore": 0,
+        "scrollYAfter": 0,
+        "maxScroll": 1646
+      },
+      "consoleErrors": [],
+      "loadCounters": {
+        "commits": 24,
+        "textDraws": 168,
+        "texturesCreated": 8,
+        "texturesDeleted": 0
+      },
+      "engineCounters": {
+        "reactCommits": 450,
+        "textDraws": 0,
+        "texturesCreated": 0,
+        "texturesDeleted": 0,
+        "texturesLive": 8
+      },
+      "heapAfter": {
+        "usedJSHeapSize": 10000000,
+        "totalJSHeapSize": 12700000
+      }
+    },
+    {
+      "scenario": "engine-js_cpu",
+      "navigationMs": 256,
+      "load": {
+        "fcp": 356,
+        "lcp": 356,
+        "cls": 0.000004496005336934156,
+        "domContentLoaded": 253,
+        "load": 0,
+        "transferSize": 1067,
+        "longTasks": {
+          "count": 0,
+          "totalMs": 0,
+          "tbtMs": 0,
+          "maxMs": 0
+        }
+      },
+      "webgl": {
+        "available": true,
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)"
+      },
+      "scrollHeight": 2546,
+      "canvasCount": 1,
+      "heapBefore": {
+        "usedJSHeapSize": 10000000,
+        "totalJSHeapSize": 14300000
+      },
+      "idle": null,
+      "scroll": null,
+      "engine": {
+        "frames": 3601,
+        "durationMs": 60005.40000000149,
+        "fps": 60.01126565275643,
+        "p50": 16.69999999999709,
+        "p95": 16.700000000004366,
+        "p99": 16.80000000000291,
+        "max": 16.80000000000291,
+        "droppedFrames": 0,
+        "longFrames": 0,
+        "scrollEvents": 0,
+        "scrollYBefore": 0,
+        "scrollYAfter": 0,
+        "maxScroll": 1646
+      },
+      "consoleErrors": [],
+      "loadCounters": {
+        "commits": 24,
+        "textDraws": 168,
+        "texturesCreated": 8,
+        "texturesDeleted": 0
+      },
+      "engineCounters": {
+        "reactCommits": 450,
+        "textDraws": 0,
+        "texturesCreated": 0,
+        "texturesDeleted": 0,
+        "texturesLive": 8
+      },
+      "heapAfter": {
+        "usedJSHeapSize": 10000000,
+        "totalJSHeapSize": 14300000
       }
     }
   ]
