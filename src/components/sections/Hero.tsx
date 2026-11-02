@@ -25,7 +25,7 @@ const RELEASES: Release[] = [
     discogsUrl: 'https://www.discogs.com/search/?q=Enrique%20del%20Castillo%20Umbr%C3%A1fono',
     description:
       "Two pieces for optical sound film, recorded through the studio's stroboscopic 35mm rig. The projected strip is read as a score — dust, exposure and cut become the sound surface.",
-    cover: '/assets/covers/tz-01.jpeg',
+    cover: '/assets/covers/tz-01.svg',
     hasAudio: true,
   },
   {
@@ -50,6 +50,18 @@ interface HeroProps {
 
 export function Hero({ params, dotColor, onToggleAudio }: HeroProps) {
   const [openId, setOpenId] = useState<string | null>(null);
+
+  const handleToggleRelease = (id: string) => {
+    setOpenId((prev) => (prev === id ? null : id));
+    const start = performance.now();
+    const tick = () => {
+      window.dispatchEvent(new CustomEvent('chladni:refresh-text-mask'));
+      if (performance.now() - start < 260) {
+        requestAnimationFrame(tick);
+      }
+    };
+    requestAnimationFrame(tick);
+  };
 
   return (
     <section className="min-h-screen w-full flex flex-col justify-between px-2 sm:px-14 md:px-40 py-8 sm:py-12 select-none">
@@ -82,7 +94,7 @@ export function Hero({ params, dotColor, onToggleAudio }: HeroProps) {
             return (
               <div key={release.id}>
                 <div
-                  onClick={() => setOpenId(isOpen ? null : release.id)}
+                  onClick={() => handleToggleRelease(release.id)}
                   className="flex items-baseline w-full group cursor-pointer text-3xl font-serif leading-tight"
                   title={isOpen ? 'Close release details' : 'Open release details'}
                 >
@@ -123,19 +135,27 @@ export function Hero({ params, dotColor, onToggleAudio }: HeroProps) {
                       <img
                         src={release.cover}
                         alt={`${release.artist} — ${release.title} cover`}
+                        {...(isOpen ? { 'data-text-repulsor': 'card' } : {})}
                         className="w-36 sm:w-44 aspect-square object-cover shrink-0"
                       />
                       <div className="flex flex-col text-base sm:text-lg leading-relaxed font-normal min-w-0">
-                        <p data-text-repulsor style={{ opacity: 0.88 }}>
+                        <p
+                          {...(isOpen ? { 'data-text-repulsor': '' } : {})}
+                          style={{ opacity: 0.88 }}
+                        >
                           {release.description}
                         </p>
-                        <p data-text-repulsor className="mt-3">
+                        <p
+                          {...(isOpen ? { 'data-text-repulsor': '' } : {})}
+                          className="mt-3"
+                        >
                           {release.year} — {release.format}
                         </p>
                         <a
                           href={release.discogsUrl}
                           target="_blank"
                           rel="noreferrer"
+                          {...(isOpen ? { 'data-text-repulsor': '' } : {})}
                           className="underline underline-offset-4 mt-3 hover:opacity-70 transition-opacity duration-150"
                         >
                           View on Discogs ↗
