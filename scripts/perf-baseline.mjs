@@ -18,10 +18,19 @@ const ENGINE_SCENARIOS = [
 ];
 
 function startPreview() {
-  const child = spawn('bun', ['run', 'preview', '--', '--port', String(PORT), '--strictPort'], {
-    cwd: ROOT,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  // The `preview` npm script is now the Cloudflare deploy preview
+  // (`wrangler dev`), which does not accept Vite's `--strictPort`. Drive the
+  // static production preview from Vite's binary directly so the perf harness
+  // is independent of whatever `bun run preview` maps to.
+  const viteBin = path.join(ROOT, 'node_modules', '.bin', 'vite');
+  const child = spawn(
+    viteBin,
+    ['preview', '--host', '127.0.0.1', '--port', String(PORT), '--strictPort'],
+    {
+      cwd: ROOT,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }
+  );
 
   child.stdout.on('data', (chunk) => process.stdout.write(`[preview] ${chunk}`));
   child.stderr.on('data', (chunk) => process.stderr.write(`[preview] ${chunk}`));
