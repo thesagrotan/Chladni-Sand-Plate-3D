@@ -81,6 +81,9 @@ docs/                     handoff notes and performance baselines
   the browser; saved void/preset settings survive reload. Color themes are
   stored separately, so edits and release assignments survive a params reset;
   the plate itself still returns to the brand palette on reload.
+- **Release themes.** A color theme can be bound to a release in the Style
+  panel. Playing that release applies the theme; stopping playback (mute or
+  pause) restores the palette that was live beforehand.
 - **WASM.** The runtime artifact is the embedded base64 module in
   `src/simulation/wasm/chladniWasmModule.ts`; `chladni.as.ts` and `chladni.wat`
   are source/reference. Benchmark parity is stated as "within 0.5% tolerance".
