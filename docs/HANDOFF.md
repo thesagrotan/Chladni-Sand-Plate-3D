@@ -33,6 +33,8 @@ bun install
 bun run lint        # tsc --noEmit
 bun run build
 bun run test        # vitest run
+bun run test:e2e    # Playwright browser specs
+bun run check:budgets # bundle/font/scroll budgets (run after build)
 bun run dev         # Vite on :3002
 bun run preview     # production preview (use for perf traces)
 bun run build:wasm  # regenerate/verify the embedded WASM
@@ -161,15 +163,32 @@ the commit/PR. Results for the completed items are in
   still hurts.
 
 
-### T4 — Test gaps (plan §6)
+### T4 — Test gaps (plan §6) — ✅ complete
 
-Vitest covers 9 files / ~66 assertions (`tests/*.test.ts`, `tests/parity/`). Still missing:
-- GLSL vs JS parity via offscreen framebuffer readback (item 2).
-- Grain-count change behavior around the 15% threshold and CPU caps (item 7).
-- **Playwright e2e** (dependency is installed but there is no config and no specs):
-  WebGL/audio/UI smoke, keyboard shortcuts, scatter/reset, presets, font upload, version
-  history (items 10–11), and a no-WebGL/software-renderer fallback (item 11).
-- Performance budgets in CI: bundle size, initial font bytes, scroll long tasks (item 12).
+Vitest now covers 10 files / 69 tests (`tests/*.test.ts`, `tests/parity/`).
+Landed:
+
+- **GLSL vs JS parity** — `tests/parity/glslParity.test.ts` compiles
+  `CHLADNI_GLSL_FUNCTIONS` into an offscreen RGBA32F framebuffer via Playwright
+  Chromium and compares `computeChladniW` + `computeChladniGrad` against the JS
+  reference over 24 grid/void combinations. Tolerances are `1e-3` for the wave
+  and `0.03` for the gradient (float32 + SwiftShader trig precision).
+- **Grain-count behavior** — `tests/grainCount.test.ts` covers the 7,500-grain
+  (15% of the 50k default) bucket boundary, the 35k CPU cap, lazy CPU/WASM
+  construction, reuse within a bucket, and rebuilds when the capped count
+  changes.
+- **Playwright e2e** — `playwright.config.ts` + `e2e/*.spec.ts`
+  (`bun run test:e2e`): WebGL/UI/audio smoke, keyboard shortcuts
+  (D/H/Space/S/R/W/M/G), presets, local font upload, named version
+  save/restore/delete, and a no-WebGL fallback.
+- **No-WebGL fallback** — `useChladniCanvas` probes WebGL2 before constructing
+  the renderer and catches renderer failures; `ChladniCanvas` exposes
+  `data-webgl-status` and renders a notice while leaving the DOM site usable.
+- **Performance budgets in CI** — `scripts/check-perf-budgets.mjs`
+  (`bun run check:budgets`) checks main/total JS, CSS, preloaded font bytes, and
+  scroll long tasks against `dist/`. Software renderers (CI SwiftShader) use
+  wider scroll budgets because those timings are not comparable with Metal.
+  `.github/workflows/ci.yml` runs lint, Vitest, build, budgets, and e2e.
 
 `scripts/perf-baseline.mjs` already drives Playwright's bundled Chromium — reuse it for e2e.
 
