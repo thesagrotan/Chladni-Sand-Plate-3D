@@ -310,7 +310,12 @@ export function useChladniCanvas({
       pointerSimPos: pointerSimPosRef,
       pointerActive: pointerActiveRef,
     };
-    const frameState: ChladniFrameState = { lastTime: performance.now(), simTime: 0 };
+    const frameState: ChladniFrameState = {
+      lastTime: performance.now(),
+      simTime: 0,
+      activeFracKey: '',
+      activeFracValue: 0.4,
+    };
 
     const animate = () => {
       renderChladniFrame(frameDeps, frameState);

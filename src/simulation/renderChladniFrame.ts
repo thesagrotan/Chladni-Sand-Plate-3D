@@ -50,6 +50,9 @@ export interface ChladniFrameDeps {
 export interface ChladniFrameState {
   lastTime: number;
   simTime: number;
+  /** Cache key + value for the expensive active-fraction sample. */
+  activeFracKey: string;
+  activeFracValue: number;
 }
 
 /**
@@ -327,33 +330,53 @@ export function renderChladniFrame(deps: ChladniFrameDeps, state: ChladniFrameSt
     if (now - lastMetricsTimeRef.current > 120) {
       lastMetricsTimeRef.current = now;
 
-      let activeFrac = 0.4;
-      if (wasmExportsRef.current) {
-        activeFrac = wasmExportsRef.current.computeActiveFractionWasm(
-          40,
-          effectiveM,
-          effectiveN,
-          effectiveK,
-          cp.symmetryBlend,
-          effectiveDrive,
-          gridTypeNum,
-          cp.centerVoidRadius,
-          voidShapeNum,
-          cp.centerExpulsion
-        );
-      } else {
-        activeFrac = computeActiveFraction(
-          effectiveM,
-          effectiveN,
-          effectiveK,
-          cp.symmetryBlend,
-          effectiveDrive,
-          gridTypeNum,
-          cp.centerVoidRadius,
-          voidShapeNum,
-          cp.centerExpulsion
-        );
+      // `computeActiveFraction` samples a 40×40 grid; the result only depends
+      // on the wave/void parameters. Memoize it so an unchanged plate (and a
+      // non-reactive drive) reuses the last sample instead of re-evaluating
+      // ~1,600 points eight times a second.
+      const activeFracKey = [
+        effectiveM,
+        effectiveN,
+        effectiveK,
+        cp.symmetryBlend,
+        effectiveDrive,
+        gridTypeNum,
+        cp.centerVoidRadius,
+        voidShapeNum,
+        cp.centerExpulsion,
+        wasmExportsRef.current ? 'w' : 'j',
+      ].join('|');
+
+      if (activeFracKey !== state.activeFracKey) {
+        state.activeFracKey = activeFracKey;
+        if (wasmExportsRef.current) {
+          state.activeFracValue = wasmExportsRef.current.computeActiveFractionWasm(
+            40,
+            effectiveM,
+            effectiveN,
+            effectiveK,
+            cp.symmetryBlend,
+            effectiveDrive,
+            gridTypeNum,
+            cp.centerVoidRadius,
+            voidShapeNum,
+            cp.centerExpulsion
+          );
+        } else {
+          state.activeFracValue = computeActiveFraction(
+            effectiveM,
+            effectiveN,
+            effectiveK,
+            cp.symmetryBlend,
+            effectiveDrive,
+            gridTypeNum,
+            cp.centerVoidRadius,
+            voidShapeNum,
+            cp.centerExpulsion
+          );
+        }
       }
+      const activeFrac = state.activeFracValue;
 
       const { centerClearance, centerGrainCount } = computeCenterClearance(
         cpuParticlesRef.current,
