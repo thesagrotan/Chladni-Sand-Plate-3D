@@ -196,6 +196,13 @@ export function useChladniCanvas({
     renderer.setSize(width, height);
     renderer.setPixelRatio(pixelRatio);
     renderer.setClearColor(0x050507, 1);
+
+    // Size the document-space mask atlas to the GPU's texture limit.
+    const maxTextureSize = renderer.capabilities.maxTextureSize;
+    if (maxTextureSize && maxTextureSize !== textMask.maxTextureSize) {
+      textMask.maxTextureSize = maxTextureSize;
+      textMask.invalidateLayout();
+    }
     renderer.domElement.style.position = 'absolute';
     renderer.domElement.style.top = '0';
     renderer.domElement.style.left = '0';
