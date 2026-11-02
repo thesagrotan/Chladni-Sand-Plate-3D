@@ -190,8 +190,8 @@ export const DEFAULT_PARAMS: ChladniParams = {
 
   modeM: 4.0,
   modeN: 8.0,
-  waveK: 32.0,
-  symmetryBlend: 0.72,
+  waveK: 26.0,
+  symmetryBlend: 0.6,
   driveStrength: 3.2,
   grainCount: 50_000,
   grainSize: 1.0,
