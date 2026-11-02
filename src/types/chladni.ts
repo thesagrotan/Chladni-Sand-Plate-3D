@@ -765,7 +765,7 @@ export const AVAILABLE_FONTS: FontOption[] = [
     badge: 'Geometric Sans WOFF2',
     format: 'WOFF2',
     fileName: 'neue-montreal/PPNeueMontreal-*.woff2',
-    description: 'Geometric sans-serif by Pangram Pangram — Thin 100, Light 300, Regular 400, Medium 500, Semibold 600, Bold 700 + Italics',
+    description: 'Geometric sans-serif by Pangram Pangram — Thin 100, Light 300, Book 350, Regular 400, Medium 500, Semibold 600, Bold 700 + Italics',
   },
 ];
 
