@@ -752,20 +752,20 @@ export const AVAILABLE_FONTS: FontOption[] = [
     fileName: 'replica-pro/ReplicaPro-Regular2.otf',
     description: 'Monospaced companion cut of Replica by Norm (Lineto)',
   },
-  // Neue Montreal (Pangram Pangram — Geometric Sans OTF)
+  // Neue Montreal (Pangram Pangram — Geometric Sans WOFF2)
   {
     id: 'Neue-Montreal',
     name: 'Neue Montreal',
     fontFamily: 'Neue-Montreal',
     category: 'static',
-    minWeight: 300,
+    minWeight: 100,
     maxWeight: 700,
     defaultWeight: 400,
     hasItalic: true,
-    badge: 'Geometric Sans OTF',
-    format: 'OTF',
-    fileName: 'neue-montreal/NeueMontreal-*.otf',
-    description: 'Geometric sans-serif by Pangram Pangram — Light 300, Regular 400, Medium 500, Bold 700 + Italics',
+    badge: 'Geometric Sans WOFF2',
+    format: 'WOFF2',
+    fileName: 'neue-montreal/PPNeueMontreal-*.woff2',
+    description: 'Geometric sans-serif by Pangram Pangram — Thin 100, Light 300, Regular 400, Medium 500, Semibold 600, Bold 700 + Italics',
   },
 ];
 
