@@ -18,6 +18,7 @@ export interface TextMaskManagerOptions {
   resolution?: number; // default 1024
   trackedSelector?: string; // default '[data-text-repulsor]'
   strength?: number; // default 0.022
+  maxTextureSize?: number; // default 16384; atlas height is capped to this
 }
 
 interface RectLike {
@@ -41,17 +42,19 @@ export class TextMaskManager {
   public strength: number;
   public active: boolean = true;
   public resolution: number;
+  /** Document-space atlas dimensions in CSS pixels and mask pixels per CSS px. */
+  public docWidth: number = 0;
+  public docHeight: number = 0;
+  public maskScale: number = 1;
+  public maxTextureSize: number = 16384;
   /** Dev-only counters/global; `null` in production. */
   public debug: TextMaskDebugApi | null = null;
 
   private trackedSelector: string;
   private dirty: boolean = true;
   private dirtyRafId: number = 0;
-  private lastScrollY: number = -999999;
-  private lastUpdateTime: number = 0;
   private resizeObserver: ResizeObserver | null = null;
   private mutationObserver: MutationObserver | null = null;
-  private boundOnScroll: () => void;
   private boundOnResize: () => void;
   private boundOnCustomRefresh: () => void;
   private isDestroyed: boolean = false;
@@ -65,12 +68,11 @@ export class TextMaskManager {
   private trackedSet: Set<Element> = new Set();
   private trackedAncestors: Set<Element> = new Set();
   private observedElements: Set<Element> = new Set();
+  private warnedFixedPosition: boolean = false;
 
   // Cheap signature of everything that affects the mask image. Used to skip
   // redraws (and texture uploads) after redundant invalidations.
   private lastLayoutSignature: string = '';
-  private lastDrawnScrollX: number = Number.NaN;
-  private lastDrawnScrollY: number = Number.NaN;
 
   // Per-element blurred text bitmaps. Built once per layout version and
   // composited with drawImage on every rasterization (including scroll).
@@ -103,6 +105,7 @@ export class TextMaskManager {
     this.resolution = options.resolution || 1024;
     this.trackedSelector = options.trackedSelector || '[data-text-repulsor]';
     this.strength = options.strength ?? 0.022;
+    this.maxTextureSize = options.maxTextureSize || 16384;
 
     // Compute canvas dimensions that match the current viewport aspect ratio
     // at roughly `resolution` pixels on the longer axis.
@@ -145,14 +148,6 @@ export class TextMaskManager {
     // the parity harness. Tree-shaken out of production builds.
     this.debug = attachTextMaskDebug(this);
 
-    this.boundOnScroll = () => {
-      const sy = window.scrollY;
-      if (Math.abs(sy - this.lastScrollY) >= 1) {
-        this.setDirtyPosition();
-        this.lastScrollY = sy;
-      }
-    };
-
     this.boundOnResize = () => {
       this.invalidateLayout();
     };
@@ -161,7 +156,6 @@ export class TextMaskManager {
       this.invalidateLayout();
     };
 
-    window.addEventListener('scroll', this.boundOnScroll, { passive: true });
     window.addEventListener('resize', this.boundOnResize, { passive: true });
     window.addEventListener('chladni:refresh-text-mask', this.boundOnCustomRefresh);
 
@@ -215,11 +209,11 @@ export class TextMaskManager {
   }
 
   /**
-   * Mark the mask as stale without re-measuring the DOM. Used by scroll: the
-   * cached document-space lines are simply redrawn at the new offset.
+   * Scroll no longer invalidates the mask: the atlas is in document space and
+   * the shader applies the scroll offset. Kept for API compatibility.
    */
   public setDirtyPosition(): void {
-    this.scheduleRasterize();
+    // no-op
   }
 
   /**
@@ -252,17 +246,11 @@ export class TextMaskManager {
     });
   }
 
-  public update(now: number, force = false): boolean {
+  public update(_now: number, _force = false): boolean {
     if (this.isDestroyed || !this.active) return false;
-
-    // Throttle rasterizes to ~28ms (≈35fps) even if dirty is coalesced,
-    // and skip entirely when there is nothing pending.
-    if (!force && (!this.dirty || now - this.lastUpdateTime < 28)) {
-      return false;
-    }
+    if (!this.dirty) return false;
 
     this.dirty = false;
-    this.lastUpdateTime = now;
     this.rasterizeText();
     return true;
   }
@@ -386,23 +374,44 @@ export class TextMaskManager {
     return true;
   }
 
-  private updateCanvasSize(): void {
+  /**
+   * Size the document-space atlas. Width follows the viewport aspect and the
+   * existing uniform scale; height covers the whole document. If the page is
+   * taller than the GPU's texture limit, reduce the uniform scale (never
+   * below the limit) instead of tiling.
+   */
+  private updateAtlasSize(): void {
     const vw = window.innerWidth || 1;
     const vh = window.innerHeight || 1;
+    const doc = document.documentElement;
+    const body = document.body;
+    const docHeight = Math.max(
+      vh,
+      doc ? doc.scrollHeight || 0 : 0,
+      body ? body.scrollHeight || 0 : 0
+    );
 
-    // Recompute canvas dimensions if the viewport aspect ratio has changed.
-    // This ensures a uniform scale factor (scaleX === scaleY) so that text
-    // drawn on the canvas is not stretched or squished relative to the DOM.
-    const aspect = vw / vh;
-    let needsW: number;
-    let needsH: number;
-    if (aspect >= 1) {
-      needsW = this.resolution;
-      needsH = Math.round(this.resolution / aspect);
-    } else {
-      needsH = this.resolution;
-      needsW = Math.round(this.resolution * aspect);
+    const baseScale = this.resolution / Math.max(vw, vh);
+    let scale = baseScale;
+    let needsW = Math.max(1, Math.round(vw * scale));
+    let needsH = Math.max(1, Math.ceil(docHeight * scale));
+
+    const max = this.maxTextureSize || 16384;
+    if (needsH > max) {
+      scale *= max / needsH;
+      needsW = Math.max(1, Math.round(vw * scale));
+      needsH = max;
     }
+    if (needsW > max) {
+      scale *= max / needsW;
+      needsH = Math.max(1, Math.ceil(docHeight * scale));
+      needsW = max;
+    }
+
+    this.docWidth = vw;
+    this.docHeight = docHeight;
+    this.maskScale = scale;
+
     if (needsW !== this.canvasW || needsH !== this.canvasH) {
       this.canvasW = needsW;
       this.canvasH = needsH;
@@ -422,7 +431,7 @@ export class TextMaskManager {
     if (typeof this.bitmapPixelTotal !== 'number') this.bitmapPixelTotal = 0;
     this.layoutCache.clear();
 
-    this.updateCanvasSize();
+    this.updateAtlasSize();
 
     const elements = this.getTrackedElements();
     this.pruneBitmaps();
@@ -442,6 +451,19 @@ export class TextMaskManager {
 
       const visible = this.isElementVisible(el);
       const repulsorType = (el.getAttribute('data-text-repulsor') || 'text') as TextMaskRepulsorType;
+
+      if (this.debug && !this.warnedFixedPosition) {
+        // The atlas is in document coordinates, so fixed/sticky repulsors
+        // would need screen-space entries. None exist on this page today.
+        const position = window.getComputedStyle(el).position;
+        if (position === 'fixed' || position === 'sticky') {
+          this.warnedFixedPosition = true;
+          console.warn(
+            '[TextMaskManager] position:fixed/sticky text repulsor found; the document-space mask ' +
+              'atlas assumes static positioning. Add a screen-space entry for this element.'
+          );
+        }
+      }
 
       // If this element has child repulsors, let the children render
       // individually with their specific styles.
@@ -985,10 +1007,7 @@ export class TextMaskManager {
 
   private drawLayout(): void {
     const ctx = this.ctx;
-    const vw = window.innerWidth || 1;
-    const vh = window.innerHeight || 1;
-    const scrollX = window.scrollX || 0;
-    const scrollY = window.scrollY || 0;
+    const scale = this.maskScale;
 
     // Reset transform to paint full black background
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -997,8 +1016,6 @@ export class TextMaskManager {
     ctx.fillRect(0, 0, this.canvasW, this.canvasH);
 
     // Uniform scale: both axes use the same factor so text is not distorted.
-    // W/vw == H/vh because we sized the canvas to match the viewport aspect ratio.
-    const scale = this.canvasW / vw; // == H / vh
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
 
     const entries = this.layoutCache ? Array.from(this.layoutCache.values()) : [];
@@ -1008,21 +1025,11 @@ export class TextMaskManager {
       if (!entry.visible) continue;
 
       const rect = {
-        left: entry.docRect.x - scrollX,
-        top: entry.docRect.y - scrollY,
+        left: entry.docRect.x,
+        top: entry.docRect.y,
         width: entry.docRect.w,
         height: entry.docRect.h,
       };
-
-      // Skip elements that are completely outside the visible screen viewport
-      if (
-        rect.top + rect.height < -40 ||
-        rect.top > vh + 40 ||
-        rect.left + rect.width < -40 ||
-        rect.left > vw + 40
-      ) {
-        continue;
-      }
 
       if (entry.repulsorType === 'line') {
         const height = Math.max(rect.height, 2);
@@ -1057,14 +1064,13 @@ export class TextMaskManager {
 
       const bitmap = this.getTextBitmap(entry);
       if (bitmap) {
-        // Composite in device pixels; the 2× source is downscaled to the
-        // exact blur radii baked into the bitmap.
+        // Composite in device pixels; the cached bitmap is already blurred.
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.filter = 'none';
         ctx.drawImage(
           bitmap.canvas,
-          bitmap.originX - scrollX * bitmap.scale,
-          bitmap.originY - scrollY * bitmap.scale,
+          bitmap.originX,
+          bitmap.originY,
           bitmap.width,
           bitmap.height
         );
@@ -1092,7 +1098,7 @@ export class TextMaskManager {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
       for (const line of entry.lines) {
         if (this.debug) this.debug.counters.fillTextCalls++;
-        ctx.fillText(line.text, line.x - scrollX, line.y - scrollY);
+        ctx.fillText(line.text, line.x, line.y);
       }
 
       // Pass 2: Tight core letter contour
@@ -1100,7 +1106,7 @@ export class TextMaskManager {
       ctx.fillStyle = '#ffffff';
       for (const line of entry.lines) {
         if (this.debug) this.debug.counters.fillTextCalls++;
-        ctx.fillText(line.text, line.x - scrollX, line.y - scrollY);
+        ctx.fillText(line.text, line.x, line.y);
       }
     }
 
@@ -1109,9 +1115,10 @@ export class TextMaskManager {
   }
 
   /**
-   * Cheap signature of the mask's visual inputs (excluding scroll, which is
-   * tracked separately because it only moves cached lines). Layout
-   * invalidations that leave this unchanged skip the draw and upload.
+   * Cheap signature of the mask's visual inputs (viewport/atlas size,
+   * per-element type, visibility, document rect, font, text, and line
+   * positions). Layout invalidations that leave this unchanged skip the draw
+   * and upload.
    */
   private computeLayoutSignature(): string {
     const vw = window.innerWidth || 1;
@@ -1136,43 +1143,31 @@ export class TextMaskManager {
 
   public rasterizeText(): void {
     if (this.isDestroyed) return;
+    // The atlas is document-space: once built, scrolling does not change it.
+    if (!this.layoutDirty && this.layoutCache) return;
 
     const debugStart = this.debug ? performance.now() : 0;
     let drew = false;
     try {
-      let rebuiltLayout = false;
-      if (this.layoutDirty || !this.layoutCache) {
-        const layoutStart = this.debug ? performance.now() : 0;
-        this.rebuildLayout();
-        rebuiltLayout = true;
-        if (this.debug) {
-          const layoutDuration = performance.now() - layoutStart;
-          this.debug.counters.layoutCount++;
-          this.debug.counters.layoutMsLast = layoutDuration;
-          this.debug.counters.layoutMsTotal += layoutDuration;
-        }
+      const layoutStart = this.debug ? performance.now() : 0;
+      this.rebuildLayout();
+      if (this.debug) {
+        const layoutDuration = performance.now() - layoutStart;
+        this.debug.counters.layoutCount++;
+        this.debug.counters.layoutMsLast = layoutDuration;
+        this.debug.counters.layoutMsTotal += layoutDuration;
       }
 
-      if (rebuiltLayout) {
-        const signature = this.computeLayoutSignature();
-        const scrollX = window.scrollX || 0;
-        const scrollY = window.scrollY || 0;
-        if (
-          signature === this.lastLayoutSignature &&
-          scrollX === this.lastDrawnScrollX &&
-          scrollY === this.lastDrawnScrollY
-        ) {
-          if (this.debug) this.debug.counters.signatureSkips++;
-          return;
-        }
-        this.lastLayoutSignature = signature;
+      const signature = this.computeLayoutSignature();
+      if (signature === this.lastLayoutSignature) {
+        if (this.debug) this.debug.counters.signatureSkips++;
+        return;
       }
+      this.lastLayoutSignature = signature;
 
       const drawStart = this.debug ? performance.now() : 0;
       this.drawLayout();
       drew = true;
-      this.lastDrawnScrollX = window.scrollX || 0;
-      this.lastDrawnScrollY = window.scrollY || 0;
       if (this.debug) {
         const drawDuration = performance.now() - drawStart;
         this.debug.counters.drawCount++;
@@ -1222,7 +1217,16 @@ export class TextMaskManager {
     sctx.fillStyle = '#000000';
     sctx.fillRect(0, 0, sample.width, sample.height);
     sctx.imageSmoothingEnabled = true;
-    sctx.drawImage(this.canvas, 0, 0, sample.width, sample.height);
+
+    // The atlas is document-space; sample the current viewport region.
+    const vw = window.innerWidth || 1;
+    const vh = window.innerHeight || 1;
+    const scale = this.maskScale || this.canvasW / vw;
+    const sx = (window.scrollX || 0) * scale;
+    const sy = (window.scrollY || 0) * scale;
+    const sw = Math.max(1, Math.min(this.canvasW - sx, vw * scale));
+    const sh = Math.max(1, Math.min(this.canvasH - sy, vh * scale));
+    sctx.drawImage(this.canvas, sx, sy, sw, sh, 0, 0, sample.width, sample.height);
 
     const pixels = sctx.getImageData(0, 0, sample.width, sample.height).data;
     const gray = new Uint8Array(sample.width * sample.height);
@@ -1249,7 +1253,6 @@ export class TextMaskManager {
       cancelAnimationFrame(this.dirtyRafId);
       this.dirtyRafId = 0;
     }
-    window.removeEventListener('scroll', this.boundOnScroll);
     window.removeEventListener('resize', this.boundOnResize);
     window.removeEventListener('chladni:refresh-text-mask', this.boundOnCustomRefresh);
     if (this.resizeObserver) {

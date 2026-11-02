@@ -316,12 +316,11 @@ describe('TextMaskManager layout cache invalidation', () => {
     restore();
   });
 
-  it('scroll repositions cached lines without re-measuring the DOM', () => {
+  it('scroll does not re-measure or redraw the document-space atlas', () => {
     const counters = instance.debug!.counters;
     const rangeBefore = counters.rangeClientRects + counters.rangeBoundingRects;
     const walkersBefore = counters.treeWalkers;
     const imagesBefore = ctx.drawImages.length;
-    const lastYBefore = ctx.drawImages[ctx.drawImages.length - 1].y;
     expect(imagesBefore).toBeGreaterThan(0);
 
     (window as unknown as { scrollY: number }).scrollY = 120;
@@ -330,13 +329,7 @@ describe('TextMaskManager layout cache invalidation', () => {
 
     expect(counters.rangeClientRects + counters.rangeBoundingRects).toBe(rangeBefore);
     expect(counters.treeWalkers).toBe(walkersBefore);
-    // Drawing still happens from the cached bitmap, moved up by the delta
-    // (the bitmap is composited in mask-canvas pixels).
-    expect(ctx.drawImages.length).toBeGreaterThan(imagesBefore);
-    const expectedScale = instance.canvasW / window.innerWidth;
-    expect(ctx.drawImages[ctx.drawImages.length - 1].y).toBeCloseTo(
-      lastYBefore - 120 * expectedScale
-    );
+    expect(ctx.drawImages.length).toBe(imagesBefore);
   });
 
   it('invalidateLayout re-measures on the next rasterize', () => {
@@ -363,23 +356,35 @@ describe('TextMaskManager layout cache invalidation', () => {
     expect(instance.debug!.counters.signatureSkips).toBeGreaterThan(0);
   });
 
-  it('redraws after a scroll even when the layout signature is unchanged', () => {
+  it('layout invalidation at a new scroll offset still skips when content is unchanged', () => {
     instance.invalidateLayout();
     instance.rasterizeText();
     const imagesBefore = ctx.drawImages.length;
 
     (window as unknown as { scrollY: number }).scrollY = 40;
+    // Simulate the viewport rect moving up with the scroll so document
+    // coordinates stay identical.
+    el.getBoundingClientRect = () => rect(60, 10, 200, 30) as DOMRect;
+    const origCreateRange = document.createRange.bind(document);
+    document.createRange = () => {
+      const range = origCreateRange();
+      range.selectNode = () => {};
+      range.getClientRects = () => [rect(60, 10, 200, 30)] as unknown as DOMRectList;
+      range.getBoundingClientRect = () => rect(60, 10, 200, 30) as DOMRect;
+      return range;
+    };
     instance.invalidateLayout();
     instance.rasterizeText();
+    document.createRange = origCreateRange;
 
-    expect(ctx.drawImages.length).toBeGreaterThan(imagesBefore);
+    expect(ctx.drawImages.length).toBe(imagesBefore);
+    expect(instance.debug!.counters.signatureSkips).toBeGreaterThan(0);
   });
 
-  it('reuses element bitmaps across scroll and reports memory', () => {
+  it('keeps element bitmaps cached across scroll and reports memory', () => {
     instance.invalidateLayout();
     instance.rasterizeText();
     const buildsBefore = instance.debug!.counters.bitmapBuilds;
-    const hitsBefore = instance.debug!.counters.bitmapCacheHits;
     expect(buildsBefore).toBeGreaterThan(0);
     expect(instance.getBitmapStats().entries).toBeGreaterThan(0);
 
@@ -388,7 +393,6 @@ describe('TextMaskManager layout cache invalidation', () => {
     instance.rasterizeText();
 
     expect(instance.debug!.counters.bitmapBuilds).toBe(buildsBefore);
-    expect(instance.debug!.counters.bitmapCacheHits).toBeGreaterThan(hitsBefore);
     expect(instance.getBitmapStats().pixels).toBeGreaterThan(0);
   });
 

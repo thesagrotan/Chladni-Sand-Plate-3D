@@ -21,10 +21,10 @@ uniform sampler2D uTextMask;
 uniform float uTextMaskActive;
 uniform float uTextMaskStrength;
 uniform vec2  uTextMaskRes;
+uniform mat3  uMaskTransform; // world position -> document mask UV
+uniform mat3  uMaskPush;      // screen-UV push direction -> world direction
+uniform float uMaskVScale;    // atlas-v gradient scale (viewportHeight / atlasHeight)
 uniform vec4  uCamData;   // (cx, cy, halfW, halfH)
-uniform float uRotAngle;  // rotation in radians
-uniform float uFlipH;     // 1.0 if horizontal flip
-uniform float uFlipV;     // 1.0 if vertical flip
 
 ${CHLADNI_GLSL_FUNCTIONS}
 
@@ -125,38 +125,30 @@ void main() {
     }
   }
 
-  // Exact text silhouette repulsion — repel grains away from DOM text shapes
+  // Exact text silhouette repulsion — repel grains away from DOM text shapes.
+  // The CPU precomputes world->mask-UV and the push linear map, so there are
+  // no per-particle trig/flip branches here.
   if (uTextMaskActive > 0.5) {
-    vec2 worldP = pos.xy;
-    if (uFlipH > 0.5) worldP.x = -worldP.x;
-    if (uFlipV > 0.5) worldP.y = -worldP.y;
-    if (abs(uRotAngle) > 0.0001) {
-      float cosA = cos(uRotAngle);
-      float sinA = sin(uRotAngle);
-      worldP = vec2(worldP.x * cosA - worldP.y * sinA, worldP.x * sinA + worldP.y * cosA);
-    }
+    vec2 maskUV = (uMaskTransform * vec3(pos.xy, 1.0)).xy;
 
-    vec2 ndc;
-    ndc.x = (worldP.x - uCamData.x) / max(uCamData.z, 0.001);
-    ndc.y = (worldP.y - uCamData.y) / max(uCamData.w, 0.001);
-    vec2 screenUV = ndc * 0.5 + 0.5;
-
-    if (screenUV.x >= 0.0 && screenUV.x <= 1.0 && screenUV.y >= 0.0 && screenUV.y <= 1.0) {
-      float density = texture2D(uTextMask, screenUV).r;
+    if (maskUV.x >= 0.0 && maskUV.x <= 1.0 && maskUV.y >= 0.0 && maskUV.y <= 1.0) {
+      float density = texture2D(uTextMask, maskUV).r;
       if (density > 0.005) {
         float eps = 1.8 / uTextMaskRes.x;
         float epsY = 1.8 / uTextMaskRes.y;
-        float gx = texture2D(uTextMask, screenUV + vec2(eps, 0.0)).r - texture2D(uTextMask, screenUV - vec2(eps, 0.0)).r;
-        float gy = texture2D(uTextMask, screenUV + vec2(0.0, epsY)).r - texture2D(uTextMask, screenUV - vec2(0.0, epsY)).r;
-        vec2 gradScreen = vec2(gx, gy);
+        float gx = texture2D(uTextMask, maskUV + vec2(eps, 0.0)).r - texture2D(uTextMask, maskUV - vec2(eps, 0.0)).r;
+        float gy = texture2D(uTextMask, maskUV + vec2(0.0, epsY)).r - texture2D(uTextMask, maskUV - vec2(0.0, epsY)).r;
+        // Convert the atlas-v gradient back to screen-space before picking a
+        // direction (the atlas is taller than the viewport).
+        vec2 gradScreen = vec2(gx, gy * uMaskVScale);
         float gLen = length(gradScreen);
 
         if (gLen < 0.004) {
           float epsWide = 6.0 / uTextMaskRes.x;
           float epsWideY = 6.0 / uTextMaskRes.y;
-          float gx2 = texture2D(uTextMask, screenUV + vec2(epsWide, 0.0)).r - texture2D(uTextMask, screenUV - vec2(epsWide, 0.0)).r;
-          float gy2 = texture2D(uTextMask, screenUV + vec2(0.0, epsWideY)).r - texture2D(uTextMask, screenUV - vec2(0.0, epsWideY)).r;
-          gradScreen = vec2(gx2, gy2);
+          float gx2 = texture2D(uTextMask, maskUV + vec2(epsWide, 0.0)).r - texture2D(uTextMask, maskUV - vec2(epsWide, 0.0)).r;
+          float gy2 = texture2D(uTextMask, maskUV + vec2(0.0, epsWideY)).r - texture2D(uTextMask, maskUV - vec2(0.0, epsWideY)).r;
+          gradScreen = vec2(gx2, gy2 * uMaskVScale);
           gLen = length(gradScreen);
         }
 
@@ -168,15 +160,7 @@ void main() {
           pushScreen = normalize(rndW + vec2(0.001));
         }
 
-        vec2 pushWorld = vec2(pushScreen.x * uCamData.z, pushScreen.y * uCamData.w);
-
-        if (abs(uRotAngle) > 0.0001) {
-          float cosA = cos(-uRotAngle);
-          float sinA = sin(-uRotAngle);
-          pushWorld = vec2(pushWorld.x * cosA - pushWorld.y * sinA, pushWorld.x * sinA + pushWorld.y * cosA);
-        }
-        if (uFlipH > 0.5) pushWorld.x = -pushWorld.x;
-        if (uFlipV > 0.5) pushWorld.y = -pushWorld.y;
+        vec2 pushWorld = (uMaskPush * vec3(pushScreen, 0.0)).xy;
 
         float pushMag = clamp(density * 1.6, 0.08, 1.0) * uTextMaskStrength;
         pos.xy += pushWorld * pushMag;
@@ -257,9 +241,9 @@ export class ChladniGpuSimulation {
     u.uTextMaskStrength = { value: 0.022 };
     u.uTextMaskRes = { value: new THREE.Vector2(1024.0, 1024.0) };
     u.uCamData = { value: new THREE.Vector4(0, 0, initialHalfW, initialHalfH) };
-    u.uRotAngle = { value: 0.0 };
-    u.uFlipH = { value: 0.0 };
-    u.uFlipV = { value: 0.0 };
+    u.uMaskTransform = { value: new THREE.Matrix3() };
+    u.uMaskPush = { value: new THREE.Matrix3() };
+    u.uMaskVScale = { value: 1.0 };
 
     const error = this.gpuCompute.init();
     if (error !== null) {
@@ -323,9 +307,9 @@ export class ChladniGpuSimulation {
     textMaskResW = 1024,
     textMaskResH = 1024,
     camData?: THREE.Vector4,
-    rotAngle = 0,
-    flipH = false,
-    flipV = false
+    maskTransform?: THREE.Matrix3,
+    maskPush?: THREE.Matrix3,
+    maskVScale = 1
   ) {
     const u = this.posVariable.material.uniforms;
     u.uTime.value = time;
@@ -352,9 +336,13 @@ export class ChladniGpuSimulation {
     if (camData) {
       u.uCamData.value.copy(camData);
     }
-    u.uRotAngle.value = rotAngle;
-    u.uFlipH.value = flipH ? 1.0 : 0.0;
-    u.uFlipV.value = flipV ? 1.0 : 0.0;
+    if (maskTransform) {
+      u.uMaskTransform.value.copy(maskTransform);
+    }
+    if (maskPush) {
+      u.uMaskPush.value.copy(maskPush);
+    }
+    u.uMaskVScale.value = maskVScale;
 
     this.gpuCompute.compute();
   }

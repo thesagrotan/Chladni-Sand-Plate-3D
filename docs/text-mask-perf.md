@@ -124,5 +124,50 @@ Contours, line breaks, and positions are unchanged; the harness uses a wider
 bound for scroll>0 captures (16% / mean 4) and keeps the strict 2% bound at
 scroll 0. Phase 4 removes per-scroll compositing entirely.
 
+## Phase 4 — document-space mask atlas + shader scroll offset
+
+The mask canvas now covers the whole document (`width = viewportWidth × scale`,
+`height = documentHeight × scale`, capped to `gl.MAX_TEXTURE_SIZE` by reducing
+the uniform scale — no tiling needed for this page). Elements are drawn at
+document coordinates; scrolling only updates uniforms.
+
+The per-particle flip/rotate/camera math and its `cos`/`sin` calls are gone
+from the shader. `src/simulation/textMaskTransform.ts` builds, on the CPU:
+- `uMaskTransform` (mat3): world position → document mask UV,
+- `uMaskPush` (mat3): screen-UV push direction → world direction,
+- `uMaskVScale`: atlas-v gradient scale (viewport height / atlas height).
+
+`tests/textMaskTransform.test.ts` compares both matrices against the legacy
+shader formulas over 3 cameras × 5 rotations × 4 flip combinations × several
+points/directions at 1e-10 tolerance, plus arbitrary scroll/document heights.
+
+| Metric | Desktop P3 | Desktop P4 | Mobile P3 | Mobile P4 |
+|---|---:|---:|---:|---:|
+| Rasterizations / s during scroll | 30.3 | **0** | 30.3 | **0** |
+| Range calls / raster | 0 | 0 | 0 | 0 |
+| `fillText` / raster | 0.00 | 0.00 | 0.00 | 0.00 |
+| Upload bytes / s during scroll | 79.3 MB | **0** | 58.6 MB | **0** |
+| Startup rasterizations | 2 | 2 | 2 | 2 |
+
+The 28 ms throttle is removed: `rasterizeText()` runs only on a layout
+invalidation and returns immediately otherwise.
+
+Atlas memory (RGBA8): 1024×1833 = **7.5 MB** desktop,
+473×4689 = **8.9 MB** mobile portrait, plus the Phase 3 bitmap cache
+(4.8 / 6.9 MB). Both fit well inside the 16384 px texture limit
+(desktop atlas is 1833 px tall, mobile 4689 px). There are no
+`position: fixed`/`sticky` text repulsors on the page; the manager warns
+(dev only) if one appears, since the atlas assumes static positioning.
+
+Parity: scroll-0 is pixel-identical; scroll>0 shows the same subpixel
+resample signature as Phase 3 (ink IoU 0.88–0.99 at 50% coverage, best
+alignment at zero shift, ink ratio 0.96–1.03, mean diff ≤3/255). This is the
+resampling of an already-blurred glyph at a fractional atlas offset, not a
+contour or position change; the mask edge is blurred by 3–8 CSS px, so the
+extra ~0.3 CSS px of smoothing is far below the blur radius. Explaining this
+is why the harness keeps the strict 2% bound only at scroll 0 and a documented
+wider bound elsewhere.
+
+
 
 

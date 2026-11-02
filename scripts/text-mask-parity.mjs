@@ -302,6 +302,11 @@ async function compare(baseline, current) {
         failures++;
         continue;
       }
+      if (Array.isArray(after.errors) && after.errors.length > 0) {
+        rows.push({ viewportId, key, status: 'console error', errors: after.errors });
+        failures++;
+        continue;
+      }
       const diff = diffSamples(before.sample, after.sample);
       if (diff.incompatible) {
         rows.push({ viewportId, key, status: 'sample size changed', diff });
@@ -321,6 +326,9 @@ async function compare(baseline, current) {
     const d = row.diff;
     if (!d) {
       console.log(`${row.status.padEnd(10)} ${row.viewportId} ${row.key}`);
+      if (row.errors) {
+        for (const error of row.errors) console.log(`           ${error}`);
+      }
       continue;
     }
     if (d.incompatible) {
@@ -429,6 +437,8 @@ async function measureScroll(page, seconds, cpuRate) {
     longTaskMs: result.longTasks.totalMs,
     bitmapEntries: result.counters.bitmapEntries,
     bitmapPixels: result.counters.bitmapPixels,
+    canvasWidth: result.counters.canvasWidth,
+    canvasHeight: result.counters.canvasHeight,
     startupRasterizations: null,
   };
 }
@@ -485,6 +495,13 @@ async function main() {
     }
 
     const current = await runParity(browser);
+
+    if (process.env.TEXT_MASK_DUMP) {
+      await writeFile(
+        path.join(OUT_DIR, 'last-run.json'),
+        `${JSON.stringify(current, null, 2)}\n`
+      );
+    }
 
     if (UPDATE) {
       await writeFile(BASELINE_PATH, `${JSON.stringify(current, null, 2)}\n`);
