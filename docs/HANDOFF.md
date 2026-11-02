@@ -193,15 +193,19 @@ Landed:
   wider scroll budgets because those timings are not comparable with Metal.
   `.github/workflows/ci.yml` runs lint, Vitest, build, budgets, and e2e.
 
-### T5 — Housekeeping / leftover findings (not in a phase)
+### T5 — Housekeeping / leftover findings — ✅ complete
 
-- **D8 stale AI Studio config:** `package.json` name is still `react-example`; `clean`
-  script still does `rm -rf dist server.js`; `README.md` is AI Studio boilerplate
-  (`GEMINI_API_KEY`, `npm install`); `metadata.json` and `.env.example` are stale. Update
-  to reflect `bun` and this app; remove genuinely unused files.
-- **D15 (suspected):** `Replica-Mono` maps to `ReplicaPro-Regular2.otf`, not a mono cut —
-  confirm and either fix or document.
-- `.env` / `.env.example` still reference `GEMINI_API_KEY`; there is no runtime use of it.
+- **D8 stale AI Studio config:** `package.json` is now named
+  `chladni-sand-plate-3d` (with `bun.lock` updated), the `clean` script only
+  removes `dist`, and `README.md` documents this app and the bun workflow
+  instead of AI Studio boilerplate. `metadata.json` and `.env.example` were
+  unreferenced AI Studio leftovers and were removed; the unused local `.env`
+  was deleted as well.
+- **D15 (resolved — documented):** `ReplicaPro-Regular2.otf` is genuinely the
+  Replica Mono cut — its name table reads `Replica-Mono`,
+  `post.isFixedPitch = 1` and panose proportion 9 — so the mismatch was only
+  the original Lineto filename. Documented in `src/index.css`; no rename.
+- No `GEMINI_API_KEY` / `APP_URL` references remain in the repo.
 
 ## Definition of done
 
