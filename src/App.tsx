@@ -189,7 +189,7 @@ export default function App() {
         handleReset();
       } else if (e.key === 'w' || e.key === 'W') {
         setIsWasmLabOpen((prev) => !prev);
-      } else if (e.key === 'c' || e.key === 'C') {
+      } else if (e.key === 'd' || e.key === 'D' || e.key === 'c' || e.key === 'C') {
         setShowControls((prev) => !prev);
       } else if (e.key === 'm' || e.key === 'M') {
         handleToggleAudio();
@@ -250,76 +250,80 @@ export default function App() {
       </div>
 
       {/* 3. MINIMALIST CORNER CONTROLS (DISCREET & UNINTRUSIVE) */}
-      <div data-ui-panel className="fixed bottom-4 left-4 z-30 flex items-center gap-2 select-none">
-        {/* Audio Toggle */}
-        <button
-          type="button"
-          onClick={handleToggleAudio}
-          className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all flex items-center gap-2 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
-          style={{ color: dotColor, borderColor: `${dotColor}33` }}
-          title="Toggle Umbráfono / Acoustic audio (M)"
-        >
-          {params.audioEnabled ? (
-            <Volume2 size={13} style={{ color: dotColor }} />
-          ) : (
-            <VolumeX size={13} style={{ color: dotColor }} />
-          )}
-          <span>{params.audioEnabled ? 'Umbráfono ON' : 'Audio (M)'}</span>
-        </button>
+      {showControls && (
+        <>
+          <div data-ui-panel className="fixed bottom-4 left-4 z-30 flex items-center gap-2 select-none">
+            {/* Audio Toggle */}
+            <button
+              type="button"
+              onClick={handleToggleAudio}
+              className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all flex items-center gap-2 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+              style={{ color: dotColor, borderColor: `${dotColor}33` }}
+              title="Toggle Umbráfono / Acoustic audio (M)"
+            >
+              {params.audioEnabled ? (
+                <Volume2 size={13} style={{ color: dotColor }} />
+              ) : (
+                <VolumeX size={13} style={{ color: dotColor }} />
+              )}
+              <span>{params.audioEnabled ? 'Umbráfono ON' : 'Audio (M)'}</span>
+            </button>
 
-        {/* Scatter Grains */}
-        <button
-          type="button"
-          onClick={handleScatter}
-          className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all cursor-pointer shadow-lg opacity-70 hover:opacity-100"
-          style={{ color: dotColor, borderColor: `${dotColor}33` }}
-          title="Scatter sand (S)"
-        >
-          <Sparkles size={13} style={{ color: dotColor }} />
-        </button>
+            {/* Scatter Grains */}
+            <button
+              type="button"
+              onClick={handleScatter}
+              className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+              style={{ color: dotColor, borderColor: `${dotColor}33` }}
+              title="Scatter sand (S)"
+            >
+              <Sparkles size={13} style={{ color: dotColor }} />
+            </button>
 
-        {/* Telemetry HUD */}
-        <button
-          type="button"
-          onClick={() => setShowHud((prev) => !prev)}
-          aria-pressed={showHud}
-          className={`p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all cursor-pointer shadow-lg hover:opacity-100 ${
-            showHud ? 'opacity-100' : 'opacity-70'
-          }`}
-          style={{ color: dotColor, borderColor: showHud ? `${dotColor}66` : `${dotColor}33` }}
-          title="Toggle telemetry HUD (H)"
-        >
-          <Activity size={13} style={{ color: dotColor }} />
-        </button>
-      </div>
+            {/* Telemetry HUD */}
+            <button
+              type="button"
+              onClick={() => setShowHud((prev) => !prev)}
+              aria-pressed={showHud}
+              className={`p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all cursor-pointer shadow-lg hover:opacity-100 ${
+                showHud ? 'opacity-100' : 'opacity-70'
+              }`}
+              style={{ color: dotColor, borderColor: showHud ? `${dotColor}66` : `${dotColor}33` }}
+              title="Toggle telemetry HUD (H)"
+            >
+              <Activity size={13} style={{ color: dotColor }} />
+            </button>
+          </div>
 
-      <div data-ui-panel className="fixed bottom-4 right-4 z-30 flex items-center gap-2 select-none">
-        {/* Toggle Controls Drawer */}
-        <button
-          type="button"
-          onClick={() => setShowControls((prev) => !prev)}
-          className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all flex items-center gap-1.5 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
-          style={{ color: dotColor, borderColor: `${dotColor}33` }}
-          title="Toggle Physics & Tuning Controls (C)"
-        >
-          <Sliders size={13} style={{ color: dotColor }} />
-          <span>Studio (C)</span>
-        </button>
+          <div data-ui-panel className="fixed bottom-4 right-4 z-30 flex items-center gap-2 select-none">
+            {/* Toggle Controls Drawer */}
+            <button
+              type="button"
+              onClick={() => setShowControls((prev) => !prev)}
+              className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all flex items-center gap-1.5 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+              style={{ color: dotColor, borderColor: `${dotColor}33` }}
+              title="Toggle Physics & Tuning Controls (D)"
+            >
+              <Sliders size={13} style={{ color: dotColor }} />
+              <span>Studio (D)</span>
+            </button>
 
-        {/* WASM Benchmarks */}
-        <button
-          type="button"
-          onClick={() => setIsWasmLabOpen(true)}
-          className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all cursor-pointer shadow-lg opacity-70 hover:opacity-100"
-          style={{ color: dotColor, borderColor: `${dotColor}33` }}
-          title="Open WebAssembly Benchmarks (W)"
-        >
-          <Zap size={13} style={{ color: dotColor }} />
-        </button>
-      </div>
+            {/* WASM Benchmarks */}
+            <button
+              type="button"
+              onClick={() => setIsWasmLabOpen(true)}
+              className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-all cursor-pointer shadow-lg opacity-70 hover:opacity-100"
+              style={{ color: dotColor, borderColor: `${dotColor}33` }}
+              title="Open WebAssembly Benchmarks (W)"
+            >
+              <Zap size={13} style={{ color: dotColor }} />
+            </button>
+          </div>
+        </>
+      )}
 
       {/* 4. OPTIONAL FLOATING HUD TELEMETRY */}
-      {showHud && (
+      {showControls && showHud && (
         <HudStats
           metrics={metrics}
           params={params}
