@@ -213,14 +213,6 @@ export class TextMaskManager {
   }
 
   /**
-   * Scroll no longer invalidates the mask: the atlas is in document space and
-   * the shader applies the scroll offset. Kept for API compatibility.
-   */
-  public setDirtyPosition(): void {
-    // no-op
-  }
-
-  /**
    * Mark the cached DOM layout as stale: resize, font change, text/content
    * change, element size/visibility change, or accordion open/close.
    */
@@ -230,17 +222,17 @@ export class TextMaskManager {
     this.scheduleRasterize();
   }
 
-  /** Backwards-compatible alias: callers that change typography need a
-   * full re-measure, not just a reposition. */
+  /** Backwards-compatible alias for typography changes (full re-measure). */
   public setDirty(): void {
     this.invalidateLayout();
   }
 
   /**
    * Coalesce dirty-marking into at most one flush per animation frame. A
-   * scroll event, a ResizeObserver fire, and a 'chladni:refresh-text-mask'
-   * dispatch can all land in the same frame; each one independently marking
-   * dirty + running update() would multiply the expensive DOM-measure pass.
+   * ResizeObserver fire, a MutationObserver batch, a font event and a
+   * 'chladni:refresh-text-mask' dispatch can all land in the same frame; each
+   * one independently marking dirty + running update() would multiply the
+   * expensive DOM-measure pass.
    */
   private scheduleRasterize(): void {
     if (this.isDestroyed || this.dirtyRafId !== 0) return;

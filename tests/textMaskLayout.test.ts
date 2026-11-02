@@ -324,7 +324,6 @@ describe('TextMaskManager layout cache invalidation', () => {
     expect(imagesBefore).toBeGreaterThan(0);
 
     (window as unknown as { scrollY: number }).scrollY = 120;
-    instance.setDirtyPosition();
     instance.rasterizeText();
 
     expect(counters.rangeClientRects + counters.rangeBoundingRects).toBe(rangeBefore);
@@ -389,7 +388,6 @@ describe('TextMaskManager layout cache invalidation', () => {
     expect(instance.getBitmapStats().entries).toBeGreaterThan(0);
 
     (window as unknown as { scrollY: number }).scrollY = 30;
-    instance.setDirtyPosition();
     instance.rasterizeText();
 
     expect(instance.debug!.counters.bitmapBuilds).toBe(buildsBefore);
