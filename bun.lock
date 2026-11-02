@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "react-example",
+      "name": "chladni-sand-plate-3d",
       "dependencies": {
         "lucide-react": "^0.546.0",
         "react": "^19.0.1",
