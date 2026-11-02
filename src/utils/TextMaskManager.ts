@@ -66,6 +66,12 @@ export class TextMaskManager {
   private trackedAncestors: Set<Element> = new Set();
   private observedElements: Set<Element> = new Set();
 
+  // Cheap signature of everything that affects the mask image. Used to skip
+  // redraws (and texture uploads) after redundant invalidations.
+  private lastLayoutSignature: string = '';
+  private lastDrawnScrollX: number = Number.NaN;
+  private lastDrawnScrollY: number = Number.NaN;
+
   // Canvas dimensions are kept proportional to the viewport aspect ratio
   // so that scaleX === scaleY (uniform scale), avoiding text distortion.
   public canvasW: number;
@@ -862,14 +868,43 @@ export class TextMaskManager {
     this.markTextureDirty();
   }
 
+  /**
+   * Cheap signature of the mask's visual inputs (excluding scroll, which is
+   * tracked separately because it only moves cached lines). Layout
+   * invalidations that leave this unchanged skip the draw and upload.
+   */
+  private computeLayoutSignature(): string {
+    const vw = window.innerWidth || 1;
+    const vh = window.innerHeight || 1;
+    const parts = [`${vw}x${vh}`, `${this.canvasW}x${this.canvasH}`];
+
+    if (this.layoutCache) {
+      for (const entry of this.layoutCache.values()) {
+        parts.push(
+          `${entry.repulsorType}|${entry.visible ? 1 : 0}|` +
+            `${entry.docRect.x},${entry.docRect.y},${entry.docRect.w},${entry.docRect.h}|` +
+            `${entry.fontKey}|${entry.textToRender}`
+        );
+        for (const line of entry.lines) {
+          parts.push(`${line.x},${line.y},${line.text}`);
+        }
+      }
+    }
+
+    return parts.join('\n');
+  }
+
   public rasterizeText(): void {
     if (this.isDestroyed) return;
 
     const debugStart = this.debug ? performance.now() : 0;
+    let drew = false;
     try {
+      let rebuiltLayout = false;
       if (this.layoutDirty || !this.layoutCache) {
         const layoutStart = this.debug ? performance.now() : 0;
         this.rebuildLayout();
+        rebuiltLayout = true;
         if (this.debug) {
           const layoutDuration = performance.now() - layoutStart;
           this.debug.counters.layoutCount++;
@@ -877,8 +912,27 @@ export class TextMaskManager {
           this.debug.counters.layoutMsTotal += layoutDuration;
         }
       }
+
+      if (rebuiltLayout) {
+        const signature = this.computeLayoutSignature();
+        const scrollX = window.scrollX || 0;
+        const scrollY = window.scrollY || 0;
+        if (
+          signature === this.lastLayoutSignature &&
+          scrollX === this.lastDrawnScrollX &&
+          scrollY === this.lastDrawnScrollY
+        ) {
+          if (this.debug) this.debug.counters.signatureSkips++;
+          return;
+        }
+        this.lastLayoutSignature = signature;
+      }
+
       const drawStart = this.debug ? performance.now() : 0;
       this.drawLayout();
+      drew = true;
+      this.lastDrawnScrollX = window.scrollX || 0;
+      this.lastDrawnScrollY = window.scrollY || 0;
       if (this.debug) {
         const drawDuration = performance.now() - drawStart;
         this.debug.counters.drawCount++;
@@ -886,7 +940,7 @@ export class TextMaskManager {
         this.debug.counters.drawMsTotal += drawDuration;
       }
     } finally {
-      if (this.debug) {
+      if (this.debug && drew) {
         const duration = performance.now() - debugStart;
         this.debug.counters.rasterizations++;
         this.debug.counters.rasterizeMsLast = duration;

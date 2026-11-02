@@ -39,6 +39,8 @@ export interface TextMaskDebugCounters {
   drawCount: number;
   drawMsTotal: number;
   drawMsLast: number;
+  /** Layout invalidations skipped because the content signature was unchanged. */
+  signatureSkips: number;
   /** Long tasks observed since attach (dev only). */
   longTasks: number;
   longTaskMs: number;
@@ -100,6 +102,7 @@ function freshCounters(): TextMaskDebugCounters {
     drawCount: 0,
     drawMsTotal: 0,
     drawMsLast: 0,
+    signatureSkips: 0,
     longTasks: 0,
     longTaskMs: 0,
   };

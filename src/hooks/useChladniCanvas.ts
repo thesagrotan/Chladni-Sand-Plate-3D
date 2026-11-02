@@ -452,10 +452,23 @@ export function useChladniCanvas({
     };
   }, [params.simulationEngine, params.grainCount]);
 
-  // DOM elements rejection force & typography change — refresh text mask
+  // DOM elements rejection force — only the 0 → >0 transition can leave a
+  // stale mask (update() early-outs while inactive). Strength itself is
+  // pushed per frame in renderChladniFrame, so dragging the slider must not
+  // re-measure or re-upload the mask.
+  const domRepulsionActiveRef = useRef((params.domRepulsion ?? 1.0) > 0.001);
+  useEffect(() => {
+    const active = (params.domRepulsion ?? 1.0) > 0.001;
+    if (active && !domRepulsionActiveRef.current) {
+      textMaskManagerRef.current?.invalidateLayout();
+    }
+    domRepulsionActiveRef.current = active;
+  }, [params.domRepulsion]);
+
+  // Typography change — refresh text mask
   useEffect(() => {
     if ((params.domRepulsion ?? 1.0) > 0.001) {
-      textMaskManagerRef.current?.setDirty();
+      textMaskManagerRef.current?.invalidateLayout();
       if (document.fonts && document.fonts.load) {
         // Request only the exact face currently in use, then re-rasterize once it
         // arrives. Relying on document.fonts.ready can resolve before the new
@@ -464,12 +477,11 @@ export function useChladniCanvas({
         const fontSpec = `${style}${params.fontWeight} 24px "${params.fontFamily}"`;
         document.fonts
           .load(fontSpec)
-          .then(() => textMaskManagerRef.current?.setDirty())
+          .then(() => textMaskManagerRef.current?.invalidateLayout())
           .catch(() => {});
       }
     }
   }, [
-    params.domRepulsion,
     params.fontFamily,
     params.fontWeight,
     params.fontItalic,

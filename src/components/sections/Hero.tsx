@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type TransitionEvent } from 'react';
 import type { ColorTheme } from '../../utils/colorThemes.ts';
 import { RELEASES } from '../../data/releases.ts';
 
@@ -19,16 +19,16 @@ export function Hero({
 
   const handleToggleRelease = (id: string) => {
     setOpenId((prev) => (prev === id ? null : id));
+  };
 
-    // Coalesce text-mask refreshes to a few easing-keyed steps instead of
-    // one dispatch per rAF frame for 260ms. Each dispatch triggers the full
-    // DOM-measure + blurred-canvas rasterize (TextMaskManager throttles it
-    // to ~35fps internally), so the per-frame storm would pile up main-thread
-    // work exactly while the panel is animating.
-    const refresh = () => window.dispatchEvent(new CustomEvent('chladni:refresh-text-mask'));
-    refresh();
-    window.setTimeout(refresh, 80);
-    window.setTimeout(refresh, 160);
+  // The text mask re-measures itself from the MutationObserver (attributes
+  // added/removed) and the ResizeObserver (panel/content size). One extra
+  // refresh at the end of the open/close transition catches the final layout
+  // without dispatching on every animation frame.
+  const handlePanelTransitionEnd = (event: TransitionEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return;
+    if (event.propertyName !== 'opacity') return;
+    window.dispatchEvent(new CustomEvent('chladni:refresh-text-mask'));
   };
 
   return (
@@ -95,6 +95,7 @@ export function Hero({
 
                 <div
                   className="release-panel"
+                  onTransitionEnd={handlePanelTransitionEnd}
                   style={{
                     gridTemplateRows: isOpen ? '1fr' : '0fr',
                     opacity: isOpen ? 1 : 0,

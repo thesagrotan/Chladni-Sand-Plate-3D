@@ -190,7 +190,8 @@ export function useCameraControls(
       const h = window.innerHeight;
       refs.renderer.current.setSize(w, h);
       updateCameraFrustum();
-      refs.textMask.current?.setDirty();
+      // The mask manager owns its own window resize invalidation; calling
+      // setDirty() here duplicated the same re-measure.
     };
 
     window.addEventListener('resize', handleResize);

@@ -338,6 +338,32 @@ describe('TextMaskManager layout cache invalidation', () => {
     expect(counters.rangeClientRects + counters.rangeBoundingRects).toBeGreaterThan(rangeBefore);
   });
 
+  it('skips redraw and texture upload when the content signature is unchanged', () => {
+    instance.invalidateLayout();
+    instance.rasterizeText();
+    const fillsBefore = ctx.fills.length;
+    const uploadsBefore = instance.debug!.counters.uploadRequests;
+
+    instance.invalidateLayout();
+    instance.rasterizeText();
+
+    expect(ctx.fills.length).toBe(fillsBefore);
+    expect(instance.debug!.counters.uploadRequests).toBe(uploadsBefore);
+    expect(instance.debug!.counters.signatureSkips).toBeGreaterThan(0);
+  });
+
+  it('redraws after a scroll even when the layout signature is unchanged', () => {
+    instance.invalidateLayout();
+    instance.rasterizeText();
+    const fillsBefore = ctx.fills.length;
+
+    (window as unknown as { scrollY: number }).scrollY = 40;
+    instance.invalidateLayout();
+    instance.rasterizeText();
+
+    expect(ctx.fills.length).toBeGreaterThan(fillsBefore);
+  });
+
   it('window resize invalidates layout', async () => {
     instance.invalidateLayout();
     instance.rasterizeText();

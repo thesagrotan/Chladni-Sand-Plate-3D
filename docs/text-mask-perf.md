@@ -72,3 +72,26 @@ longer happen during scroll (draw-only). The remaining cost is the clear +
 two filtered `fillText` passes, which Phase 3 targets. Visual parity: all 48
 captures 0.000% differing pixels.
 
+## Phase 2 — redundant invalidation removed
+
+- `domRepulsion` is no longer an effect dependency; only the 0 → >0 transition
+  calls `invalidateLayout()` (the per-frame strength update already lives in
+  `renderChladniFrame`). Dragging the slider causes zero rasterizations.
+- Startup timeouts: six → one 600 ms fallback. The immediate constructor draw,
+  `document.fonts.ready` + rAF, `ResizeObserver`, and `MutationObserver` cover
+  the rest. Measured startup rasterizations: **2** (desktop and mobile; target
+  ≤4, was 9/11).
+- Removed the duplicate resize invalidation from `useCameraControls`; the
+  manager's own `resize` listener owns it.
+- Added a content signature (viewport/canvas size, per-element type,
+  visibility, document rect, font key, text, and line positions). Layout
+  invalidations that leave it unchanged skip `drawLayout()` and
+  `texture.needsUpdate`. Redundant font-ready/observer/fallback passes are now
+  no-ops.
+- Hero accordion: the 0/80/160 ms dispatches are replaced by the observers
+  plus one `transitionend` refresh (opacity), so there is no per-frame
+  dispatch storm during the 200 ms panel animation.
+
+Visual parity remains 0.000% across all 48 captures.
+
+
