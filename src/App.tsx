@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { ChladniMetrics, buildFontVariationSettings } from './types/chladni.ts';
 import { randomizeGridParams } from './utils/grid.ts';
 import { useChladniSettings } from './hooks/useChladniSettings.ts';
@@ -8,8 +8,6 @@ import { Hero } from './components/sections/Hero.tsx';
 import { About } from './components/sections/About.tsx';
 import { Facility } from './components/sections/Facility.tsx';
 import { Contact } from './components/sections/Contact.tsx';
-import { ControlPanel } from './components/ControlPanel.tsx';
-import { WasmResearchLab } from './components/WasmResearchLab.tsx';
 import { CustomCursor } from './components/CircleCursor.tsx';
 import { plateSynth } from './simulation/audioSynth.ts';
 import { getPerceivedDotColor } from './utils/color.ts';
@@ -21,6 +19,15 @@ import {
   Zap,
   Activity,
 } from 'lucide-react';
+
+// The Studio drawer and the benchmark lab are heavy and only visible on
+// demand, so they are code-split and fetched the first time each is opened.
+const ControlPanel = React.lazy(() =>
+  import('./components/ControlPanel.tsx').then((m) => ({ default: m.ControlPanel }))
+);
+const WasmResearchLab = React.lazy(() =>
+  import('./components/WasmResearchLab.tsx').then((m) => ({ default: m.WasmResearchLab }))
+);
 
 export default function App() {
   const {
@@ -54,6 +61,9 @@ export default function App() {
   const [isWasmLabOpen, setIsWasmLabOpen] = useState<boolean>(false);
   const [showHud, setShowHud] = useState<boolean>(true);
   const [showControls, setShowControls] = useState<boolean>(false);
+  // Latch so the lazily-loaded lab keeps its benchmark state after first open
+  // while still deferring its chunk until the user asks for it.
+  const [wasmLabMounted, setWasmLabMounted] = useState<boolean>(false);
 
   // Exact perceived on-screen color rendered by the WebGL grain shader
   const dotColor = useMemo(() => {
@@ -155,6 +165,11 @@ export default function App() {
     setIsPaused((prev) => !prev);
   }, []);
 
+  const handleOpenWasmLab = useCallback(() => {
+    setWasmLabMounted(true);
+    setIsWasmLabOpen(true);
+  }, []);
+
   const handleScatter = useCallback(() => {
     setScatterTrigger((prev) => prev + 1);
     setToastMessage('⚡ Sand scattered');
@@ -188,6 +203,7 @@ export default function App() {
       } else if (e.key === 'r' || e.key === 'R') {
         handleReset();
       } else if (e.key === 'w' || e.key === 'W') {
+        setWasmLabMounted(true);
         setIsWasmLabOpen((prev) => !prev);
       } else if (e.key === 'd' || e.key === 'D' || e.key === 'c' || e.key === 'C') {
         setShowControls((prev) => !prev);
@@ -311,7 +327,7 @@ export default function App() {
             {/* WASM Benchmarks */}
             <button
               type="button"
-              onClick={() => setIsWasmLabOpen(true)}
+              onClick={handleOpenWasmLab}
               className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-[background-color,border-color,color,opacity,transform,box-shadow] cursor-pointer shadow-lg opacity-70 hover:opacity-100"
               style={{ color: dotColor, borderColor: `${dotColor}33` }}
               title="Open WebAssembly Benchmarks (W)"
@@ -327,34 +343,36 @@ export default function App() {
         <HudStats
           metrics={metrics}
           params={params}
-          onOpenWasmLab={() => setIsWasmLabOpen(true)}
+          onOpenWasmLab={handleOpenWasmLab}
           onToggleAudio={handleToggleAudio}
         />
       )}
 
       {/* 5. COLLAPSIBLE CONTROLS DRAWER */}
       {showControls && (
-        <ControlPanel
-          params={params}
-          onChange={setParams}
-          isPaused={isPaused}
-          onTogglePause={handleTogglePause}
-          onScatter={handleScatter}
-          onSave={handleSave}
-          onReset={handleReset}
-          isAudioEnabled={params.audioEnabled}
-          onToggleAudio={handleToggleAudio}
-          onOpenWasmLab={() => setIsWasmLabOpen(true)}
-          audioMetrics={metrics.audio}
-          hasSavedSettings={hasSavedSettings}
-          autoSaveEnabled={autoSaveEnabled}
-          onToggleAutoSave={handleToggleAutoSave}
-          lastSavedTime={lastSavedTime}
-          savedVersions={savedVersions}
-          onSaveVersion={handleSaveVersion}
-          onRestoreVersion={handleRestoreVersion}
-          onDeleteVersion={handleDeleteVersion}
-        />
+        <Suspense fallback={null}>
+          <ControlPanel
+            params={params}
+            onChange={setParams}
+            isPaused={isPaused}
+            onTogglePause={handleTogglePause}
+            onScatter={handleScatter}
+            onSave={handleSave}
+            onReset={handleReset}
+            isAudioEnabled={params.audioEnabled}
+            onToggleAudio={handleToggleAudio}
+            onOpenWasmLab={handleOpenWasmLab}
+            audioMetrics={metrics.audio}
+            hasSavedSettings={hasSavedSettings}
+            autoSaveEnabled={autoSaveEnabled}
+            onToggleAutoSave={handleToggleAutoSave}
+            lastSavedTime={lastSavedTime}
+            savedVersions={savedVersions}
+            onSaveVersion={handleSaveVersion}
+            onRestoreVersion={handleRestoreVersion}
+            onDeleteVersion={handleDeleteVersion}
+          />
+        </Suspense>
       )}
 
       {/* 6. STATUS TOAST */}
@@ -368,12 +386,16 @@ export default function App() {
       )}
 
       {/* 7. WASM RESEARCH & LIVE BENCHMARKING LAB MODAL */}
-      <WasmResearchLab
-        isOpen={isWasmLabOpen}
-        onClose={() => setIsWasmLabOpen(false)}
-        onSelectEngine={(engine) => setParams((prev) => ({ ...prev, simulationEngine: engine }))}
-        currentEngine={params.simulationEngine}
-      />
+      {wasmLabMounted && (
+        <Suspense fallback={null}>
+          <WasmResearchLab
+            isOpen={isWasmLabOpen}
+            onClose={() => setIsWasmLabOpen(false)}
+            onSelectEngine={(engine) => setParams((prev) => ({ ...prev, simulationEngine: engine }))}
+            currentEngine={params.simulationEngine}
+          />
+        </Suspense>
+      )}
 
       {/* 8. CUSTOM POINTER (FULL CIRCLE) */}
       <CustomCursor color={dotColor} shape="circle" filled={true} />
