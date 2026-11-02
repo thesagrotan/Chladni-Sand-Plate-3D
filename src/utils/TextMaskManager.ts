@@ -387,9 +387,13 @@ export class TextMaskManager {
       ctx.textBaseline = 'alphabetic';
       ctx.textAlign = 'left';
 
-      // Handle letter-spacing if supported on canvas
+      // Handle letter-spacing if supported on canvas.
+      // Always assign (including '0px') because the 2D context is reused across
+      // elements and across rasterize passes. Setting it only when non-zero would
+      // leak a previous element's tracking into later, untracked text — stretching
+      // those lines to the right and leaving a gap at their right edge.
       try {
-        if ('letterSpacing' in ctx && letterSpacing !== 0) {
+        if ('letterSpacing' in ctx) {
           (ctx as any).letterSpacing = `${letterSpacing}px`;
         }
       } catch {
