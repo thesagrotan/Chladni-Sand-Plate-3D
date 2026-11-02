@@ -16,6 +16,7 @@ export class TextMaskManager {
 
   private trackedSelector: string;
   private dirty: boolean = true;
+  private dirtyRafId: number = 0;
   private lastScrollY: number = -999999;
   private lastUpdateTime: number = 0;
   private resizeObserver: ResizeObserver | null = null;
@@ -74,17 +75,17 @@ export class TextMaskManager {
     this.boundOnScroll = () => {
       const sy = window.scrollY;
       if (Math.abs(sy - this.lastScrollY) >= 1) {
-        this.dirty = true;
+        this.scheduleRasterize();
         this.lastScrollY = sy;
       }
     };
 
     this.boundOnResize = () => {
-      this.dirty = true;
+      this.scheduleRasterize();
     };
 
     this.boundOnCustomRefresh = () => {
-      this.dirty = true;
+      this.scheduleRasterize();
     };
 
     window.addEventListener('scroll', this.boundOnScroll, { passive: true });
@@ -95,7 +96,7 @@ export class TextMaskManager {
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => {
         if (!this.isDestroyed) {
-          this.dirty = true;
+          this.scheduleRasterize();
         }
       });
     }
@@ -104,7 +105,7 @@ export class TextMaskManager {
     [50, 150, 300, 600, 1000, 2000].forEach(delay => {
       setTimeout(() => {
         if (!this.isDestroyed) {
-          this.dirty = true;
+          this.scheduleRasterize();
         }
       }, delay);
     });
@@ -112,7 +113,7 @@ export class TextMaskManager {
     // Set up ResizeObserver to catch layout shifts
     try {
       this.resizeObserver = new ResizeObserver(() => {
-        this.dirty = true;
+        this.scheduleRasterize();
       });
       this.resizeObserver.observe(document.body);
     } catch {
@@ -124,13 +125,28 @@ export class TextMaskManager {
   }
 
   public setDirty(): void {
-    this.dirty = true;
+    this.scheduleRasterize();
+  }
+
+  /**
+   * Coalesce dirty-marking into at most one flush per animation frame. A
+   * scroll event, a ResizeObserver fire, and a 'chladni:refresh-text-mask'
+   * dispatch can all land in the same frame; each one independently marking
+   * dirty + running update() would multiply the expensive DOM-measure pass.
+   */
+  private scheduleRasterize(): void {
+    if (this.isDestroyed || this.dirtyRafId !== 0) return;
+    this.dirtyRafId = requestAnimationFrame(() => {
+      this.dirtyRafId = 0;
+      this.dirty = true;
+    });
   }
 
   public update(now: number, force = false): boolean {
     if (this.isDestroyed || !this.active) return false;
 
-    // Throttle mask updates to ~35fps during fast scrolling, 0fps when stationary
+    // Throttle rasterizes to ~28ms (≈35fps) even if dirty is coalesced,
+    // and skip entirely when there is nothing pending.
     if (!force && (!this.dirty || now - this.lastUpdateTime < 28)) {
       return false;
     }
@@ -434,6 +450,10 @@ export class TextMaskManager {
 
   public dispose(): void {
     this.isDestroyed = true;
+    if (this.dirtyRafId !== 0) {
+      cancelAnimationFrame(this.dirtyRafId);
+      this.dirtyRafId = 0;
+    }
     window.removeEventListener('scroll', this.boundOnScroll);
     window.removeEventListener('resize', this.boundOnResize);
     window.removeEventListener('chladni:refresh-text-mask', this.boundOnCustomRefresh);
