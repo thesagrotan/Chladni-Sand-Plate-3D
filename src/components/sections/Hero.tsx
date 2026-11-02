@@ -53,14 +53,16 @@ export function Hero({ params, dotColor, onToggleAudio }: HeroProps) {
 
   const handleToggleRelease = (id: string) => {
     setOpenId((prev) => (prev === id ? null : id));
-    const start = performance.now();
-    const tick = () => {
-      window.dispatchEvent(new CustomEvent('chladni:refresh-text-mask'));
-      if (performance.now() - start < 260) {
-        requestAnimationFrame(tick);
-      }
-    };
-    requestAnimationFrame(tick);
+
+    // Coalesce text-mask refreshes to a few easing-keyed steps instead of
+    // one dispatch per rAF frame for 260ms. Each dispatch triggers the full
+    // DOM-measure + blurred-canvas rasterize (TextMaskManager throttles it
+    // to ~35fps internally), so the per-frame storm would pile up main-thread
+    // work exactly while the panel is animating.
+    const refresh = () => window.dispatchEvent(new CustomEvent('chladni:refresh-text-mask'));
+    refresh();
+    window.setTimeout(refresh, 80);
+    window.setTimeout(refresh, 160);
   };
 
   return (
