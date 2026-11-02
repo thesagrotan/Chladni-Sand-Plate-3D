@@ -95,8 +95,12 @@ const UPLOAD_INIT_SCRIPT = () => {
       proto[fnName] = function patchedUpload(...args) {
         const source = args.find((arg) => arg instanceof HTMLCanvasElement);
         if (isMaskCanvas(source)) {
+          // texSubImage2D(target, level, x, y, format, type, source)
+          // texImage2D(target, level, internalformat, format, type, source)
+          const format = fnName === 'texSubImage2D' ? args[4] : args[3];
+          const bytesPerPixel = format === this.RED ? 1 : 4;
           window.__textMaskUploads.calls++;
-          window.__textMaskUploads.bytes += source.width * source.height * 4;
+          window.__textMaskUploads.bytes += source.width * source.height * bytesPerPixel;
         }
         return original.apply(this, args);
       };
@@ -451,7 +455,11 @@ async function runPerf(browser) {
       // Startup: navigation already completed in newPage; count what the
       // manager did during construction + settle.
       await page.waitForTimeout(2_500);
-      const startup = await page.evaluate(() => window.__chladniTextMask.snapshot().rasterizations);
+      const startup = await page.evaluate(() => ({
+        rasterizations: window.__chladniTextMask.snapshot().rasterizations,
+        uploadCalls: window.__textMaskUploads.calls,
+        uploadBytes: window.__textMaskUploads.bytes,
+      }));
 
       const idle = await measureScroll(page, 1.0, 1); // warm-up, discarded
       void idle;
@@ -460,7 +468,9 @@ async function runPerf(browser) {
 
       rows.push({
         viewport: viewport.id,
-        startupRasterizations: startup,
+        startupRasterizations: startup.rasterizations,
+        startupUploadCalls: startup.uploadCalls,
+        startupUploadBytes: startup.uploadBytes,
         normal,
         throttled4x: throttled,
       });

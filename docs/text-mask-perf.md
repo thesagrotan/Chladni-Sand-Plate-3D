@@ -168,6 +168,82 @@ extra ~0.3 CSS px of smoothing is far below the blur radius. Explaining this
 is why the harness keeps the strict 2% bound only at scroll 0 and a documented
 wider bound elsewhere.
 
+`uMaskViewport` restricts sampling to the visible viewport rect in mask UV.
+The pre-atlas mask had no content outside the screen, so this keeps the
+"grain near the screen edge sees no mask" behaviour identical. The rendered
+parity test found this: without it, the atlas returned real text density for
+particles just outside the viewport, where the old viewport canvas clamped to
+black.
+
+## Phase 5 — R8 mask texture and shader micro-optimizations
+
+- The mask texture is now `THREE.RedFormat` + `UnsignedByteType`. WebGL2
+  accepts a canvas source for R8, so the upload is **1 byte/texel** instead of
+  4 and the texture uses a quarter of the VRAM. `NoColorSpace`, `LinearFilter`,
+  no mipmaps, `flipY = true` are unchanged; the shader still reads `.r`.
+  Verified in headless Chromium/Metal: `texImage2D(R8, RED, UNSIGNED_BYTE, canvas)`
+  returns `gl.NO_ERROR`.
+- Startup now performs **1 upload** of 1.88 MB (desktop, 1024×1833) /
+  2.22 MB (mobile, 473×4689) instead of 4× that, and scroll performs zero.
+- The per-particle `cos`/`sin` and flip branches were already removed in
+  Phase 4; `tests/textMaskShader.test.ts` pins that (no trig in the mask block)
+  and pins the 1.8/6-texel gradient taps, the 0.005 density threshold, the
+  0.004 retry threshold and the `clamp(density * 1.6, 0.08, 1.0)` push
+  magnitude.
+- The rendered parity test (`tests/parity/maskPushParity.test.ts`) compiles
+  both the pre-atlas and current mask blocks in headless Chromium against the
+  same blurred document image and compares the resulting world-space push for
+  1,600 particles × 3 rotations × 4 flip combinations (max delta < 2e-4).
+- Not done: a GPU Sobel pre-pass (the profile shows the mask block is not a
+  bottleneck at 50k grains: frame time stays at the 16.7 ms vsync budget with
+  the mask on or off) and adaptive mask resolution (scroll uploads are now
+  zero, so upload bandwidth is no longer a cost).
 
 
 
+
+
+
+## Final numbers (all phases)
+
+| Metric | Baseline | Phase 1 | Phase 2 | Phase 3 | Phase 4/5 |
+|---|---:|---:|---:|---:|---:|
+| Startup rasterizations | 9 / 11 | 5 / 6 | 2 / 2 | 2 / 2 | **2 / 2** |
+| Rasterizations / s while scrolling | 30.3 | 29 | 16 | 30.3 | **0** |
+| Range calls / raster | 530 / 446 | **0** | 0 | 0 | **0** |
+| `fillText` / raster | 48.6 / 60.9 | 47 | 44 | **0** | **0** |
+| Upload bytes / s while scrolling | 79.3 / 58.6 MB | 72 / 56 MB | 35 / 33 MB | 79 / 59 MB | **0** |
+| Startup upload | 2.6 MB ×4 | — | — | — | **1.88 / 2.22 MB** |
+| Rasterize ms (4× throttle) | 3.26 / 2.51 | 1.56 / 1.54 | 3.49 / 2.17 | 0.21 / 0.15 | n/a (no scroll work) |
+
+(Desktop / mobile-portrait. Phase 2's absolute numbers were taken under heavy
+machine load; the deltas that matter are Range calls, `fillText`, uploads and
+the rasterization count.)
+
+Final memory: document atlas 7.5 MB desktop / 8.9 MB mobile as RGBA8 in the
+canvas, 1.9 / 2.2 MB as R8 in VRAM, plus the Phase 3 bitmap cache
+4.8 / 6.9 MB.
+
+Visual parity: 48 captures across 8 variants × 3 scroll positions × 2
+viewports. Scroll-0 captures are pixel-identical; scroll>0 captures differ only
+by subpixel resampling of the blurred glyph edge (documented bound in the
+harness). No structural change in contours, line breaks, spacing, alignment,
+blur radii, opacities, or draw order.
+
+## Behavior intentionally left unchanged
+
+- Mask only affects the GPU engine; `domRepulsion <= 0.001` disables it.
+- Font shorthand, baseline, `textAlign`, per-line trimming, line-breaking
+  rules, blur radii, halo/core opacities and pass order are byte-identical.
+- Chladni wave math and grain physics are untouched.
+- `collectLines`' exact per-character scan is still used for bidi, zero-width,
+  pre-formatted and tab/newline text.
+- The DOM measurement stays on the main thread (no worker/OffscreenCanvas).
+
+## Future options (not in this task)
+
+- SDF/MSDF glyph masks or a GPU text renderer would remove the canvas
+  rasterization entirely.
+- Moving the offscreen bitmap build to OffscreenCanvas/a worker is possible now
+  that scroll no longer touches it.
+- A GPU Sobel pre-pass is only worth it if grain counts or mask sampling grow.

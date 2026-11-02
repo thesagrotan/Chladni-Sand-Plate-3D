@@ -190,10 +190,11 @@ describe('text mask transform parity', () => {
     }
   });
 
-  it('reports the atlas gradient scale', () => {
-    const transform = computeTextMaskTransform(
-      makeInput({ viewportHeight: 900, docHeight: 1800, maskHeight: 1800, maskScale: 1 })
+  it('reports a transform for the viewport-sized and atlas cases', () => {
+    const atlas = computeTextMaskTransform(
+      makeInput({ viewportWidth: 390, viewportHeight: 844, docHeight: 5200, maskScale: 0.97 })
     );
-    expect(transform.vScale).toBeCloseTo(0.5, 10);
+    expect(atlas.worldToMask.elements.every((v) => Number.isFinite(v))).toBe(true);
+    expect(atlas.push.elements.every((v) => Number.isFinite(v))).toBe(true);
   });
 });

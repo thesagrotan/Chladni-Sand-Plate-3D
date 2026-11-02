@@ -143,6 +143,10 @@ export class TextMaskManager {
     this.texture.generateMipmaps = false;
     this.texture.colorSpace = THREE.NoColorSpace;
     this.texture.flipY = true; // matches WebGL orthographic screen coordinates
+    // The shader reads `.r` only. WebGL2 accepts a canvas source for R8, so
+    // the mask uploads 1 byte/px instead of 4 (and uses a quarter of the VRAM).
+    this.texture.format = THREE.RedFormat;
+    this.texture.type = THREE.UnsignedByteType;
 
     // Dev-only instrumentation: exposes counters and a screen-space sampler to
     // the parity harness. Tree-shaken out of production builds.
@@ -1184,11 +1188,16 @@ export class TextMaskManager {
     }
   }
 
+  /** Bytes per texel in the uploaded mask texture (R8 after Phase 5). */
+  public get bytesPerPixel(): number {
+    return this.texture.format === THREE.RedFormat ? 1 : 4;
+  }
+
   private markTextureDirty(): void {
     this.texture.needsUpdate = true;
     if (this.debug) {
       this.debug.counters.uploadRequests++;
-      this.debug.counters.uploadBytes += this.canvasW * this.canvasH * 4;
+      this.debug.counters.uploadBytes += this.canvasW * this.canvasH * this.bytesPerPixel;
     }
   }
 

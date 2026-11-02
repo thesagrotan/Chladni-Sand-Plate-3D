@@ -28,8 +28,12 @@ export interface TextMaskTransform {
    * Mirrors the historical order `flip ∘ rotate(-a) ∘ scale(halfW, halfH)`.
    */
   push: THREE.Matrix3;
-  /** Multiplier for the vertical gradient when the atlas is taller than the viewport. */
-  vScale: number;
+  /**
+   * The visible viewport rect in mask UV (u0, v0, u1, v1). Sampling is
+   * restricted to it so behaviour matches the pre-atlas viewport canvas, which
+   * had no mask content outside the screen.
+   */
+  viewportUV: THREE.Vector4;
 }
 
 function readCam(cam: TextMaskTransformInput['camData']) {
@@ -53,8 +57,7 @@ function readCam(cam: TextMaskTransformInput['camData']) {
  *   v = screenUV.y * (viewportHeight / docHeight) + 1 - vh/docHeight - scrollY/docHeight
  */
 export function worldToMaskUV(input: TextMaskTransformInput): THREE.Matrix3 {
-  const { z, w } = readCam(input.camData);
-  const cam = readCam(input.camData);
+  const { x: camX, y: camY, z, w } = readCam(input.camData);
   const cos = Math.cos(input.rotation);
   const sin = Math.sin(input.rotation);
   const fh = input.flipH ? -1 : 1;
@@ -81,8 +84,8 @@ export function worldToMaskUV(input: TextMaskTransformInput): THREE.Matrix3 {
   const l10 = sy0 * vScale;
   const l11 = sy1 * vScale;
 
-  const tScreenX = 0.5 - cam.x / (2 * Math.max(z, 0.001));
-  const tScreenY = 0.5 - cam.y / (2 * Math.max(w, 0.001));
+  const tScreenX = 0.5 - camX / (2 * Math.max(z, 0.001));
+  const tScreenY = 0.5 - camY / (2 * Math.max(w, 0.001));
   const tx = tScreenX * uScale + (input.scrollX * maskScale) / maskW;
   const ty =
     tScreenY * vScale + 1 - vScale - (input.scrollY * maskScale) / maskH;
@@ -94,8 +97,9 @@ export function worldToMaskUV(input: TextMaskTransformInput): THREE.Matrix3 {
 /**
  * Linear push transform. The historical shader did:
  *   pushWorld = flip(rotate(-a, pushScreen * (halfW, halfH)))
- * which is `F * R(-a) * diag(z, w)`. The atlas gradient is converted back to
- * screen space (via `vScale`) before this matrix is applied.
+ * which is `F * R(-a) * diag(z, w)`. The gradient direction is already in
+ * screen space (taps use `uMaskScreenSize`), so this matrix is applied
+ * directly to it.
  */
 export function maskPushMatrix(input: TextMaskTransformInput): THREE.Matrix3 {
   const { z, w } = readCam(input.camData);
@@ -114,11 +118,22 @@ export function maskPushMatrix(input: TextMaskTransformInput): THREE.Matrix3 {
 }
 
 export function computeTextMaskTransform(input: TextMaskTransformInput): TextMaskTransform {
+  const vw = input.viewportWidth || 1;
   const vh = input.viewportHeight || 1;
   const maskScale = input.maskScale || 1;
+  const maskW = Math.max(1, input.maskWidth);
+  const maskH = Math.max(1, input.maskHeight);
+  const uScale = (vw * maskScale) / maskW;
+  const vScale = (vh * maskScale) / maskH;
+
+  const u0 = (input.scrollX * maskScale) / maskW;
+  const u1 = u0 + uScale;
+  const v1 = 1 - (input.scrollY * maskScale) / maskH;
+  const v0 = v1 - vScale;
+
   return {
     worldToMask: worldToMaskUV(input),
     push: maskPushMatrix(input),
-    vScale: (vh * maskScale) / Math.max(1, input.maskHeight),
+    viewportUV: new THREE.Vector4(u0, v0, u1, v1),
   };
 }

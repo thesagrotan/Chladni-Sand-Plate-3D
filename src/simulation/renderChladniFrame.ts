@@ -5,9 +5,11 @@ import type { ChladniGpuSimulation } from './ChladniGpuSimulation.ts';
 import type { ChladniWasmSimulation } from './ChladniWasmSimulation.ts';
 import type { ChladniJsCpuSimulation } from './ChladniJsCpuSimulation.ts';
 import type { TextMaskManager } from '../utils/TextMaskManager.ts';
+import type { PaletteColors } from '../utils/paletteTransition.ts';
 import type { ChladniWasmExports } from './wasm/chladniWasmModule.ts';
 import { plateAudio } from './audioSynth.ts';
 import { computeEffectiveWaveParams } from './audioReactive.ts';
+import { computeTextMaskTransform } from './textMaskTransform.ts';
 import {
   gridTypeToNumber,
   voidShapeToNumber,
@@ -45,6 +47,12 @@ export interface ChladniFrameDeps {
   lastMetricsTime: MutableRefObject<number>;
   pointerSimPos: MutableRefObject<{ x: number; y: number }>;
   pointerActive: MutableRefObject<boolean>;
+  /**
+   * Colors currently being cross-faded. When present the renderer reads them
+   * instead of the params, so theme changes can animate independently of the
+   * (instantly updated) parameter values.
+   */
+  palette?: MutableRefObject<PaletteColors | null>;
 }
 
 export interface ChladniFrameState {
@@ -83,6 +91,7 @@ export function renderChladniFrame(deps: ChladniFrameDeps, state: ChladniFrameSt
     lastMetricsTime: lastMetricsTimeRef,
     pointerSimPos: pointerSimPosRef,
     pointerActive: pointerActiveRef,
+    palette: paletteRef,
   } = deps;
 
   const now = performance.now();
@@ -90,6 +99,7 @@ export function renderChladniFrame(deps: ChladniFrameDeps, state: ChladniFrameSt
   state.lastTime = now;
 
   const cp = paramsRef.current;
+  const palette = paletteRef?.current ?? null;
   const curPaused = isPausedRef.current;
   const gridTypeNum = gridTypeToNumber(cp.gridType);
   const voidShapeNum = voidShapeToNumber(cp.centerVoidShape);
@@ -213,6 +223,30 @@ export function renderChladniFrame(deps: ChladniFrameDeps, state: ChladniFrameSt
 
       const t0 = performance.now();
       const tmm = textMaskManagerRef.current;
+
+      let maskTransform: THREE.Matrix3 | undefined;
+      let maskPush: THREE.Matrix3 | undefined;
+      let maskViewport: THREE.Vector4 | undefined;
+      if (tmm) {
+        const transform = computeTextMaskTransform({
+          camData: camDataRef.current,
+          rotation: (cp.rotationAngle * Math.PI) / 180,
+          flipH: cp.flipHorizontal,
+          flipV: cp.flipVertical,
+          scrollX: window.scrollX || 0,
+          scrollY: window.scrollY || 0,
+          viewportWidth: window.innerWidth || 1,
+          viewportHeight: window.innerHeight || 1,
+          docHeight: tmm.docHeight,
+          maskWidth: tmm.canvasW,
+          maskHeight: tmm.canvasH,
+          maskScale: tmm.maskScale,
+        });
+        maskTransform = transform.worldToMask;
+        maskPush = transform.push;
+        maskViewport = transform.viewportUV;
+      }
+
       simRef.current!.update(
         state.simTime,
         delta,
@@ -236,9 +270,9 @@ export function renderChladniFrame(deps: ChladniFrameDeps, state: ChladniFrameSt
         tmm ? tmm.canvasW : 1024,
         tmm ? tmm.canvasH : 1024,
         camDataRef.current,
-        (cp.rotationAngle * Math.PI) / 180,
-        cp.flipHorizontal,
-        cp.flipVertical
+        maskTransform,
+        maskPush,
+        maskViewport
       );
       computeTimeMs = +(performance.now() - t0).toFixed(2);
 
@@ -411,8 +445,8 @@ export function renderChladniFrame(deps: ChladniFrameDeps, state: ChladniFrameSt
     u.uVoidShape.value = voidShapeToNumber(cp.centerVoidShape);
     u.uCenterExpulsion.value = cp.centerExpulsion;
     u.uShowVoidGuide.value = cp.showVoidGuide ? 1.0 : 0.0;
-    u.uPlateColor.value.set(cp.plateColor);
-    u.uNodeGlowColor.value.set(cp.glowColor);
+    u.uPlateColor.value.set(palette?.plateColor ?? cp.plateColor);
+    u.uNodeGlowColor.value.set(palette?.glowColor ?? cp.glowColor);
     u.uCamData.value.copy(camDataRef.current);
   }
 
@@ -428,8 +462,10 @@ export function renderChladniFrame(deps: ChladniFrameDeps, state: ChladniFrameSt
     u.uVoidRadius.value = cp.centerVoidRadius;
     u.uVoidShape.value = voidShapeToNumber(cp.centerVoidShape);
     u.uCenterExpulsion.value = cp.centerExpulsion;
-    u.uSandColorPrimary.value.set(cp.sandColor);
-    u.uSandColorSecondary.value.set(cp.sandColorSecondary);
+    u.uSandColorPrimary.value.set(palette?.sandColor ?? cp.sandColor);
+    u.uSandColorSecondary.value.set(
+      palette?.sandColorSecondary ?? cp.sandColorSecondary
+    );
     u.uCamData.value.copy(camDataRef.current);
     if (u.uGrainSize) {
       u.uGrainSize.value = cp.grainSize ?? 1.0;

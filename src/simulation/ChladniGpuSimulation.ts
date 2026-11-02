@@ -23,7 +23,7 @@ uniform float uTextMaskStrength;
 uniform vec2  uTextMaskRes;
 uniform mat3  uMaskTransform; // world position -> document mask UV
 uniform mat3  uMaskPush;      // screen-UV push direction -> world direction
-uniform float uMaskVScale;    // atlas-v gradient scale (viewportHeight / atlasHeight)
+uniform vec4  uMaskViewport;  // visible viewport rect in mask UV (u0, v0, u1, v1)
 uniform vec4  uCamData;   // (cx, cy, halfW, halfH)
 
 ${CHLADNI_GLSL_FUNCTIONS}
@@ -131,16 +131,20 @@ void main() {
   if (uTextMaskActive > 0.5) {
     vec2 maskUV = (uMaskTransform * vec3(pos.xy, 1.0)).xy;
 
-    if (maskUV.x >= 0.0 && maskUV.x <= 1.0 && maskUV.y >= 0.0 && maskUV.y <= 1.0) {
+    if (
+      maskUV.x >= uMaskViewport.x && maskUV.x <= uMaskViewport.z &&
+      maskUV.y >= uMaskViewport.y && maskUV.y <= uMaskViewport.w
+    ) {
       float density = texture2D(uTextMask, maskUV).r;
       if (density > 0.005) {
+        // Taps stay in mask texels (1.8 / 6) exactly as before. The atlas keeps
+        // the same texels-per-CSS-pixel scale as the old viewport canvas, and
+        // texels are square, so gx/gy remain directly comparable.
         float eps = 1.8 / uTextMaskRes.x;
         float epsY = 1.8 / uTextMaskRes.y;
         float gx = texture2D(uTextMask, maskUV + vec2(eps, 0.0)).r - texture2D(uTextMask, maskUV - vec2(eps, 0.0)).r;
         float gy = texture2D(uTextMask, maskUV + vec2(0.0, epsY)).r - texture2D(uTextMask, maskUV - vec2(0.0, epsY)).r;
-        // Convert the atlas-v gradient back to screen-space before picking a
-        // direction (the atlas is taller than the viewport).
-        vec2 gradScreen = vec2(gx, gy * uMaskVScale);
+        vec2 gradScreen = vec2(gx, gy);
         float gLen = length(gradScreen);
 
         if (gLen < 0.004) {
@@ -148,7 +152,7 @@ void main() {
           float epsWideY = 6.0 / uTextMaskRes.y;
           float gx2 = texture2D(uTextMask, maskUV + vec2(epsWide, 0.0)).r - texture2D(uTextMask, maskUV - vec2(epsWide, 0.0)).r;
           float gy2 = texture2D(uTextMask, maskUV + vec2(0.0, epsWideY)).r - texture2D(uTextMask, maskUV - vec2(0.0, epsWideY)).r;
-          gradScreen = vec2(gx2, gy2 * uMaskVScale);
+          gradScreen = vec2(gx2, gy2);
           gLen = length(gradScreen);
         }
 
@@ -243,7 +247,7 @@ export class ChladniGpuSimulation {
     u.uCamData = { value: new THREE.Vector4(0, 0, initialHalfW, initialHalfH) };
     u.uMaskTransform = { value: new THREE.Matrix3() };
     u.uMaskPush = { value: new THREE.Matrix3() };
-    u.uMaskVScale = { value: 1.0 };
+    u.uMaskViewport = { value: new THREE.Vector4(0, 0, 1, 1) };
 
     const error = this.gpuCompute.init();
     if (error !== null) {
@@ -309,7 +313,7 @@ export class ChladniGpuSimulation {
     camData?: THREE.Vector4,
     maskTransform?: THREE.Matrix3,
     maskPush?: THREE.Matrix3,
-    maskVScale = 1
+    maskViewport?: THREE.Vector4
   ) {
     const u = this.posVariable.material.uniforms;
     u.uTime.value = time;
@@ -342,7 +346,9 @@ export class ChladniGpuSimulation {
     if (maskPush) {
       u.uMaskPush.value.copy(maskPush);
     }
-    u.uMaskVScale.value = maskVScale;
+    if (maskViewport) {
+      u.uMaskViewport.value.copy(maskViewport);
+    }
 
     this.gpuCompute.compute();
   }
