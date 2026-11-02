@@ -21,6 +21,7 @@ export class TextMaskManager {
   private resizeObserver: ResizeObserver | null = null;
   private boundOnScroll: () => void;
   private boundOnResize: () => void;
+  private boundOnCustomRefresh: () => void;
   private isDestroyed: boolean = false;
 
   // Canvas dimensions are kept proportional to the viewport aspect ratio
@@ -82,8 +83,13 @@ export class TextMaskManager {
       this.dirty = true;
     };
 
+    this.boundOnCustomRefresh = () => {
+      this.dirty = true;
+    };
+
     window.addEventListener('scroll', this.boundOnScroll, { passive: true });
     window.addEventListener('resize', this.boundOnResize, { passive: true });
+    window.addEventListener('chladni:refresh-text-mask', this.boundOnCustomRefresh);
 
     // Ensure fonts are ready before rasterizing
     if (document.fonts && document.fonts.ready) {
@@ -274,6 +280,45 @@ export class TextMaskManager {
         continue;
       }
 
+      // Skip collapsed or zero-dimension elements
+      if (rect.width <= 0 || rect.height <= 0) {
+        continue;
+      }
+
+      // Skip elements hidden via opacity, display, visibility, or collapsed parent containers
+      if (typeof el.checkVisibility === 'function') {
+        if (!el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) {
+          continue;
+        }
+      } else {
+        const style = window.getComputedStyle(el);
+        if (
+          style.display === 'none' ||
+          style.visibility === 'hidden' ||
+          parseFloat(style.opacity || '1') <= 0.01
+        ) {
+          continue;
+        }
+        let parent = el.parentElement;
+        let isHidden = false;
+        while (parent && parent !== document.body) {
+          const pStyle = window.getComputedStyle(parent);
+          if (
+            pStyle.display === 'none' ||
+            pStyle.visibility === 'hidden' ||
+            parseFloat(pStyle.opacity || '1') <= 0.01 ||
+            (parent.clientHeight === 0 && pStyle.overflow === 'hidden')
+          ) {
+            isHidden = true;
+            break;
+          }
+          parent = parent.parentElement;
+        }
+        if (isHidden) {
+          continue;
+        }
+      }
+
       // If this element has child repulsors, let the children render individually with their specific styles
       if (el.querySelector(this.trackedSelector)) {
         continue;
@@ -391,6 +436,7 @@ export class TextMaskManager {
     this.isDestroyed = true;
     window.removeEventListener('scroll', this.boundOnScroll);
     window.removeEventListener('resize', this.boundOnResize);
+    window.removeEventListener('chladni:refresh-text-mask', this.boundOnCustomRefresh);
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;

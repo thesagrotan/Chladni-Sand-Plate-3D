@@ -152,4 +152,76 @@ describe('TextMaskManager.collectLines', () => {
     expect(collect(el, range)).toEqual([{ text: 'Above', x: 10, y: -484 }]);
     expect(collect(document.createElement('div'), new FakeRange())).toEqual([]);
   });
+
+  it('skips invisible or collapsed elements during rasterization', () => {
+    const filledTexts: string[] = [];
+    const mockCtx = {
+      setTransform: () => {},
+      fillRect: () => {},
+      measureText: () => ({
+        fontBoundingBoxAscent: 10,
+        fontBoundingBoxDescent: 2,
+        actualBoundingBoxAscent: 10,
+        actualBoundingBoxDescent: 2,
+      }),
+      fillText: (text: string) => {
+        filledTexts.push(text);
+      },
+    } as unknown as CanvasRenderingContext2D;
+
+    const inst = Object.create(TextMaskManager.prototype) as any;
+    inst.isDestroyed = false;
+    inst.ctx = mockCtx;
+    inst.canvas = { width: 1024, height: 1024 };
+    inst.resolution = 1024;
+    inst.canvasW = 1024;
+    inst.canvasH = 1024;
+    inst.trackedSelector = '[data-text-repulsor]';
+    inst.texture = { needsUpdate: false };
+
+    // Visible element
+    const visibleEl = document.createElement('div');
+    visibleEl.setAttribute('data-text-repulsor', '');
+    visibleEl.textContent = 'Visible Text';
+    visibleEl.getBoundingClientRect = () => rect(100, 10, 100, 30) as DOMRect;
+    visibleEl.checkVisibility = () => true;
+
+    // Mock createRange so collectLines produces a client rect in happy-dom
+    const origCreateRange = document.createRange.bind(document);
+    document.createRange = () => {
+      const r = origCreateRange();
+      r.getClientRects = () => [rect(100, 10, 100, 30)] as unknown as DOMRectList;
+      return r;
+    };
+
+    // Collapsed element (width/height 0)
+    const collapsedEl = document.createElement('div');
+    collapsedEl.setAttribute('data-text-repulsor', '');
+    collapsedEl.textContent = 'Collapsed Text';
+    collapsedEl.getBoundingClientRect = () => rect(100, 10, 0, 0) as DOMRect;
+    collapsedEl.checkVisibility = () => false;
+
+    // Invisible element (checkVisibility returns false)
+    const invisibleEl = document.createElement('div');
+    invisibleEl.setAttribute('data-text-repulsor', '');
+    invisibleEl.textContent = 'Invisible Text';
+    invisibleEl.getBoundingClientRect = () => rect(100, 10, 100, 30) as DOMRect;
+    invisibleEl.checkVisibility = () => false;
+
+    document.body.append(visibleEl, collapsedEl, invisibleEl);
+
+    try {
+      inst.rasterizeText();
+    } finally {
+      document.createRange = origCreateRange;
+    }
+
+    expect(filledTexts).toContain('Visible Text');
+    expect(filledTexts).not.toContain('Collapsed Text');
+    expect(filledTexts).not.toContain('Invisible Text');
+
+    visibleEl.remove();
+    collapsedEl.remove();
+    invisibleEl.remove();
+  });
 });
