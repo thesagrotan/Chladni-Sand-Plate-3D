@@ -244,8 +244,19 @@ unchanged elements.
 the blur-radius padding and by verifying the full-atlas pixel diff, not just
 the screen-space sample.
 
+**Interaction with `hole` repulsors:** `hole` entries paint with
+`destination-out`, so they erase whatever was drawn before them (typically a
+`pill` silhouette). A dirty-rect redraw therefore cannot repaint a hole in
+isolation — it must repaint every earlier element that intersects the rect, in
+order. Simplest correct rule: if the dirty set contains a `hole`, or if any
+changed element is *before* a hole that overlaps it, widen the redraw to a full
+pass for that update. Keep the incremental path for the common case
+(typography change on plain text).
+
 **Acceptance:** byte-identical atlas after an incremental update vs a full
-rebuild; parity 0.000% at scroll 0; upload bytes per typography drag reported.
+rebuild; parity 0.000% at scroll 0; upload bytes per typography drag reported;
+a test that a changed `hole` still erases correctly after an incremental
+update.
 
 ### P2 — Coalesce typography invalidation (½ day)
 
