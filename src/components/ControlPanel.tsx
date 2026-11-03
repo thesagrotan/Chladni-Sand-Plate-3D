@@ -49,6 +49,8 @@ interface ControlPanelProps {
   onDeleteVersion?: (id: string) => void;
   colorThemes: ColorTheme[];
   setColorThemes: React.Dispatch<React.SetStateAction<ColorTheme[]>>;
+  releaseThemesEnabled: boolean;
+  onToggleReleaseThemes: (enabled: boolean) => void;
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -73,6 +75,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onDeleteVersion,
   colorThemes,
   setColorThemes,
+  releaseThemesEnabled,
+  onToggleReleaseThemes,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'grid' | 'typo' | 'resonance' | 'audio'>('all');
@@ -376,6 +380,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 setFontLoadError={setFontLoadError}
                 colorThemes={colorThemes}
                 setColorThemes={setColorThemes}
+                releaseThemesEnabled={releaseThemesEnabled}
+                onToggleReleaseThemes={onToggleReleaseThemes}
               />
             )}
 

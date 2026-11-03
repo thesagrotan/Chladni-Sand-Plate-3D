@@ -69,6 +69,8 @@ describe('sanitizeParams', () => {
       grainCount: 1,
       grainSize: 99,
       centerVoidRadius: 9,
+      pointerForce: 99,
+      pointerRadius: -1,
       audioVolume: 5,
       audioPlaybackRate: 0.1,
       fontWeight: 50,
@@ -86,6 +88,8 @@ describe('sanitizeParams', () => {
     expect(result.grainCount).toBe(5_000);
     expect(result.grainSize).toBe(4);
     expect(result.centerVoidRadius).toBe(0.55);
+    expect(result.pointerForce).toBe(4);
+    expect(result.pointerRadius).toBe(0.02);
     expect(result.audioVolume).toBe(1);
     expect(result.audioPlaybackRate).toBe(0.5);
     expect(result.fontWeight).toBe(100);

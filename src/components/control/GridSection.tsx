@@ -9,13 +9,14 @@ import {
   FlipHorizontal,
   FlipVertical,
   RotateCw,
-  Circle,
-  Square,
   Type,
+  MousePointer2,
 } from 'lucide-react';
 import { ChladniParams, GridType } from '../../types/chladni.ts';
 import { GRID_CATALOG } from '../../utils/grid.ts';
+import { VOID_SHAPE_CATALOG } from '../../utils/voidShapes.ts';
 import { SliderRow } from './SliderRow.tsx';
+import { OptionSelect } from './OptionSelect.tsx';
 import type { UpdateParam } from './types.ts';
 
 interface GridSectionProps {
@@ -134,35 +135,15 @@ export const GridSection: React.FC<GridSectionProps> = ({ params, updateParam })
                 Clear
               </button>
             )}
-            {/* Circle vs Square Shape Segmented Control */}
-            <div className="flex items-center bg-neutral-950 p-0.5 rounded border border-neutral-800">
-              <button
-                type="button"
-                onClick={() => updateParam('centerVoidShape', 'circle')}
-                className={`p-0.5 px-1 rounded text-[9px] flex items-center gap-0.5 ${
-                  params.centerVoidShape === 'circle'
-                    ? 'bg-neutral-200 text-neutral-950 font-bold'
-                    : 'text-neutral-400 hover:text-white'
-                }`}
-                title="Circular void shape"
-              >
-                <Circle size={8} />
-                <span>Circle</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => updateParam('centerVoidShape', 'square')}
-                className={`p-0.5 px-1 rounded text-[9px] flex items-center gap-0.5 ${
-                  params.centerVoidShape === 'square'
-                    ? 'bg-neutral-200 text-neutral-950 font-bold'
-                    : 'text-neutral-400 hover:text-white'
-                }`}
-                title="Square void shape"
-              >
-                <Square size={8} />
-                <span>Square</span>
-              </button>
-            </div>
+            {/* Void shape dropdown — add entries in src/utils/voidShapes.ts */}
+            <OptionSelect
+              ariaLabel="Center void shape"
+              value={params.centerVoidShape}
+              options={VOID_SHAPE_CATALOG}
+              onChange={(shape) => updateParam('centerVoidShape', shape)}
+              testId="void-shape-select"
+              minPopupWidth={168}
+            />
           </div>
         </div>
 
@@ -264,6 +245,85 @@ export const GridSection: React.FC<GridSectionProps> = ({ params, updateParam })
             );
           })}
         </div>
+      </div>
+
+      {/* Cursor Repulsion Box */}
+      <div className="p-2 rounded-lg bg-neutral-900/50 border border-neutral-850 space-y-1.5">
+        <div className="flex items-center justify-between text-[10px]">
+          <div className="flex items-center gap-1 font-semibold uppercase tracking-wider text-cyan-400">
+            <MousePointer2 size={10} />
+            <span>Cursor Repulsion</span>
+          </div>
+          {(params.pointerForce ?? 1.0) > 0.01 ? (
+            <button
+              type="button"
+              onClick={() => updateParam('pointerForce', 0)}
+              className="text-[9px] text-neutral-500 hover:text-neutral-300 underline cursor-pointer"
+            >
+              Disable
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => updateParam('pointerForce', 1.0)}
+              className="text-[9px] text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
+            >
+              Enable (1×)
+            </button>
+          )}
+        </div>
+
+        <SliderRow
+          label="Push intensity"
+          value={params.pointerForce ?? 1.0}
+          min={0.0}
+          max={4.0}
+          step={0.05}
+          digits={2}
+          formatFn={(val) => (val <= 0.01 ? '0.00× (Off)' : `${val.toFixed(2)}×`)}
+          onChange={(val) => updateParam('pointerForce', val)}
+        />
+
+        <SliderRow
+          label="Cursor radius"
+          value={params.pointerRadius ?? 0.12}
+          min={0.02}
+          max={0.4}
+          step={0.01}
+          digits={2}
+          onChange={(val) => updateParam('pointerRadius', val)}
+        />
+
+        {/* Quick Presets: 5-Col Grid */}
+        <div className="grid grid-cols-5 gap-1 pt-0.5">
+          {[
+            { label: 'Off', value: 0.0 },
+            { label: 'Soft', value: 0.5 },
+            { label: '1×', value: 1.0 },
+            { label: '2×', value: 2.0 },
+            { label: '4×', value: 4.0 },
+          ].map((preset) => {
+            const currentVal = params.pointerForce ?? 1.0;
+            const isActive = Math.abs(currentVal - preset.value) < 0.15;
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => updateParam('pointerForce', preset.value)}
+                className={`text-[9px] py-0.5 rounded border text-center transition-[background-color,border-color,color,opacity,transform] cursor-pointer font-mono ${
+                  isActive
+                    ? 'bg-neutral-200 text-neutral-950 font-semibold border-white shadow-xs'
+                    : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
+                }`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[8px] text-neutral-500 leading-tight">
+          Applies to the GPU engine.
+        </p>
       </div>
     </div>
   );

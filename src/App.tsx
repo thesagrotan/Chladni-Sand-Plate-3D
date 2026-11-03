@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { ChladniMetrics, buildFontVariationSettings } from './types/chladni.ts';
 import { randomizeGridParams } from './utils/grid.ts';
 import { useChladniSettings } from './hooks/useChladniSettings.ts';
@@ -10,6 +10,15 @@ import {
   type ColorTheme,
   type PaletteSnapshot,
 } from './utils/colorThemes.ts';
+import {
+  PALETTE_RETARGET_MS,
+  PALETTE_TRANSITION_MS,
+  applyPaletteCssVars,
+  createPaletteTransition,
+  paletteColorsEqual,
+  type PaletteColors,
+  type PaletteTransition,
+} from './utils/paletteTransition.ts';
 import { ChladniCanvas } from './components/ChladniCanvas.tsx';
 import { HudStats } from './components/HudStats.tsx';
 import { Hero } from './components/sections/Hero.tsx';
@@ -18,7 +27,6 @@ import { Facility } from './components/sections/Facility.tsx';
 import { Contact } from './components/sections/Contact.tsx';
 import { CustomCursor } from './components/CircleCursor.tsx';
 import { plateSynth } from './simulation/audioSynth.ts';
-import { getPerceivedDotColor } from './utils/color.ts';
 import {
   Volume2,
   VolumeX,
@@ -65,10 +73,14 @@ export default function App() {
     deleteVersion,
   } = useChladniSettings();
 
-  const { colorThemes, setColorThemes } = useColorThemes();
+  const { colorThemes, setColorThemes, releaseThemesEnabled, setReleaseThemesEnabled } =
+    useColorThemes();
   const [activeReleaseId, setActiveReleaseId] = useState<string | null>(null);
   // Palette that was live before the release theme took over, restored on stop.
   const paletteBeforePlaybackRef = useRef<PaletteSnapshot | null>(null);
+  // Theme actually applied by playback, so the stop path can tell whether the
+  // user has since picked a different palette.
+  const appliedPlaybackThemeRef = useRef<ColorTheme | null>(null);
   // Previous playback state, so themes apply only on start/release change.
   const previousPlaybackActiveRef = useRef(false);
   const previousReleaseIdRef = useRef<string | null>(null);
@@ -92,19 +104,97 @@ export default function App() {
   // while still deferring its chunk until the user asks for it.
   const [wasmLabMounted, setWasmLabMounted] = useState<boolean>(false);
 
-  // Exact perceived on-screen color rendered by the WebGL grain shader
-  const dotColor = useMemo(() => {
-    return getPerceivedDotColor(params.sandColor, params.sandColorSecondary);
-  }, [params.sandColor, params.sandColorSecondary]);
+  // Cross-faded palette shared by the WebGL plate and the DOM. Params jump to
+  // the target colors immediately (so saves and pickers are exact); this
+  // transition supplies the colors actually being drawn while it eases.
+  const paletteTransitionRef = useRef<PaletteTransition | null>(null);
+  if (paletteTransitionRef.current === null) {
+    paletteTransitionRef.current = createPaletteTransition({
+      sandColor: params.sandColor,
+      sandColorSecondary: params.sandColorSecondary,
+      plateColor: params.plateColor,
+      glowColor: params.glowColor,
+    });
+  }
+  const paletteRef = useRef<PaletteColors | null>(paletteTransitionRef.current.current);
+  const paletteFrameRef = useRef(0);
 
-  // Release → colour theme bindings edited from the Style panel.
+  const paintPalette = useCallback(() => {
+    const transition = paletteTransitionRef.current;
+    if (transition) applyPaletteCssVars(transition.current);
+  }, []);
+
+  const runPaletteAnimation = useCallback(() => {
+    if (paletteFrameRef.current !== 0) return;
+    const tick = () => {
+      const transition = paletteTransitionRef.current;
+      if (!transition) {
+        paletteFrameRef.current = 0;
+        return;
+      }
+      const animating = transition.step(performance.now());
+      paintPalette();
+      paletteFrameRef.current = animating ? requestAnimationFrame(tick) : 0;
+    };
+    paletteFrameRef.current = requestAnimationFrame(tick);
+  }, [paintPalette]);
+
+  // Paint before first paint so the page never flashes the fallback palette.
+  useLayoutEffect(() => {
+    paintPalette();
+    return () => {
+      if (paletteFrameRef.current !== 0) {
+        cancelAnimationFrame(paletteFrameRef.current);
+        paletteFrameRef.current = 0;
+      }
+    };
+  }, [paintPalette]);
+
+  const { sandColor, sandColorSecondary, plateColor, glowColor } = params;
+
+  // Ease to the new palette whenever the target colors change (theme switch,
+  // release playback start/stop, or a color picker edit).
+  useEffect(() => {
+    const transition = paletteTransitionRef.current;
+    if (!transition) return;
+    const next = { sandColor, sandColorSecondary, plateColor, glowColor };
+    if (paletteColorsEqual(transition.target, next)) return;
+
+    const reduceMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduceMotion) {
+      transition.jumpTo(next);
+      paintPalette();
+      return;
+    }
+
+    transition.animateTo(
+      next,
+      performance.now(),
+      transition.isAnimating() ? PALETTE_RETARGET_MS : PALETTE_TRANSITION_MS
+    );
+    runPaletteAnimation();
+  }, [
+    sandColor,
+    sandColorSecondary,
+    plateColor,
+    glowColor,
+    paintPalette,
+    runPaletteAnimation,
+  ]);
+
+  // Release → colour theme bindings edited from the Style panel. Empty while
+  // the opt-in checkbox is off, so playback never changes the palette.
   const releaseThemes = useMemo(() => {
     const map: Record<string, ColorTheme> = {};
+    if (!releaseThemesEnabled) return map;
     for (const theme of colorThemes) {
       if (theme.releaseId) map[theme.releaseId] = theme;
     }
     return map;
-  }, [colorThemes]);
+  }, [colorThemes, releaseThemesEnabled]);
 
   // Audio only truly plays when enabled and the simulation is not paused.
   const playbackActive = params.audioEnabled && !isPaused;
@@ -156,6 +246,7 @@ export default function App() {
   const handleReset = useCallback(() => {
     // Drop any playback palette snapshot so the reset is not overwritten.
     paletteBeforePlaybackRef.current = null;
+    appliedPlaybackThemeRef.current = null;
     setActiveReleaseId(null);
     reset();
     setIsPaused(false);
@@ -168,6 +259,19 @@ export default function App() {
     const next = toggleAutoSave();
     setToastMessage(next ? '✓ Auto-save enabled' : 'Auto-save disabled');
   }, [toggleAutoSave]);
+
+  // Handle Toggle Release Themes (opt-in)
+  const handleToggleReleaseThemes = useCallback(
+    (enabled: boolean) => {
+      setReleaseThemesEnabled(enabled);
+      setToastMessage(
+        enabled
+          ? '✓ Release themes on — playback applies bound themes'
+          : 'Release themes off — palette stays put during playback'
+      );
+    },
+    [setReleaseThemesEnabled]
+  );
 
   // Handle Save Version (named snapshot)
   const handleSaveVersion = useCallback(
@@ -207,25 +311,30 @@ export default function App() {
   }, [params, isPaused]);
 
   /**
-   * Binds the active release's theme to playback. The theme is applied when
-   * playback starts (or the release changes); when playback stops (mute or
-   * pause) the palette that was live before playback returns.
+   * Binds the active release's theme to playback, but only while the panel's
+   * opt-in checkbox is on. The theme is applied when playback starts (or the
+   * release changes); when playback stops, or the opt-in is switched off, the
+   * palette that was live before playback returns.
    */
+  const previousReleaseThemesEnabledRef = useRef(releaseThemesEnabled);
+
   useEffect(() => {
     const wasActive = previousPlaybackActiveRef.current;
     const previousReleaseId = previousReleaseIdRef.current;
+    const justEnabled =
+      releaseThemesEnabled && !previousReleaseThemesEnabledRef.current;
     previousPlaybackActiveRef.current = playbackActive;
     previousReleaseIdRef.current = activeReleaseId;
+    previousReleaseThemesEnabledRef.current = releaseThemesEnabled;
 
-    const releaseId = activeReleaseId;
-    if (!releaseId) return;
-    const theme = releaseThemes[releaseId];
+    const theme = activeReleaseId ? releaseThemes[activeReleaseId] : undefined;
+    const shouldApply = playbackActive && Boolean(theme);
 
-    if (playbackActive) {
-      // Only on the transition into playback or when the release changes, so
-      // manual palette edits during playback are not overwritten.
-      if (wasActive && previousReleaseId === releaseId) return;
-      if (!theme) return;
+    if (shouldApply && theme) {
+      // Only on the transition into playback, a release change or enabling the
+      // feature, so manual palette edits during playback are not overwritten.
+      if (wasActive && previousReleaseId === activeReleaseId && !justEnabled) return;
+      appliedPlaybackThemeRef.current = theme;
       setParams((prev) => {
         if (!paletteBeforePlaybackRef.current) {
           paletteBeforePlaybackRef.current = paletteSnapshot(prev);
@@ -235,18 +344,26 @@ export default function App() {
       return;
     }
 
-    if (!wasActive) return;
+    if (!wasActive && !paletteBeforePlaybackRef.current) return;
 
     const snapshot = paletteBeforePlaybackRef.current;
+    const appliedTheme = appliedPlaybackThemeRef.current;
     paletteBeforePlaybackRef.current = null;
+    appliedPlaybackThemeRef.current = null;
     if (!snapshot) return;
 
     setParams((prev) => {
       // Leave a palette the user picked manually while the release was playing.
-      if (theme && !isThemeActive(theme, prev)) return prev;
+      if (appliedTheme && !isThemeActive(appliedTheme, prev)) return prev;
       return { ...prev, ...snapshot };
     });
-  }, [playbackActive, activeReleaseId, releaseThemes, setParams]);
+  }, [
+    playbackActive,
+    activeReleaseId,
+    releaseThemes,
+    releaseThemesEnabled,
+    setParams,
+  ]);
 
   const handleTogglePause = useCallback(() => {
     setIsPaused((prev) => !prev);
@@ -363,14 +480,12 @@ export default function App() {
       data-grain-count={params.grainCount}
       data-font-family={params.fontFamily}
       style={{
-        '--sand-color': dotColor,
-        '--sand-color-sec': params.sandColorSecondary,
         '--active-font-family': `"${params.fontFamily}", system-ui, -apple-system, sans-serif`,
         '--active-font-weight': params.fontWeight,
         '--active-font-style': params.fontItalic ? 'italic' : 'normal',
         '--active-font-variation': fontVariationCss,
         '--active-letter-spacing': params.fontLetterSpacing ? `${params.fontLetterSpacing}px` : 'normal',
-        color: dotColor,
+        color: 'var(--sand-color, #c4bdb2)',
       } as React.CSSProperties}
       data-font-italic={params.fontItalic ? 'true' : 'false'}
     >
@@ -381,22 +496,22 @@ export default function App() {
         onMetricsUpdate={setMetrics}
         scatterTrigger={scatterTrigger}
         resetTrigger={resetTrigger}
+        paletteRef={paletteRef}
       />
 
       {/* 2. FOREGROUND DOM ELEMENTS (EXACT LAYOUT FROM REFERENCE IMAGE) */}
       <div className="relative z-10 w-full flex flex-col">
         <Hero
-          dotColor={dotColor}
           activeReleaseId={playingReleaseId}
           releaseThemes={releaseThemes}
           onPlayRelease={handlePlayRelease}
         />
 
-        <About dotColor={dotColor} />
+        <About />
 
-        <Facility dotColor={dotColor} />
+        <Facility />
 
-        <Contact dotColor={dotColor} />
+        <Contact />
       </div>
 
       {/* 3. MINIMALIST CORNER CONTROLS (DISCREET & UNINTRUSIVE) */}
@@ -408,13 +523,13 @@ export default function App() {
               type="button"
               onClick={handleToggleAudio}
               className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-[background-color,border-color,color,opacity,transform,box-shadow] flex items-center gap-2 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
-              style={{ color: dotColor, borderColor: `${dotColor}33` }}
+              style={{ color: 'var(--sand-color)', borderColor: 'var(--sand-color-20)' }}
               title="Toggle Umbráfono / Acoustic audio (M)"
             >
               {params.audioEnabled ? (
-                <Volume2 size={13} style={{ color: dotColor }} />
+                <Volume2 size={13} style={{ color: 'var(--sand-color)' }} />
               ) : (
-                <VolumeX size={13} style={{ color: dotColor }} />
+                <VolumeX size={13} style={{ color: 'var(--sand-color)' }} />
               )}
               <span>{params.audioEnabled ? 'Umbráfono ON' : 'Audio (M)'}</span>
             </button>
@@ -424,10 +539,10 @@ export default function App() {
               type="button"
               onClick={handleScatter}
               className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-[background-color,border-color,color,opacity,transform,box-shadow] cursor-pointer shadow-lg opacity-70 hover:opacity-100"
-              style={{ color: dotColor, borderColor: `${dotColor}33` }}
+              style={{ color: 'var(--sand-color)', borderColor: 'var(--sand-color-20)' }}
               title="Scatter sand (S)"
             >
-              <Sparkles size={13} style={{ color: dotColor }} />
+              <Sparkles size={13} style={{ color: 'var(--sand-color)' }} />
             </button>
 
             {/* Telemetry HUD */}
@@ -438,10 +553,10 @@ export default function App() {
               className={`p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-[background-color,border-color,color,opacity,transform,box-shadow] cursor-pointer shadow-lg hover:opacity-100 ${
                 showHud ? 'opacity-100' : 'opacity-70'
               }`}
-              style={{ color: dotColor, borderColor: showHud ? `${dotColor}66` : `${dotColor}33` }}
+              style={{ color: 'var(--sand-color)', borderColor: showHud ? 'var(--sand-color-40)' : 'var(--sand-color-20)' }}
               title="Toggle telemetry HUD (H)"
             >
-              <Activity size={13} style={{ color: dotColor }} />
+              <Activity size={13} style={{ color: 'var(--sand-color)' }} />
             </button>
           </div>
 
@@ -452,10 +567,10 @@ export default function App() {
               onClick={() => setShowControls((prev) => !prev)}
               onPointerEnter={prefetchControlPanel}
               className="px-3 py-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-[background-color,border-color,color,opacity,transform,box-shadow] flex items-center gap-1.5 cursor-pointer shadow-lg opacity-70 hover:opacity-100"
-              style={{ color: dotColor, borderColor: `${dotColor}33` }}
+              style={{ color: 'var(--sand-color)', borderColor: 'var(--sand-color-20)' }}
               title="Toggle Physics & Tuning Controls (D)"
             >
-              <Sliders size={13} style={{ color: dotColor }} />
+              <Sliders size={13} style={{ color: 'var(--sand-color)' }} />
               <span>Studio (D)</span>
             </button>
 
@@ -465,10 +580,10 @@ export default function App() {
               onClick={handleOpenWasmLab}
               onPointerEnter={prefetchWasmResearchLab}
               className="p-1.5 rounded-lg border bg-neutral-950/80 text-xs font-mono backdrop-blur transition-[background-color,border-color,color,opacity,transform,box-shadow] cursor-pointer shadow-lg opacity-70 hover:opacity-100"
-              style={{ color: dotColor, borderColor: `${dotColor}33` }}
+              style={{ color: 'var(--sand-color)', borderColor: 'var(--sand-color-20)' }}
               title="Open WebAssembly Benchmarks (W)"
             >
-              <Zap size={13} style={{ color: dotColor }} />
+              <Zap size={13} style={{ color: 'var(--sand-color)' }} />
             </button>
           </div>
         </>
@@ -509,6 +624,8 @@ export default function App() {
             onDeleteVersion={handleDeleteVersion}
             colorThemes={colorThemes}
             setColorThemes={setColorThemes}
+            releaseThemesEnabled={releaseThemesEnabled}
+            onToggleReleaseThemes={handleToggleReleaseThemes}
           />
         </Suspense>
       )}
@@ -536,7 +653,7 @@ export default function App() {
       )}
 
       {/* 8. CUSTOM POINTER (FULL CIRCLE) */}
-      <CustomCursor color={dotColor} shape="circle" filled={true} />
+      <CustomCursor shape="circle" filled={true} />
     </div>
   );
 }

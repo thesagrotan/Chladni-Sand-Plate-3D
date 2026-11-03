@@ -879,6 +879,14 @@
   --active-font-variation: normal;
   --active-letter-spacing: normal;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* Palette mirror written at runtime; these are only the pre-hydration values. */
+  --sand-color: #c4bdb2;
+  --sand-color-sec: #e4dfd3;
+  --sand-color-20: rgba(196, 189, 178, 0.2);
+  --sand-color-40: rgba(196, 189, 178, 0.4);
+  --plate-color: #111215;
+  --glow-color: #38bdf8;
 }
 
 @theme {
@@ -985,6 +993,57 @@ div.font-serif,
   color: var(--sand-color, #c4bdb2);
 }
 
+/* ---------------------------------------------------------------------
+   Email box.
+
+   The white rectangle is drawn by an inline SVG, and its email is cut out
+   with an SVG mask. Because the cutout is genuinely transparent, the
+   fixed WebGL plate behind the page shows through the letterforms; the
+   matching `data-text-repulsor="rect"` / `="hole"` pair tells the sand
+   simulation to repel grains from the box but let them enter the
+   glyph-shaped hole.
+   --------------------------------------------------------------------- */
+.email-box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  font-size: clamp(1rem, 3.4vw + 0.4rem, 2.25rem);
+  padding: 0.34em 0.45em;
+  text-decoration: none;
+  isolation: isolate;
+}
+
+.email-box__shape {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.email-box__cutout {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* Shared by the masked SVG text and the transparent DOM text so the hole in
+   the box and the hole in the sand mask stay in the same place. */
+.email-box__text {
+  font-size: 1em;
+  white-space: nowrap;
+}
+
+.email-box__label {
+  position: relative;
+  z-index: 1;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -1018,5 +1077,27 @@ div.font-serif,
 @media (prefers-reduced-motion: reduce) {
   .release-panel {
     transition: opacity 200ms var(--ease-out);
+  }
+}
+
+/* Panel dropdown popup entrance (see src/components/control/OptionSelect.tsx) */
+.option-popup {
+  animation: option-pop-in 120ms var(--ease-out, ease-out);
+}
+
+@keyframes option-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .option-popup {
+    animation: none;
   }
 }

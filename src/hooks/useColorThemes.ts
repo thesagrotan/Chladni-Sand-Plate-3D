@@ -1,20 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   loadColorThemes,
+  loadReleaseThemesEnabled,
   saveColorThemes,
+  saveReleaseThemesEnabled,
   type ColorTheme,
 } from '../utils/colorThemes.ts';
 
 /**
- * Owns the editable colour-theme list and persists it independently of the
- * simulation parameters, so theme definitions survive a params reset.
+ * Owns the editable colour-theme list and the release-theme opt-in, persisting
+ * both independently of the simulation parameters so they survive a reset.
  */
 export function useColorThemes() {
   const [colorThemes, setColorThemes] = useState<ColorTheme[]>(loadColorThemes);
+  const [releaseThemesEnabled, setReleaseThemesEnabledState] = useState<boolean>(
+    loadReleaseThemesEnabled
+  );
 
   useEffect(() => {
     saveColorThemes(colorThemes);
   }, [colorThemes]);
 
-  return { colorThemes, setColorThemes };
+  const setReleaseThemesEnabled = useCallback((enabled: boolean) => {
+    setReleaseThemesEnabledState(enabled);
+    saveReleaseThemesEnabled(enabled);
+  }, []);
+
+  return {
+    colorThemes,
+    setColorThemes,
+    releaseThemesEnabled,
+    setReleaseThemesEnabled,
+  };
 }

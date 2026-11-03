@@ -18,6 +18,8 @@ interface TypographySectionProps {
   setFontLoadError: React.Dispatch<React.SetStateAction<string | null>>;
   colorThemes: ColorTheme[];
   setColorThemes: React.Dispatch<React.SetStateAction<ColorTheme[]>>;
+  releaseThemesEnabled: boolean;
+  onToggleReleaseThemes: (enabled: boolean) => void;
 }
 
 export const TypographySection: React.FC<TypographySectionProps> = ({
@@ -31,6 +33,8 @@ export const TypographySection: React.FC<TypographySectionProps> = ({
   setFontLoadError,
   colorThemes,
   setColorThemes,
+  releaseThemesEnabled,
+  onToggleReleaseThemes,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -135,6 +139,8 @@ export const TypographySection: React.FC<TypographySectionProps> = ({
         updateParams={updateParams}
         colorThemes={colorThemes}
         setColorThemes={setColorThemes}
+        releaseThemesEnabled={releaseThemesEnabled}
+        onToggleReleaseThemes={onToggleReleaseThemes}
       />
 
       {/* Typography Controls */}

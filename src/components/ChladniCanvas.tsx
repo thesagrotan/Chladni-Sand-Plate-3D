@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChladniParams, ChladniMetrics } from '../types/chladni.ts';
+import type { PaletteColors } from '../utils/paletteTransition.ts';
 import { useChladniCanvas } from '../hooks/useChladniCanvas.ts';
 
 interface ChladniCanvasProps {
@@ -8,6 +9,8 @@ interface ChladniCanvasProps {
   onMetricsUpdate: (metrics: ChladniMetrics) => void;
   scatterTrigger: number;
   resetTrigger: number;
+  /** Animated palette read by the shader each frame. */
+  paletteRef?: React.MutableRefObject<PaletteColors | null>;
 }
 
 export const ChladniCanvas: React.FC<ChladniCanvasProps> = (props) => {

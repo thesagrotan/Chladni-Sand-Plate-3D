@@ -17,6 +17,8 @@ interface ColorThemesSectionProps {
   updateParams: UpdateParams;
   colorThemes: ColorTheme[];
   setColorThemes: React.Dispatch<React.SetStateAction<ColorTheme[]>>;
+  releaseThemesEnabled: boolean;
+  onToggleReleaseThemes: (enabled: boolean) => void;
 }
 
 const COLOR_FIELDS = [
@@ -33,6 +35,8 @@ export const ColorThemesSection: React.FC<ColorThemesSectionProps> = ({
   updateParams,
   colorThemes,
   setColorThemes,
+  releaseThemesEnabled,
+  onToggleReleaseThemes,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(() => {
     return (
@@ -165,9 +169,32 @@ export const ColorThemesSection: React.FC<ColorThemesSectionProps> = ({
       </div>
 
       <p className="text-[9px] text-neutral-500 leading-tight">
-        Edit a theme, then bind it to a release. Playing that release applies its theme;
-        the previous palette returns when playback stops.
+        Edit a theme to apply it. Optionally bind a theme to a release so it plays along.
       </p>
+
+      {/* Opt-in: release playback drives the theme */}
+      <label
+        className={`flex items-center justify-between gap-2 px-2 py-1 rounded-md border text-[10px] cursor-pointer transition-[background-color,border-color,color] ${
+          releaseThemesEnabled
+            ? 'bg-amber-950/40 border-amber-700/60 text-amber-200'
+            : 'bg-neutral-900/60 border-neutral-800 text-neutral-400 hover:text-neutral-200'
+        }`}
+        title="When enabled, playing a release applies the theme bound to it"
+      >
+        <span className="flex items-center gap-1.5">
+          <input
+            type="checkbox"
+            checked={releaseThemesEnabled}
+            onChange={(e) => onToggleReleaseThemes(e.target.checked)}
+            data-testid="release-themes-toggle"
+            className="w-2.5 h-2.5 rounded border-neutral-700 bg-neutral-900 text-amber-500 focus:ring-0 cursor-pointer"
+          />
+          <span>Apply theme when a release plays</span>
+        </span>
+        <span className="text-[8px] font-mono shrink-0">
+          {releaseThemesEnabled ? 'ON' : 'OFF'}
+        </span>
+      </label>
 
       {/* Theme list */}
       <div className="space-y-1">
@@ -195,7 +222,18 @@ export const ColorThemesSection: React.FC<ColorThemesSectionProps> = ({
               />
               <span className="truncate flex-1">{theme.name}</span>
               {catalog && (
-                <span className="px-1 py-0 rounded bg-neutral-900 text-amber-300 border border-amber-900/60 font-mono text-[8px] shrink-0">
+                <span
+                  className={`px-1 py-0 rounded font-mono text-[8px] shrink-0 border ${
+                    releaseThemesEnabled
+                      ? 'bg-neutral-900 text-amber-300 border-amber-900/60'
+                      : 'bg-neutral-900 text-neutral-500 border-neutral-800 line-through'
+                  }`}
+                  title={
+                    releaseThemesEnabled
+                      ? `Applies when ${catalog} plays`
+                      : 'Release themes are off'
+                  }
+                >
                   {catalog}
                 </span>
               )}
@@ -257,13 +295,19 @@ export const ColorThemesSection: React.FC<ColorThemesSectionProps> = ({
           </div>
 
           <div className="flex items-center justify-between gap-1 text-[10px] pt-1 border-t border-neutral-900">
-            <span className="text-neutral-400">Plays on</span>
+            <span className="text-neutral-400">
+              Plays on
+              {!releaseThemesEnabled && (
+                <span className="text-neutral-600"> (enable above)</span>
+              )}
+            </span>
             <select
               value={editingTheme.releaseId ?? ''}
               onChange={(e) => updateRelease(e.target.value)}
               aria-label="Release assigned to this theme"
               data-testid="theme-release-select"
-              className="max-w-[175px] bg-neutral-900 border border-neutral-700/80 rounded px-1.5 py-1 text-[10px] text-neutral-200 focus:outline-none focus:border-cyan-400 cursor-pointer truncate"
+              disabled={!releaseThemesEnabled}
+              className="max-w-[175px] bg-neutral-900 border border-neutral-700/80 rounded px-1.5 py-1 text-[10px] text-neutral-200 focus:outline-none focus:border-cyan-400 cursor-pointer truncate disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <option value="">No release</option>
               {RELEASES.map((release) => (

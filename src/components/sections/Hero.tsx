@@ -3,14 +3,12 @@ import type { ColorTheme } from '../../utils/colorThemes.ts';
 import { RELEASES } from '../../data/releases.ts';
 
 interface HeroProps {
-  dotColor: string;
   activeReleaseId: string | null;
   releaseThemes: Record<string, ColorTheme | undefined>;
   onPlayRelease: (releaseId: string) => void;
 }
 
 export function Hero({
-  dotColor,
   activeReleaseId,
   releaseThemes,
   onPlayRelease,
@@ -32,20 +30,20 @@ export function Hero({
   };
 
   return (
-    <section className="min-h-screen w-full flex flex-col justify-between px-2 sm:px-14 md:px-40 pb-8 sm:pb-12 select-none">
+    <section className="min-h-screen w-full flex flex-col justify-between px-2 sm:px-14 md:px-40 pb-6 sm:pb-8 select-none">
       {/* Main Title & Subtitle */}
       <div className="w-full mt-[20vh] flex flex-col items-start justify-center text-left">
         <p
           data-text-repulsor
-          className="w-full max-w-none text-8xl font-serif mx leading-none tracking-tight font-normal text-left"
-          style={{ color: dotColor }}
+          className="w-full max-w-none text-8xl font-serif mx leading-none tracking-tight font-normal text-left pb-16 sm:pb-24"
+          style={{ color: 'var(--sand-color, #c4bdb2)' }}
         >
           TEZETT PLATTE is a Berlin label and recording studio
         </p>
       </div>
 
       {/* Bottom: Releases Catalog */}
-      <div className="w-full mx-auto flex flex-col pb-2 sm:pb-4 text-left page-text">
+      <div className="w-full mx-auto flex flex-col pb-1 sm:pb-2 text-left page-text">
         <div data-text-repulsor className="page-text mb-6 sm:mb-7 text-left">
           Releases
         </div>

@@ -119,6 +119,8 @@ export function sanitizeParams(raw: unknown): ChladniParams {
   merged.centerVoidRadius = sanitizeNumber(merged.centerVoidRadius, DEFAULT_PARAMS.centerVoidRadius, 0, 0.55);
   merged.centerExpulsion = sanitizeNumber(merged.centerExpulsion, DEFAULT_PARAMS.centerExpulsion, 0, 5);
   merged.domRepulsion = sanitizeNumber(merged.domRepulsion, DEFAULT_PARAMS.domRepulsion, 0, 10);
+  merged.pointerForce = sanitizeNumber(merged.pointerForce, DEFAULT_PARAMS.pointerForce, 0, 4);
+  merged.pointerRadius = sanitizeNumber(merged.pointerRadius, DEFAULT_PARAMS.pointerRadius, 0.02, 0.4);
   merged.rotationAngle = sanitizeNumber(merged.rotationAngle, DEFAULT_PARAMS.rotationAngle, 0, 360);
   merged.fieldOverlay = sanitizeNumber(merged.fieldOverlay, DEFAULT_PARAMS.fieldOverlay, 0, 1);
   merged.nodalPronouncement = sanitizeNumber(merged.nodalPronouncement, DEFAULT_PARAMS.nodalPronouncement, 0, 1);

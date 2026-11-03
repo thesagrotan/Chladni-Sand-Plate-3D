@@ -1,7 +1,3 @@
-interface FacilityProps {
-  dotColor: string;
-}
-
 const FACILITY_COLUMNS = [
   {
     title: 'Acoustic & Resonance',
@@ -23,9 +19,9 @@ const FACILITY_COLUMNS = [
   },
 ];
 
-export function Facility({ dotColor }: FacilityProps) {
+export function Facility() {
   return (
-    <section id="facility" className="px-2 sm:px-14 md:px-40 py-4 sm:py-6 w-full">
+    <section id="facility" className="px-2 sm:px-14 md:px-40 py-3 sm:py-4 w-full">
       <div data-text-repulsor className="page-text mb-10">
         Facility
       </div>
@@ -36,7 +32,6 @@ export function Facility({ dotColor }: FacilityProps) {
             <div
               data-text-repulsor
               className="page-text mb-4"
-              style={{ color: dotColor }}
             >
               {column.title}
             </div>
@@ -46,7 +41,6 @@ export function Facility({ dotColor }: FacilityProps) {
                   key={item}
                   data-text-repulsor
                   className="page-text"
-                  style={{ color: dotColor }}
                 >
                   {item}
                 </li>

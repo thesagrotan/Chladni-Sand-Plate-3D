@@ -21,6 +21,27 @@ describe('editable color themes', () => {
     expect(findThemeForRelease(themes, 'tz-02')?.id).toBe('cyber_cyan');
   });
 
+  it('keeps release themes disabled until the user opts in', async () => {
+    const { loadReleaseThemesEnabled, saveReleaseThemesEnabled, RELEASE_THEMES_ENABLED_KEY } =
+      await loadModule();
+
+    expect(loadReleaseThemesEnabled()).toBe(false);
+    expect(localStorage.getItem(RELEASE_THEMES_ENABLED_KEY)).toBeNull();
+
+    saveReleaseThemesEnabled(true);
+    expect(loadReleaseThemesEnabled()).toBe(true);
+
+    saveReleaseThemesEnabled(false);
+    expect(loadReleaseThemesEnabled()).toBe(false);
+  });
+
+  it('treats any non-true stored value as disabled', async () => {
+    const { loadReleaseThemesEnabled, RELEASE_THEMES_ENABLED_KEY } = await loadModule();
+
+    localStorage.setItem(RELEASE_THEMES_ENABLED_KEY, 'yes');
+    expect(loadReleaseThemesEnabled()).toBe(false);
+  });
+
   it('round-trips edits through local storage', async () => {
     const { COLOR_THEMES_STORAGE_KEY, loadColorThemes, saveColorThemes } =
       await loadModule();

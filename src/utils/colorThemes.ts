@@ -10,6 +10,7 @@ export interface ColorTheme extends ColorPalette {
 }
 
 export const COLOR_THEMES_STORAGE_KEY = 'chladni_color_themes';
+export const RELEASE_THEMES_ENABLED_KEY = 'chladni_release_themes_enabled';
 
 const RELEASE_IDS = new Set(RELEASES.map((release) => release.id));
 const HEX_COLOR_PATTERN = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
@@ -118,6 +119,18 @@ export function saveColorThemes(themes: ColorTheme[]): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Whether playing a release should apply its bound theme. Off by default so
+ * the plate keeps whatever palette the visitor chose unless they opt in.
+ */
+export function loadReleaseThemesEnabled(): boolean {
+  return storageGet(RELEASE_THEMES_ENABLED_KEY) === 'true';
+}
+
+export function saveReleaseThemesEnabled(enabled: boolean): boolean {
+  return storageSet(RELEASE_THEMES_ENABLED_KEY, String(enabled));
 }
 
 /** Applies a theme to the live simulation parameters. */

@@ -225,6 +225,69 @@ describe('TextMaskManager.collectLines', () => {
     invisibleEl.remove();
   });
 
+  it('erases a hole repulsor from the mask so grains can enter it', () => {
+    const filledTexts: { text: string; composite: string }[] = [];
+    const mockCtx: any = {
+      setTransform: () => {},
+      fillRect: () => {},
+      measureText: () => ({
+        fontBoundingBoxAscent: 10,
+        fontBoundingBoxDescent: 2,
+        actualBoundingBoxAscent: 10,
+        actualBoundingBoxDescent: 2,
+        width: 50,
+      }),
+      fillText: (text: string) => {
+        filledTexts.push({ text, composite: mockCtx.globalCompositeOperation });
+      },
+      roundRect: () => {},
+      beginPath: () => {},
+      fill: () => {},
+      globalCompositeOperation: 'source-over',
+    };
+
+    const inst = Object.create(TextMaskManager.prototype) as any;
+    inst.isDestroyed = false;
+    inst.ctx = mockCtx;
+    inst.canvas = { width: 1024, height: 1024 };
+    inst.resolution = 1024;
+    inst.canvasW = 1024;
+    inst.canvasH = 1024;
+    inst.trackedSelector = '[data-text-repulsor]';
+    inst.texture = { needsUpdate: false };
+
+    const holeEl = document.createElement('div');
+    holeEl.setAttribute('data-text-repulsor', 'hole');
+    holeEl.textContent = 'HOLE';
+    holeEl.getBoundingClientRect = () => rect(100, 10, 100, 30) as DOMRect;
+    holeEl.checkVisibility = () => true;
+
+    document.body.append(holeEl);
+
+    const origCreateRange = document.createRange.bind(document);
+    document.createRange = () => {
+      const r = origCreateRange();
+      r.getClientRects = () => [rect(100, 10, 100, 30)] as unknown as DOMRectList;
+      return r;
+    };
+
+    try {
+      inst.rasterizeText();
+    } finally {
+      document.createRange = origCreateRange;
+      holeEl.remove();
+    }
+
+    // The hole glyphs are painted with destination-out so the white pill
+    // silhouette underneath is punched through.
+    expect(filledTexts.length).toBeGreaterThan(0);
+    expect(
+      filledTexts.every(({ text, composite }) => text === 'HOLE' && composite === 'destination-out')
+    ).toBe(true);
+    // ...and the composite mode does not leak past the pass.
+    expect(mockCtx.globalCompositeOperation).toBe('source-over');
+  });
+
   it('resets canvas letter-spacing for untracked text so tracking cannot leak', () => {
     const spacingWrites: string[] = [];
     const mockCtx: any = {

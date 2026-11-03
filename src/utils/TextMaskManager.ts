@@ -494,7 +494,7 @@ export class TextMaskManager {
         continue;
       }
 
-      if (repulsorType === 'line' || repulsorType === 'card' || repulsorType === 'pill') {
+      if (repulsorType === 'line' || repulsorType === 'card' || repulsorType === 'rect') {
         this.layoutCache.set(el, {
           el,
           repulsorType,
@@ -561,7 +561,7 @@ export class TextMaskManager {
 
       this.layoutCache.set(el, {
         el,
-        repulsorType: 'text',
+        repulsorType,
         textToRender,
         fontKey,
         fontSize: font.fontSize,
@@ -1016,98 +1016,114 @@ export class TextMaskManager {
 
     const entries = this.layoutCache ? Array.from(this.layoutCache.values()) : [];
 
+    // Two passes so a `hole` always cuts through whatever was painted before
+    // it, regardless of DOM order: solids first, then the cutouts.
     for (let i = 0; i < entries.length; i++) {
-      const entry = entries[i];
-      if (!entry.visible) continue;
-
-      const rect = {
-        left: entry.docRect.x,
-        top: entry.docRect.y,
-        width: entry.docRect.w,
-        height: entry.docRect.h,
-      };
-
-      if (entry.repulsorType === 'line') {
-        const height = Math.max(rect.height, 2);
-        ctx.filter = 'blur(6px)';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.fillRect(rect.left, rect.top, rect.width, height);
-
-        ctx.filter = 'blur(1.5px)';
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(rect.left, rect.top, rect.width, height);
-        continue;
-      }
-
-      if (entry.repulsorType === 'card' || entry.repulsorType === 'pill') {
-        const radius = entry.repulsorType === 'pill' ? rect.height * 0.5 : 12;
-        // Draw blurred card silhouette
-        ctx.filter = 'blur(16px)';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.beginPath();
-        ctx.roundRect(rect.left, rect.top, rect.width, rect.height, radius);
-        ctx.fill();
-
-        ctx.filter = 'blur(4px)';
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.roundRect(rect.left, rect.top, rect.width, rect.height, radius);
-        ctx.fill();
-        continue;
-      }
-
-      if (entry.lines.length === 0) continue;
-
-      const bitmap = this.getTextBitmap(entry);
-      if (bitmap) {
-        // Composite in device pixels; the cached bitmap is already blurred.
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.filter = 'none';
-        ctx.drawImage(
-          bitmap.canvas,
-          bitmap.originX,
-          bitmap.originY,
-          bitmap.width,
-          bitmap.height
-        );
-        ctx.setTransform(scale, 0, 0, scale, 0, 0);
-        continue;
-      }
-
-      // Fallback: draw the two passes directly if an offscreen bitmap could
-      // not be created (e.g. an element larger than the bitmap size cap).
-
-      // Always draw left-aligned at the exact per-line X position from DOM Range.
-      ctx.textBaseline = 'alphabetic';
-      ctx.textAlign = 'left';
-
-      this.applyCanvasTextSettings(ctx, entry.letterSpacing, entry.fontVariationSettings);
-      ctx.font = entry.font;
-
-      // Subtle, tight blur sizes right around the letters (no giant black blobs)
-      const fontSize = entry.fontSize || 28;
-      const outerBlur = Math.min(8, Math.max(3, fontSize * 0.12));
-      const coreBlur = Math.min(2.5, Math.max(1, fontSize * 0.04));
-
-      // Pass 1: Outer smooth subtle halo
-      ctx.filter = `blur(${outerBlur.toFixed(1)}px)`;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
-      for (const line of entry.lines) {
-        if (this.debug) this.debug.counters.fillTextCalls++;
-        ctx.fillText(line.text, line.x, line.y);
-      }
-
-      // Pass 2: Tight core letter contour
-      ctx.filter = `blur(${coreBlur.toFixed(1)}px)`;
-      ctx.fillStyle = '#ffffff';
-      for (const line of entry.lines) {
-        if (this.debug) this.debug.counters.fillTextCalls++;
-        ctx.fillText(line.text, line.x, line.y);
-      }
+      if (entries[i].repulsorType !== 'hole') this.drawEntry(entries[i], scale);
+    }
+    ctx.globalCompositeOperation = 'destination-out';
+    for (let i = 0; i < entries.length; i++) {
+      if (entries[i].repulsorType === 'hole') this.drawEntry(entries[i], scale);
     }
 
     ctx.filter = 'none';
+    ctx.globalCompositeOperation = 'source-over';
     this.markTextureDirty();
+  }
+
+  /**
+   * Paint one layout entry into the mask atlas. Callers set
+   * `globalCompositeOperation` (`source-over` for solids, `destination-out`
+   * for holes) before the pass that contains this entry.
+   */
+  private drawEntry(entry: TextMaskLayoutEntry, scale: number): void {
+    if (!entry.visible) return;
+
+    const ctx = this.ctx;
+    const rect = {
+      left: entry.docRect.x,
+      top: entry.docRect.y,
+      width: entry.docRect.w,
+      height: entry.docRect.h,
+    };
+
+    if (entry.repulsorType === 'line') {
+      const height = Math.max(rect.height, 2);
+      ctx.filter = 'blur(6px)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.fillRect(rect.left, rect.top, rect.width, height);
+
+      ctx.filter = 'blur(1.5px)';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(rect.left, rect.top, rect.width, height);
+      return;
+    }
+
+    if (entry.repulsorType === 'card' || entry.repulsorType === 'rect') {
+      const radius = entry.repulsorType === 'card' ? 12 : 0;
+      // Draw blurred card silhouette
+      ctx.filter = 'blur(16px)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.beginPath();
+      ctx.roundRect(rect.left, rect.top, rect.width, rect.height, radius);
+      ctx.fill();
+
+      ctx.filter = 'blur(4px)';
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(rect.left, rect.top, rect.width, rect.height, radius);
+      ctx.fill();
+      return;
+    }
+
+    if (entry.lines.length === 0) return;
+
+    const bitmap = this.getTextBitmap(entry);
+    if (bitmap) {
+      // Composite in device pixels; the cached bitmap is already blurred.
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.filter = 'none';
+      ctx.drawImage(
+        bitmap.canvas,
+        bitmap.originX,
+        bitmap.originY,
+        bitmap.width,
+        bitmap.height
+      );
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      return;
+    }
+
+    // Fallback: draw the two passes directly if an offscreen bitmap could
+    // not be created (e.g. an element larger than the bitmap size cap).
+
+    // Always draw left-aligned at the exact per-line X position from DOM Range.
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+
+    this.applyCanvasTextSettings(ctx, entry.letterSpacing, entry.fontVariationSettings);
+    ctx.font = entry.font;
+
+    // Subtle, tight blur sizes right around the letters (no giant black blobs)
+    const fontSize = entry.fontSize || 28;
+    const outerBlur = Math.min(8, Math.max(3, fontSize * 0.12));
+    const coreBlur = Math.min(2.5, Math.max(1, fontSize * 0.04));
+
+    // Pass 1: Outer smooth subtle halo
+    ctx.filter = `blur(${outerBlur.toFixed(1)}px)`;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+    for (const line of entry.lines) {
+      if (this.debug) this.debug.counters.fillTextCalls++;
+      ctx.fillText(line.text, line.x, line.y);
+    }
+
+    // Pass 2: Tight core letter contour
+    ctx.filter = `blur(${coreBlur.toFixed(1)}px)`;
+    ctx.fillStyle = '#ffffff';
+    for (const line of entry.lines) {
+      if (this.debug) this.debug.counters.fillTextCalls++;
+      ctx.fillText(line.text, line.x, line.y);
+    }
   }
 
   /**

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { MutableRefObject } from 'react';
 import * as THREE from 'three';
 import { ChladniParams, ChladniMetrics } from '../types/chladni.ts';
 import {
@@ -30,6 +31,7 @@ import {
   GRAIN_FRAGMENT_SHADER,
 } from '../simulation/shaders/chladniShaders.ts';
 import type { ChladniWasmExports } from '../simulation/wasm/chladniWasmModule.ts';
+import type { PaletteColors } from '../utils/paletteTransition.ts';
 import { gridTypeToNumber, voidShapeToNumber } from '../simulation/chladniMath.ts';
 
 export interface UseChladniCanvasOptions {
@@ -38,6 +40,7 @@ export interface UseChladniCanvasOptions {
   onMetricsUpdate: (metrics: ChladniMetrics) => void;
   scatterTrigger: number;
   resetTrigger: number;
+  paletteRef?: MutableRefObject<PaletteColors | null>;
 }
 
 /**
@@ -51,6 +54,7 @@ export function useChladniCanvas({
   onMetricsUpdate,
   scatterTrigger,
   resetTrigger,
+  paletteRef,
 }: UseChladniCanvasOptions) {
   const mountRef = useRef<HTMLDivElement>(null);
   const [webglStatus, setWebglStatus] = useState<'pending' | 'available' | 'unavailable'>('pending');
@@ -340,6 +344,7 @@ export function useChladniCanvas({
       lastMetricsTime: lastMetricsTimeRef,
       pointerSimPos: pointerSimPosRef,
       pointerActive: pointerActiveRef,
+      palette: paletteRef,
     };
     const frameState: ChladniFrameState = {
       lastTime: performance.now(),

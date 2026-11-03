@@ -23,12 +23,12 @@ export interface TextMaskLineLayout {
   y: number;
 }
 
-export type TextMaskRepulsorType = 'text' | 'line' | 'card' | 'pill';
+export type TextMaskRepulsorType = 'text' | 'line' | 'card' | 'rect' | 'hole';
 
 export interface TextMaskLayoutEntry {
   el: HTMLElement;
   repulsorType: TextMaskRepulsorType;
-  /** Trimmed text used for the element (empty for line/card/pill). */
+  /** Trimmed text used for the element (empty for line/card/rect). */
   textToRender: string;
   /** family|weight|style|size|letterSpacing|fontVariationSettings. */
   fontKey: string;
@@ -40,7 +40,7 @@ export interface TextMaskLayoutEntry {
   fontVariationSettings: string;
   /** Border box in document coordinates. */
   docRect: DocumentRect;
-  /** Lines in document coordinates; empty for line/card/pill. */
+  /** Lines in document coordinates; empty for line/card/rect. */
   lines: TextMaskLineLayout[];
   /** Identity of the cached offscreen bitmap (empty for non-text entries). */
   bitmapKey: string;

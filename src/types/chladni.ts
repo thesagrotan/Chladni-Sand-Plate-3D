@@ -114,6 +114,10 @@ export interface ChladniParams {
   nodalPronouncement: number;
   simulationEngine: 'gpu' | 'wasm' | 'js_cpu';
 
+  // Cursor Interaction
+  pointerForce: number;  // 0.0 to 4.0 multiplier on the cursor push (default 1.0)
+  pointerRadius: number; // 0.02 to 0.4 cursor influence radius in field space (default 0.12)
+
   // Acoustic Sound & Umbráfono Integration
   audioEnabled: boolean;
   audioSource: AudioSourceType; // 'umbrafono' | 'synth' | 'hybrid'
@@ -190,7 +194,7 @@ export const DEFAULT_PARAMS: ChladniParams = {
 
   modeM: 4.0,
   modeN: 8.0,
-  waveK: 26.0,
+  waveK: 21.25,
   symmetryBlend: 0.6,
   driveStrength: 3.2,
   grainCount: 50_000,
@@ -198,6 +202,10 @@ export const DEFAULT_PARAMS: ChladniParams = {
   fieldOverlay: 0.0,
   nodalPronouncement: 1.0,
   simulationEngine: 'gpu',
+
+  // Cursor Interaction
+  pointerForce: 1.0,
+  pointerRadius: 0.12,
 
   // Acoustic Sound & Umbráfono Integration
   audioEnabled: false,

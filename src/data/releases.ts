@@ -22,7 +22,7 @@ export const RELEASES: Release[] = [
     discogsUrl: 'https://www.discogs.com/search/?q=Enrique%20del%20Castillo%20Umbr%C3%A1fono',
     description:
       "Two pieces for optical sound film, recorded through the studio's stroboscopic 35mm rig. The projected strip is read as a score — dust, exposure and cut become the sound surface.",
-    cover: '/assets/covers/tz-01.svg',
+    cover: '/assets/covers/tz-01.jpg',
     hasAudio: true,
   },
   {
